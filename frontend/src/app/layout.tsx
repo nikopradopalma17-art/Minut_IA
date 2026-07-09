@@ -20,11 +20,11 @@ import { OnboardingProvider } from '@/contexts/OnboardingContext'
 import { OnboardingFlow } from '@/components/onboarding'
 import { loadBetaFeatures } from '@/types/betaFeatures'
 import { DownloadProgressToastProvider } from '@/components/shared/DownloadProgressToast'
-import { UpdateCheckProvider } from '@/components/UpdateCheckProvider'
 import { RecordingPostProcessingProvider } from '@/contexts/RecordingPostProcessingProvider'
 import { ImportAudioDialog, ImportDropOverlay } from '@/components/ImportAudio'
 import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
+import { TranslationProvider } from '@/contexts/TranslationContext'
 
 
 const sourceSans3 = Source_Sans_3({
@@ -231,15 +231,15 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="es">
       <body className={`${sourceSans3.variable} font-sans antialiased`}>
         <AnalyticsProvider>
-          <RecordingStateProvider>
-            <TranscriptProvider>
-              <ConfigProvider>
-                <OllamaDownloadProvider>
-                  <OnboardingProvider>
-                    <UpdateCheckProvider>
+          <TranslationProvider>
+            <RecordingStateProvider>
+              <TranscriptProvider>
+                <ConfigProvider>
+                  <OllamaDownloadProvider>
+                    <OnboardingProvider>
                       <SidebarProvider>
                         <TooltipProvider>
                           <RecordingPostProcessingProvider>
@@ -267,13 +267,13 @@ export default function RootLayout({
                           </RecordingPostProcessingProvider>
                         </TooltipProvider>
                       </SidebarProvider>
-                    </UpdateCheckProvider>
-                  </OnboardingProvider>
+                    </OnboardingProvider>
 
-                </OllamaDownloadProvider>
-              </ConfigProvider>
-            </TranscriptProvider>
-          </RecordingStateProvider>
+                  </OllamaDownloadProvider>
+                </ConfigProvider>
+              </TranscriptProvider>
+            </RecordingStateProvider>
+          </TranslationProvider>
         </AnalyticsProvider>
 
         <Toaster position="bottom-center" richColors closeButton />

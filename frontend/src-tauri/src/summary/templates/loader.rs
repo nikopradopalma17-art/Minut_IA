@@ -24,7 +24,7 @@ pub fn set_bundled_templates_dir(path: PathBuf) {
 /// - Linux: ~/.config/Meetily/templates/
 fn get_custom_templates_dir() -> Option<PathBuf> {
     let mut path = dirs::data_dir()?;
-    path.push("Meetily");
+    path.push("MinutIA");
     path.push("templates");
     Some(path)
 }
@@ -242,6 +242,7 @@ mod tests {
         let ids = list_template_ids();
         assert!(ids.contains(&"daily_standup".to_string()));
         assert!(ids.contains(&"standard_meeting".to_string()));
+        assert!(ids.contains(&"minuta_corporativa".to_string()));
     }
 
     #[test]

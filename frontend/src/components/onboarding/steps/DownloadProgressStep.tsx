@@ -5,6 +5,7 @@ import { Mic, Sparkles, Check, Loader2, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { OnboardingContainer } from '../OnboardingContainer';
 import { useOnboarding } from '@/contexts/OnboardingContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSummaryModelSizeLabel, getSummaryModelSizeMb } from '@/lib/onboarding-summary-model';
@@ -58,6 +59,7 @@ export function DownloadProgressStep() {
   const summaryDownloadStartedRef = useRef(false);
   const retryingRef = useRef(false);
   const retryingSummaryRef = useRef(false);
+  const { t } = useTranslation();
 
   // Retry download handler
   const handleRetryDownload = async () => {
@@ -91,8 +93,8 @@ export function DownloadProgressStep() {
         error: error instanceof Error ? error.message : 'Retry failed',
       }));
 
-      toast.error('Download retry failed', {
-        description: 'Please check your connection and try again.',
+      toast.error(t('onboarding.download.retry_failed'), {
+        description: t('onboarding.download.retry_failed_desc'),
       });
     } finally {
       // Allow retry again after 2 seconds
@@ -139,8 +141,8 @@ export function DownloadProgressStep() {
         error: error instanceof Error ? error.message : 'Retry failed',
       }));
 
-      toast.error('Summary model download retry failed', {
-        description: 'Please check your connection and try again.',
+      toast.error(t('onboarding.download.retry_failed'), {
+        description: t('onboarding.download.retry_failed_desc'),
       });
     } finally {
       // Allow retry again after 2 seconds
@@ -343,8 +345,8 @@ export function DownloadProgressStep() {
           progress: 100,
         }));
       } else if (!actuallyAvailable && parakeetState.status === 'error') {
-        toast.error('Transcription engine required', {
-          description: 'Please retry the download before continuing.',
+        toast.error(t('onboarding.download.transcription_required'), {
+          description: t('onboarding.download.transcription_required_desc'),
         });
         return;
       }
@@ -358,8 +360,8 @@ export function DownloadProgressStep() {
 
     // Show toast if downloads still in progress
     if (!downloadsComplete) {
-      toast.info('Downloads will continue in the background', {
-        description: 'You can start using the app. Recording will be available once speech recognition is ready.',
+      toast.info(t('onboarding.download.background'), {
+        description: t('onboarding.download.background_desc'),
         duration: 5000,
       });
     }
@@ -379,8 +381,8 @@ export function DownloadProgressStep() {
         window.location.reload();
       } catch (error) {
         console.error('Failed to complete onboarding:', error);
-        toast.error('Failed to complete setup', {
-          description: 'Please try again.',
+        toast.error(t('onboarding.download.failed_complete'), {
+          description: t('onboarding.download.failed_complete_desc'),
         });
         setIsCompleting(false);
       }
@@ -388,6 +390,7 @@ export function DownloadProgressStep() {
   };
 
   const renderDownloadCard = (
+    kind: 'transcription' | 'summary',
     title: string,
     icon: React.ReactNode,
     state: DownloadState,
@@ -407,7 +410,7 @@ export function DownloadProgressStep() {
         </div>
         <div>
           {state.status === 'waiting' && (
-            <span className="text-sm text-gray-500">Waiting...</span>
+            <span className="text-sm text-gray-500">{t('onboarding.download.waiting')}</span>
           )}
           {state.status === 'downloading' && (
             <Loader2 className="w-5 h-5 text-gray-700 animate-spin" />
@@ -418,7 +421,7 @@ export function DownloadProgressStep() {
             </div>
           )}
           {state.status === 'error' && (
-            <span className="text-sm text-red-500">Failed</span>
+            <span className="text-sm text-red-500">{t('onboarding.download.failed')}</span>
           )}
         </div>
       </div>
@@ -452,18 +455,18 @@ export function DownloadProgressStep() {
 
       {state.status === 'error' && state.error && (
         <div className="mt-2 p-3 bg-red-50 border border-red-200 rounded-md">
-          <p className="text-sm text-red-600 font-medium">Download Error</p>
+          <p className="text-sm text-red-600 font-medium">{t('onboarding.download.error_title')}</p>
           <p className="text-xs text-red-500 mt-1">{state.error}</p>
-          {(title === 'Transcription Engine' || title === 'Summary Engine') && (
+          {(kind === 'transcription' || kind === 'summary') && (
             <button
-              onClick={title === 'Transcription Engine' ? handleRetryDownload : handleRetrySummaryDownload}
+              onClick={kind === 'transcription' ? handleRetryDownload : handleRetrySummaryDownload}
               className="mt-3 w-full h-9 px-4 bg-gray-900 hover:bg-gray-800 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
-              Try Again
+              {t('onboarding.download.try_again')}
             </button>
           )}
         </div>
@@ -473,8 +476,8 @@ export function DownloadProgressStep() {
 
   return (
     <OnboardingContainer
-      title="Getting things ready"
-      description="You can start using Meetily after downloading the Transcription Engine."
+      title={t('onboarding.download.title')}
+      description={t('onboarding.download.description')}
       step={3}
       totalSteps={isMac ? 4 : 3}
     >
@@ -482,14 +485,16 @@ export function DownloadProgressStep() {
         {/* Download Cards */}
         <div className="w-full max-w-lg space-y-4">
           {renderDownloadCard(
-            'Transcription Engine',
+            'transcription',
+            t('onboarding.download.transcription'),
             <Mic className="w-5 h-5 text-gray-600" />,
             parakeetState,
             '~670 MB'
           )}
 
           {renderDownloadCard(
-            'Summary Engine',
+            'summary',
+            t('onboarding.download.summary'),
             <Sparkles className="w-5 h-5 text-gray-600" />,
             summaryState,
             getSummaryModelSizeLabel(selectedSummaryModel || recommendedSummaryModel),
@@ -510,10 +515,8 @@ export function DownloadProgressStep() {
               <div className="flex items-start gap-3">
                 <Download className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-medium">You can continue while this finishes</p>
-                  <p className="text-gray-700 mt-1">
-                    Download will continue in the background.
-                  </p>
+                  <p className="font-medium">{t('onboarding.download.continue_while')}</p>
+                  <p className="text-gray-700 mt-1">{t('onboarding.download.continue_while_desc')}</p>
                 </div>
               </div>
             </motion.div>
@@ -530,7 +533,7 @@ export function DownloadProgressStep() {
             {(isCompleting || !parakeetDownloaded) ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
             ) : (
-              'Continue'
+              t('onboarding.download.continue')
             )}
           </Button>
         </div>

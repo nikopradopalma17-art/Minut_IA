@@ -5,6 +5,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { DeviceSelection, SelectedDevices } from '@/components/DeviceSelection';
 import Analytics from '@/lib/analytics';
 import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface RecordingPreferences {
   save_folder: string;
@@ -19,6 +20,7 @@ interface RecordingSettingsProps {
 }
 
 export function RecordingSettings({ onSave }: RecordingSettingsProps) {
+  const { language, setLanguage, t } = useTranslation();
   const [preferences, setPreferences] = useState<RecordingPreferences>({
     save_folder: '',
     auto_save: true,
@@ -155,16 +157,34 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-4">Recording Settings</h3>
+        <h3 className="text-lg font-semibold mb-4">{t("settings.title")}</h3>
         <p className="text-sm text-gray-600 mb-6">
-          Configure how your audio recordings are saved during meetings.
+          {t("settings.storage_desc")}
         </p>
+      </div>
+
+      {/* Interface Language Switcher */}
+      <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+        <div className="flex-1">
+          <div className="font-medium">{t("settings.language_label")}</div>
+          <div className="text-sm text-gray-600">
+            {t("settings.language_desc")}
+          </div>
+        </div>
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value as 'es' | 'en')}
+          className="border rounded-md px-3 py-1.5 text-sm bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="es">Español</option>
+          <option value="en">English</option>
+        </select>
       </div>
 
       {/* Auto Save Toggle */}
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div className="flex-1">
-          <div className="font-medium">Save Audio Recordings</div>
+          <div className="font-medium">{t("settings.storage")}</div>
           <div className="text-sm text-gray-600">
             Automatically save audio files when recording stops
           </div>
@@ -216,9 +236,9 @@ export function RecordingSettings({ onSave }: RecordingSettingsProps) {
       {/* Recording Notification Toggle */}
       <div className="flex items-center justify-between p-4 border rounded-lg">
         <div className="flex-1">
-          <div className="font-medium">Recording Start Notification</div>
+          <div className="font-medium">{t("settings.notifications")}</div>
           <div className="text-sm text-gray-600">
-            Show reminder to inform participants when recording starts
+            {t("settings.notifications_desc")}
           </div>
         </div>
         <Switch
