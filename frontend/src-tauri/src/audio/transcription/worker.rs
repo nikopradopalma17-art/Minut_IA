@@ -36,6 +36,7 @@ pub struct TranscriptUpdate {
     pub audio_start_time: f64, // Seconds from recording start (e.g., 125.3)
     pub audio_end_time: f64,   // Seconds from recording start (e.g., 128.6)
     pub duration: f64,          // Segment duration in seconds (e.g., 3.3)
+    pub speaker: Option<String>,
 }
 
 // NOTE: get_transcript_history and get_recording_meeting_name functions
@@ -217,6 +218,10 @@ pub fn start_transcription_task<R: Runtime>(
                                             audio_start_time,
                                             audio_end_time,
                                             duration: chunk_duration,
+                                            speaker: {
+                                                let midpoint = audio_start_time + (audio_end_time - audio_start_time) / 2.0;
+                                                crate::audio::recording_commands::get_active_speaker_at(midpoint)
+                                            },
                                         };
 
                                         if let Err(e) = app_clone.emit("transcript-update", &update)

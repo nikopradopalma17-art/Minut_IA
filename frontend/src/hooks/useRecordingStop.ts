@@ -8,6 +8,7 @@ import { useRecordingState, RecordingStatus } from '@/contexts/RecordingStateCon
 import { storageService } from '@/services/storageService';
 import { transcriptService } from '@/services/transcriptService';
 import Analytics from '@/lib/analytics';
+import { recordingService } from '@/services/recordingService';
 import {
   applyPinnedSummaryLanguageToMeeting,
   detectAndCacheSummaryLanguage,
@@ -295,6 +296,32 @@ export function useRecordingStop(
 
           // Mark meeting as saved in IndexedDB (for recovery system)
           await markMeetingAsSaved();
+
+          const shouldRunDiarization = sessionStorage.getItem('recording_enable_diarization') === 'true';
+          sessionStorage.removeItem('recording_enable_diarization');
+          if (shouldRunDiarization) {
+            try {
+              toast.loading('Identifying speakers...', {
+                id: 'recording-diarization',
+                duration: 0,
+              });
+              const speakerCount = await recordingService.diarizeMeeting(meetingId);
+              toast.success(
+                speakerCount > 0
+                  ? `Identified ${speakerCount + 1} speakers`
+                  : 'Speaker identification complete',
+                {
+                  id: 'recording-diarization',
+                }
+              );
+            } catch (error) {
+              console.warn('Speaker diarization failed:', error);
+              toast.error('Speaker identification failed', {
+                id: 'recording-diarization',
+                description: error instanceof Error ? error.message : 'Unable to identify speakers for this meeting.',
+              });
+            }
+          }
 
           // Clean up session storage
           sessionStorage.removeItem('last_recording_folder_path');

@@ -20,6 +20,7 @@ pub struct TranscriptSegment {
     pub display_time: String,   // Formatted time for display like "[02:15]"
     pub confidence: f32,
     pub sequence_id: u64,
+    pub speaker: Option<String>,
 }
 
 // Simple audio data structure (NO TIMESTAMP - prevents sorting issues)

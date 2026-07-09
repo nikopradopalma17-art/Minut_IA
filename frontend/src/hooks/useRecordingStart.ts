@@ -10,7 +10,7 @@ import { showRecordingNotification } from '@/lib/recordingNotification';
 import { toast } from 'sonner';
 
 interface UseRecordingStartReturn {
-  handleRecordingStart: () => Promise<void>;
+  handleRecordingStart: (enableDiarization?: boolean) => Promise<void>;
   isAutoStarting: boolean;
 }
 
@@ -80,9 +80,10 @@ export function useRecordingStart(
   }, []);
 
   // Handle manual recording start (from button click)
-  const handleRecordingStart = useCallback(async () => {
+  const handleRecordingStart = useCallback(async (enableDiarization: boolean = false) => {
     try {
-      console.log('handleRecordingStart called - checking Parakeet model status');
+      console.log('handleRecordingStart called - checking Parakeet model status, enableDiarization:', enableDiarization);
+      sessionStorage.setItem('recording_enable_diarization', enableDiarization ? 'true' : 'false');
 
       // Check if Parakeet transcription model is ready before starting
       const parakeetReady = await checkParakeetReady();
@@ -119,7 +120,8 @@ export function useRecordingStart(
       await recordingService.startRecordingWithDevices(
         selectedDevices?.micDevice || null,
         selectedDevices?.systemDevice || null,
-        randomTitle
+        randomTitle,
+        enableDiarization
       );
       console.log('Backend recording started successfully');
 
@@ -137,6 +139,7 @@ export function useRecordingStart(
       console.error('Failed to start recording:', error);
       setStatus(RecordingStatus.ERROR, error instanceof Error ? error.message : 'Failed to start recording');
       setIsRecording(false); // Reset state on error
+      sessionStorage.removeItem('recording_enable_diarization');
       Analytics.trackButtonClick('start_recording_error', 'home_page');
       // Re-throw so RecordingControls can handle device-specific errors
       throw error;
@@ -178,6 +181,7 @@ export function useRecordingStart(
 
           // Start the actual backend recording
           try {
+            sessionStorage.setItem('recording_enable_diarization', 'false');
             // Generate meeting title
             const generatedMeetingTitle = generateMeetingTitle();
 
@@ -206,6 +210,7 @@ export function useRecordingStart(
             console.error('Failed to auto-start recording:', error);
             setStatus(RecordingStatus.ERROR, error instanceof Error ? error.message : 'Failed to auto-start recording');
             alert('Failed to start recording. Check console for details.');
+            sessionStorage.removeItem('recording_enable_diarization');
             Analytics.trackButtonClick('start_recording_error', 'sidebar_auto');
           } finally {
             setIsAutoStarting(false);
@@ -265,6 +270,7 @@ export function useRecordingStart(
       }
 
       try {
+        sessionStorage.setItem('recording_enable_diarization', 'false');
         // Generate meeting title
         const generatedMeetingTitle = generateMeetingTitle();
 
@@ -293,6 +299,7 @@ export function useRecordingStart(
         console.error('Failed to start recording from sidebar:', error);
         setStatus(RecordingStatus.ERROR, error instanceof Error ? error.message : 'Failed to start recording from sidebar');
         alert('Failed to start recording. Check console for details.');
+        sessionStorage.removeItem('recording_enable_diarization');
         Analytics.trackButtonClick('start_recording_error', 'sidebar_direct');
       } finally {
         setIsAutoStarting(false);

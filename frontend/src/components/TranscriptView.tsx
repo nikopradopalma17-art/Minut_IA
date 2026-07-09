@@ -6,6 +6,7 @@ import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { RecordingStatusBar } from './RecordingStatusBar';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatSpeakerLabel } from '@/lib/speakerLabels';
 
 interface TranscriptViewProps {
   transcripts: Transcript[];
@@ -265,6 +266,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
         const textToShow = isStreaming ? streamingTranscript.visibleText : transcript.text;
         // Clean up text for display - remove repetitions and filler words
         const filteredText = cleanStopWords(textToShow);
+        const speakerLabel = formatSpeakerLabel(transcript.speaker);
         // Show [Silence] ONLY if the ORIGINAL transcript was empty (not just after filtering)
         const originalWasEmpty = transcript.text.trim() === '';
         const displayText = originalWasEmpty && !isStreaming ? '[Silence]' : filteredText;
@@ -305,6 +307,13 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
                 </TooltipContent>
               </Tooltip>
               <div className="flex-1">
+                {speakerLabel && (
+                  <div className="mb-1">
+                    <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
+                      {speakerLabel}
+                    </span>
+                  </div>
+                )}
                 {isStreaming ? (
                   // Streaming transcript - show in bubble (full width)
                   <div className="bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
@@ -370,8 +379,8 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
             </>
           ) : (
             <>
-              <p className="text-lg font-semibold">Welcome to meetily!</p>
-              <p className="text-xs mt-1">Start recording to see live transcription</p>
+              <p className="text-lg font-semibold">¡Bienvenido a MinutIA!</p>
+              <p className="text-xs mt-1">Empieza a grabar para ver la transcripción en vivo</p>
             </>
           )}
         </motion.div>

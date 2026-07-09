@@ -6,9 +6,10 @@ use tauri_plugin_store::StoreExt;
 
 use crate::{
     database::{
-        models::MeetingModel,
+        models::{CommitmentWithMeetingModel, MeetingModel},
         repositories::{
-            meeting::MeetingsRepository, setting::SettingsRepository,
+            commitment::CommitmentsRepository, meeting::MeetingsRepository,
+            setting::SettingsRepository,
             transcript::TranscriptsRepository,
         },
     },
@@ -30,6 +31,46 @@ pub struct ApiResponse<T> {
 pub struct Meeting {
     pub id: String,
     pub title: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DashboardStats {
+    pub meetings_count: i64,
+    pub summaries_count: i64,
+    pub pending_commitments: i64,
+    pub latest_meeting_title: Option<String>,
+    pub latest_meeting_created_at: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CommitmentItem {
+    pub id: String,
+    pub meeting_id: String,
+    pub meeting_title: String,
+    pub responsible: Option<String>,
+    pub description: String,
+    pub due_date: Option<String>,
+    pub status: String,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+impl From<CommitmentWithMeetingModel> for CommitmentItem {
+    fn from(value: CommitmentWithMeetingModel) -> Self {
+        Self {
+            id: value.id,
+            meeting_id: value.meeting_id,
+            meeting_title: value.meeting_title,
+            responsible: value.responsible,
+            description: value.description,
+            due_date: value.due_date,
+            status: value.status,
+            created_at: value.created_at.0.to_rfc3339(),
+            updated_at: value.updated_at.0.to_rfc3339(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -137,6 +178,8 @@ pub struct MeetingTranscript {
     pub audio_end_time: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaker: Option<String>,
 }
 
 /// Meeting metadata without transcripts (for pagination)
@@ -188,6 +231,8 @@ pub struct TranscriptSegment {
     pub audio_end_time: Option<f64>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub duration: Option<f64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub speaker: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -341,6 +386,8 @@ pub async fn api_get_meetings<R: Runtime>(
                 .map(|m| Meeting {
                     id: m.id,
                     title: m.title,
+                    created_at: m.created_at.0.to_rfc3339(),
+                    updated_at: m.updated_at.0.to_rfc3339(),
                 })
                 .collect();
             Ok(result)
@@ -350,6 +397,109 @@ pub async fn api_get_meetings<R: Runtime>(
             Err(e.to_string())
         }
     }
+}
+
+#[tauri::command]
+pub async fn api_get_dashboard_stats<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+) -> Result<DashboardStats, String> {
+    log_info!("api_get_dashboard_stats called");
+
+    let pool = state.db_manager.pool();
+
+    let meetings_count: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM meetings")
+        .fetch_one(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let summaries_count: (i64,) = sqlx::query_as(
+        "SELECT COUNT(*) FROM summary_processes WHERE LOWER(status) = 'completed'",
+    )
+    .fetch_one(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let pending_commitments = CommitmentsRepository::count_pending_commitments(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let latest_meeting = sqlx::query_as::<_, MeetingModel>(
+        "SELECT id, title, created_at, updated_at, folder_path FROM meetings ORDER BY created_at DESC LIMIT 1",
+    )
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    let stats = DashboardStats {
+        meetings_count: meetings_count.0,
+        summaries_count: summaries_count.0,
+        pending_commitments,
+        latest_meeting_title: latest_meeting.as_ref().map(|meeting| meeting.title.clone()),
+        latest_meeting_created_at: latest_meeting
+            .as_ref()
+            .map(|meeting| meeting.created_at.0.to_rfc3339()),
+    };
+
+    Ok(stats)
+}
+
+#[tauri::command]
+pub async fn api_get_commitments<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<CommitmentItem>, String> {
+    log_info!("api_get_commitments called");
+
+    let pool = state.db_manager.pool();
+    let commitments = CommitmentsRepository::list_commitments(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(commitments.into_iter().map(CommitmentItem::from).collect())
+}
+
+#[tauri::command]
+pub async fn api_get_meeting_commitments<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    meeting_id: String,
+) -> Result<Vec<CommitmentItem>, String> {
+    log_info!("api_get_meeting_commitments called for meeting_id: {}", meeting_id);
+
+    let pool = state.db_manager.pool();
+    let commitments = CommitmentsRepository::list_commitments_for_meeting(pool, &meeting_id)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(commitments.into_iter().map(CommitmentItem::from).collect())
+}
+
+#[tauri::command]
+pub async fn api_update_commitment_status<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    commitment_id: String,
+    status: String,
+) -> Result<serde_json::Value, String> {
+    log_info!(
+        "api_update_commitment_status called for commitment_id: {}, status: {}",
+        commitment_id,
+        status
+    );
+
+    let pool = state.db_manager.pool();
+    let updated = CommitmentsRepository::update_commitment_status(pool, &commitment_id, &status)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if !updated {
+        return Err(format!("Commitment not found: {}", commitment_id));
+    }
+
+    Ok(serde_json::json!({
+        "message": "Commitment status updated successfully"
+    }))
 }
 
 #[tauri::command]
@@ -878,6 +1028,7 @@ pub async fn api_get_meeting_transcripts<R: Runtime>(
                     audio_start_time: t.audio_start_time,
                     audio_end_time: t.audio_end_time,
                     duration: t.duration,
+                    speaker: t.speaker,
                 })
                 .collect::<Vec<_>>();
 

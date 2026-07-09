@@ -22,6 +22,11 @@ export interface RecordingStoppedPayload {
   meeting_name?: string;
 }
 
+export interface SpeakerNameEntry {
+  speaker_id: string;
+  display_name: string;
+}
+
 /**
  * Recording Service
  * Singleton service for managing recording lifecycle operations
@@ -55,8 +60,8 @@ export class RecordingService {
    * Start recording (no device configuration)
    * @returns Promise<void>
    */
-  async startRecording(): Promise<void> {
-    return invoke('start_recording');
+  async startRecording(enableDiarization: boolean = false): Promise<void> {
+    return invoke('start_recording', { enable_diarization: enableDiarization });
   }
 
   /**
@@ -64,17 +69,20 @@ export class RecordingService {
    * @param micDeviceName - Microphone device name (null for default)
    * @param systemDeviceName - System audio device name (null for none)
    * @param meetingName - Meeting name/title
+   * @param enableDiarization - Whether active speaker identification is enabled
    * @returns Promise<void>
    */
   async startRecordingWithDevices(
     micDeviceName: string | null,
     systemDeviceName: string | null,
-    meetingName: string
+    meetingName: string,
+    enableDiarization: boolean = false
   ): Promise<void> {
     return invoke('start_recording_with_devices_and_meeting', {
       mic_device_name: micDeviceName,
       system_device_name: systemDeviceName,
-      meeting_name: meetingName
+      meeting_name: meetingName,
+      enable_diarization: enableDiarization
     });
   }
 
@@ -86,6 +94,37 @@ export class RecordingService {
   async stopRecording(savePath: string): Promise<void> {
     return invoke('stop_recording', {
       args: { save_path: savePath }
+    });
+  }
+
+  /**
+   * Run local speaker diarization for a saved meeting
+   * @param meetingId - Meeting database identifier
+   * @returns Promise<number> number of discovered non-mic speakers
+   */
+  async diarizeMeeting(meetingId: string): Promise<number> {
+    return invoke<number>('diarize_meeting', { meeting_id: meetingId });
+  }
+
+  /**
+   * Get the persisted display names for a meeting's speakers
+   */
+  async listSpeakerNames(meetingId: string): Promise<SpeakerNameEntry[]> {
+    return invoke<SpeakerNameEntry[]>('list_speaker_names', { meeting_id: meetingId });
+  }
+
+  /**
+   * Rename a speaker within a meeting
+   */
+  async renameSpeaker(
+    meetingId: string,
+    speakerId: string,
+    displayName: string
+  ): Promise<void> {
+    return invoke('rename_speaker', {
+      meeting_id: meetingId,
+      speaker_id: speakerId,
+      display_name: displayName,
     });
   }
 

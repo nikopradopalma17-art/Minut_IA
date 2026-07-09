@@ -189,6 +189,40 @@ impl ProfessionalAudioMixer {
     }
 }
 
+#[derive(Debug, Clone)]
+struct SpeakerEnergyWindow {
+    start_seconds: f64,
+    end_seconds: f64,
+    mic_rms: f32,
+    sys_rms: f32,
+    speaker: Option<String>,
+}
+
+fn rms(samples: &[f32]) -> f32 {
+    if samples.is_empty() {
+        return 0.0;
+    }
+
+    (samples.iter().map(|sample| sample * sample).sum::<f32>() / samples.len() as f32).sqrt()
+}
+
+fn classify_window_speaker(mic_rms: f32, sys_rms: f32) -> Option<String> {
+    const SILENCE_EPSILON: f32 = 0.0001;
+    const RATIO_THRESHOLD: f32 = 1.5;
+
+    if mic_rms <= SILENCE_EPSILON && sys_rms <= SILENCE_EPSILON {
+        None
+    } else if mic_rms >= sys_rms * RATIO_THRESHOLD {
+        Some("mic".to_string())
+    } else if sys_rms >= mic_rms * RATIO_THRESHOLD {
+        Some("system".to_string())
+    } else if mic_rms >= sys_rms {
+        Some("mic".to_string())
+    } else {
+        Some("system".to_string())
+    }
+}
+
 /// Simplified audio capture without broadcast channels
 #[derive(Clone)]
 pub struct AudioCapture {
@@ -692,6 +726,8 @@ pub struct AudioPipeline {
     // PROFESSIONAL AUDIO MIXING: Ring buffer + RMS-based mixer
     ring_buffer: AudioMixerRingBuffer,
     mixer: ProfessionalAudioMixer,
+    speaker_timeline: VecDeque<SpeakerEnergyWindow>,
+    speaker_cursor_seconds: f64,
     // Recording sender for pre-mixed audio
     recording_sender_for_mixed: Option<mpsc::UnboundedSender<AudioChunk>>,
 }
@@ -759,6 +795,8 @@ impl AudioPipeline {
             // Initialize professional audio mixing
             ring_buffer,
             mixer,
+            speaker_timeline: VecDeque::with_capacity(64),
+            speaker_cursor_seconds: 0.0,
             recording_sender_for_mixed: None,  // Will be set by manager
         }
     }
@@ -822,6 +860,34 @@ impl AudioPipeline {
                     // STEP 2: Mix audio in fixed windows when both streams have sufficient data
                     while self.ring_buffer.can_mix() {
                         if let Some((mic_window, sys_window)) = self.ring_buffer.extract_window() {
+                            let window_duration_seconds = mic_window
+                                .len()
+                                .max(sys_window.len()) as f64 / self.sample_rate as f64;
+                            let window_start_seconds = self.speaker_cursor_seconds;
+                            let window_end_seconds = window_start_seconds + window_duration_seconds;
+                            let mic_rms = rms(&mic_window);
+                            let sys_rms = rms(&sys_window);
+                            let speaker = classify_window_speaker(mic_rms, sys_rms);
+
+                            self.speaker_timeline.push_back(SpeakerEnergyWindow {
+                                start_seconds: window_start_seconds,
+                                end_seconds: window_end_seconds,
+                                mic_rms,
+                                sys_rms,
+                                speaker: speaker.clone(),
+                            });
+                            while self.speaker_timeline.len() > 64 {
+                                self.speaker_timeline.pop_front();
+                            }
+
+                            crate::audio::recording_commands::record_active_speaker_window(
+                                window_start_seconds,
+                                window_end_seconds,
+                                mic_rms,
+                                sys_rms,
+                            );
+                            self.speaker_cursor_seconds = window_end_seconds;
+
                             // Simple mixing without aggressive ducking
                             let mixed_clean = self.mixer.mix_window(&mic_window, &sys_window);
 

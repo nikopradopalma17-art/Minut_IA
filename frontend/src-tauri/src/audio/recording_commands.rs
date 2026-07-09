@@ -6,6 +6,7 @@
 use anyhow::Result;
 use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Arc, Mutex,
@@ -44,6 +45,117 @@ static TRANSCRIPTION_TASK: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
 
 // Listener ID for proper cleanup - prevents microphone from staying active after recording stops
 static TRANSCRIPT_LISTENER_ID: Mutex<Option<tauri::EventId>> = Mutex::new(None);
+
+static SCREENSHOT_TASK: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
+
+#[derive(Debug, Clone)]
+struct EnergyWindow {
+    start_seconds: f64,
+    end_seconds: f64,
+    mic_rms: f32,
+    sys_rms: f32,
+    speaker: Option<String>,
+}
+
+static ACTIVE_SPEAKER_WINDOWS: Mutex<VecDeque<EnergyWindow>> = Mutex::new(VecDeque::new());
+static ENABLE_DIARIZATION: AtomicBool = AtomicBool::new(false);
+
+const ENERGY_WINDOW_HISTORY_LIMIT: usize = 256;
+const SPEAKER_RATIO_THRESHOLD: f32 = 1.5;
+const SILENCE_RMS_EPSILON: f32 = 0.0001;
+
+pub fn set_enable_diarization(val: bool) {
+    ENABLE_DIARIZATION.store(val, Ordering::SeqCst);
+    info!("Set ENABLE_DIARIZATION to: {}", val);
+}
+
+pub fn is_diarization_enabled() -> bool {
+    ENABLE_DIARIZATION.load(Ordering::SeqCst)
+}
+
+fn classify_speaker_from_energy(mic_rms: f32, sys_rms: f32) -> Option<String> {
+    if mic_rms <= SILENCE_RMS_EPSILON && sys_rms <= SILENCE_RMS_EPSILON {
+        return None;
+    }
+
+    if mic_rms >= sys_rms * SPEAKER_RATIO_THRESHOLD {
+        Some("mic".to_string())
+    } else if sys_rms >= mic_rms * SPEAKER_RATIO_THRESHOLD {
+        Some("system".to_string())
+    } else if mic_rms >= sys_rms {
+        Some("mic".to_string())
+    } else {
+        Some("system".to_string())
+    }
+}
+
+fn prune_active_speaker_windows(timeline: &mut VecDeque<EnergyWindow>) {
+    while timeline.len() > ENERGY_WINDOW_HISTORY_LIMIT {
+        timeline.pop_front();
+    }
+}
+
+pub fn reset_active_speaker_timeline() {
+    let mut timeline = ACTIVE_SPEAKER_WINDOWS.lock().unwrap();
+    timeline.clear();
+}
+
+pub fn clear_active_speaker_timeline_for_tests() {
+    reset_active_speaker_timeline();
+}
+
+pub fn record_active_speaker_window(
+    start_seconds: f64,
+    end_seconds: f64,
+    mic_rms: f32,
+    sys_rms: f32,
+) {
+    if !is_diarization_enabled() {
+        return;
+    }
+
+    let speaker = classify_speaker_from_energy(mic_rms, sys_rms);
+    let mut timeline = ACTIVE_SPEAKER_WINDOWS.lock().unwrap();
+    timeline.push_back(EnergyWindow {
+        start_seconds,
+        end_seconds,
+        mic_rms,
+        sys_rms,
+        speaker,
+    });
+    prune_active_speaker_windows(&mut timeline);
+}
+
+pub fn get_active_speaker_at(timestamp: f64) -> Option<String> {
+    if !is_diarization_enabled() {
+        return None;
+    }
+
+    let timeline = ACTIVE_SPEAKER_WINDOWS.lock().unwrap();
+    if timeline.is_empty() {
+        return None;
+    }
+
+    for window in timeline.iter().rev() {
+        if timestamp >= window.start_seconds && timestamp < window.end_seconds {
+            return window.speaker.clone();
+        }
+    }
+
+    let mut closest_speaker: Option<String> = None;
+    let mut min_diff = f64::MAX;
+
+    for window in timeline.iter() {
+        let midpoint = window.start_seconds + ((window.end_seconds - window.start_seconds) / 2.0);
+        let diff = (midpoint - timestamp).abs();
+        if diff < min_diff && diff < 8.0 {
+            min_diff = diff;
+            closest_speaker = window.speaker.clone();
+        }
+    }
+
+    closest_speaker
+}
 
 // ============================================================================
 // PUBLIC TYPES
@@ -249,6 +361,7 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
     IS_RECORDING.store(true, Ordering::SeqCst);
     drop(engine_lifecycle_guard);
     reset_speech_detected_flag(); // Reset for new recording session
+    reset_active_speaker_timeline();
 
     // Start optimized parallel transcription task and store handle
     let task_handle = transcription::start_transcription_task(app.clone(), transcription_receiver);
@@ -275,6 +388,7 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
                     display_time: update.timestamp.clone(), // Use wall-clock timestamp for display
                     confidence: update.confidence,
                     sequence_id: update.sequence_id,
+                    speaker: update.speaker.clone(),
                 };
 
                 // Save to recording manager
@@ -420,6 +534,7 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
     IS_RECORDING.store(true, Ordering::SeqCst);
     drop(engine_lifecycle_guard);
     reset_speech_detected_flag(); // Reset for new recording session
+    reset_active_speaker_timeline();
 
     // Start optimized parallel transcription task and store handle
     let task_handle = transcription::start_transcription_task(app.clone(), transcription_receiver);
@@ -446,6 +561,7 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
                     display_time: update.timestamp.clone(), // Use wall-clock timestamp for display
                     confidence: update.confidence,
                     sequence_id: update.sequence_id,
+                    speaker: update.speaker.clone(),
                 };
 
                 // Save to recording manager
@@ -534,8 +650,15 @@ pub async fn stop_recording<R: Runtime>(
         }
     }
 
-    // Step 1.5: Clean up transcript listener to release microphone
-    // Unlisten transcript-update event to prevent lingering references
+    // Step 1.5: Clean up speaker timeline and transcript listener to release microphone
+    {
+        let mut global_task = SCREENSHOT_TASK.lock().unwrap();
+        if let Some(task) = global_task.take() {
+            task.abort();
+            info!("📸 Screenshot capture loop task aborted");
+        }
+    }
+
     {
         use tauri::Listener;
         if let Some(listener_id) = TRANSCRIPT_LISTENER_ID.lock().unwrap().take() {

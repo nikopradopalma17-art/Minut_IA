@@ -3,10 +3,12 @@
 import { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
-import { Copy, FolderOpen, RefreshCw } from 'lucide-react';
+import { Copy, FolderOpen, RefreshCw, Users } from 'lucide-react';
 import Analytics from '@/lib/analytics';
 import { RetranscribeDialog } from './RetranscribeDialog';
 import { useConfig } from '@/contexts/ConfigContext';
+import { recordingService } from '@/services/recordingService';
+import { toast } from 'sonner';
 
 
 interface TranscriptButtonGroupProps {
@@ -29,6 +31,7 @@ export function TranscriptButtonGroup({
 }: TranscriptButtonGroupProps) {
   const { betaFeatures } = useConfig();
   const [showRetranscribeDialog, setShowRetranscribeDialog] = useState(false);
+  const [isDiarizing, setIsDiarizing] = useState(false);
 
   const handleRetranscribeComplete = useCallback(async () => {
     // Refetch transcripts to show the updated data
@@ -36,6 +39,41 @@ export function TranscriptButtonGroup({
       await onRefetchTranscripts();
     }
   }, [onRefetchTranscripts]);
+
+  const handleDiarizeMeeting = useCallback(async () => {
+    if (!meetingId || !meetingFolderPath || isDiarizing) {
+      return;
+    }
+
+    setIsDiarizing(true);
+    toast.loading('Identifying speakers...', {
+      id: 'meeting-diarization',
+      duration: 0,
+    });
+
+    try {
+      const speakerCount = await recordingService.diarizeMeeting(meetingId);
+
+      toast.success(
+        speakerCount > 0
+          ? `Identified ${speakerCount + 1} speakers`
+          : 'Speaker identification complete',
+        { id: 'meeting-diarization' }
+      );
+
+      if (onRefetchTranscripts) {
+        await onRefetchTranscripts();
+      }
+    } catch (error) {
+      console.error('Failed to diarize meeting:', error);
+      toast.error('Speaker identification failed', {
+        id: 'meeting-diarization',
+        description: error instanceof Error ? error.message : 'Unable to identify speakers for this meeting.',
+      });
+    } finally {
+      setIsDiarizing(false);
+    }
+  }, [meetingId, meetingFolderPath, isDiarizing, onRefetchTranscripts]);
 
   return (
     <div className="flex items-center justify-center w-full gap-2">
@@ -81,6 +119,23 @@ export function TranscriptButtonGroup({
           >
             <RefreshCw className="xl:mr-2" size={18} />
             <span className="hidden lg:inline">Enhance</span>
+          </Button>
+        )}
+
+        {meetingId && meetingFolderPath && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-blue-200 xl:px-4"
+            onClick={() => {
+              Analytics.trackButtonClick('identify_speakers', 'meeting_details');
+              void handleDiarizeMeeting();
+            }}
+            disabled={isDiarizing}
+            title="Identify and cluster speakers locally"
+          >
+            <Users className="xl:mr-2" size={18} />
+            <span className="hidden lg:inline">Speakers</span>
           </Button>
         )}
       </ButtonGroup>

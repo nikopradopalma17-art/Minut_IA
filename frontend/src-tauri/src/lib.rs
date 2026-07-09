@@ -40,6 +40,7 @@ pub mod api;
 pub mod audio;
 pub mod config;
 pub mod console_utils;
+pub mod diarization;
 pub mod database;
 pub mod notifications;
 pub mod ollama;
@@ -86,18 +87,22 @@ async fn start_recording<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
     meeting_name: Option<String>,
+    enable_diarization: Option<bool>,
 ) -> Result<(), String> {
     log_info!("🔥 CALLED start_recording with meeting: {:?}", meeting_name);
     log_info!(
-        "📋 Backend received parameters - mic: {:?}, system: {:?}, meeting: {:?}",
+        "📋 Backend received parameters - mic: {:?}, system: {:?}, meeting: {:?}, enable_diarization: {:?}",
         mic_device_name,
         system_device_name,
-        meeting_name
+        meeting_name,
+        enable_diarization
     );
 
     if is_recording().await {
         return Err("Recording already in progress".to_string());
     }
+
+    audio::recording_commands::set_enable_diarization(enable_diarization.unwrap_or(false));
 
     // Call the actual audio recording system with meeting name
     match audio::recording_commands::start_recording_with_devices_and_meeting(
@@ -300,7 +305,7 @@ async fn start_recording_with_devices<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
 ) -> Result<(), String> {
-    start_recording_with_devices_and_meeting(app, mic_device_name, system_device_name, None).await
+    start_recording_with_devices_and_meeting(app, mic_device_name, system_device_name, None, None).await
 }
 
 #[tauri::command]
@@ -309,9 +314,12 @@ async fn start_recording_with_devices_and_meeting<R: Runtime>(
     mic_device_name: Option<String>,
     system_device_name: Option<String>,
     meeting_name: Option<String>,
+    enable_diarization: Option<bool>,
 ) -> Result<(), String> {
-    log_info!("🚀 CALLED start_recording_with_devices_and_meeting - Mic: {:?}, System: {:?}, Meeting: {:?}",
-             mic_device_name, system_device_name, meeting_name);
+    log_info!("🚀 CALLED start_recording_with_devices_and_meeting - Mic: {:?}, System: {:?}, Meeting: {:?}, enable_diarization: {:?}",
+             mic_device_name, system_device_name, meeting_name, enable_diarization);
+
+    audio::recording_commands::set_enable_diarization(enable_diarization.unwrap_or(false));
 
     // Clone meeting_name for notification use later
     let meeting_name_for_notification = meeting_name.clone();
@@ -409,7 +417,6 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
-        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(whisper_engine::parallel_commands::ParallelProcessorState::new())
         .manage(Arc::new(RwLock::new(
@@ -631,6 +638,10 @@ pub fn run() {
             anthropic::anthropic::get_anthropic_models,
             groq::groq::get_groq_models,
             api::api_get_meetings,
+            api::api_get_dashboard_stats,
+            api::api_get_commitments,
+            api::api_get_meeting_commitments,
+            api::api_update_commitment_status,
             api::api_search_transcripts,
             api::api_get_profile,
             api::api_save_profile,
@@ -742,6 +753,10 @@ pub fn run() {
             audio::retranscription::start_retranscription_command,
             audio::retranscription::cancel_retranscription_command,
             audio::retranscription::is_retranscription_in_progress_command,
+            // Speaker diarization commands
+            diarization::diarize_meeting,
+            diarization::rename_speaker,
+            diarization::list_speaker_names,
             // Import audio commands
             audio::import::select_and_validate_audio_command,
             audio::import::validate_audio_file_command,
