@@ -1,6 +1,7 @@
 use crate::database::repositories::{
     commitment::CommitmentsRepository, meeting::MeetingsRepository,
-    setting::SettingsRepository, summary::SummaryProcessesRepository,
+    search::SearchRepository, setting::SettingsRepository,
+    summary::SummaryProcessesRepository,
 };
 use crate::summary::llm_client::LLMProvider;
 use crate::summary::language_detection::detect_summary_language;
@@ -597,6 +598,9 @@ impl SummaryService {
                             meeting_id
                         );
                     }
+
+                    // Keep the FTS search index in sync (no-op without FTS5)
+                    SearchRepository::index_summary(&pool, &meeting_id, &final_markdown).await;
 
                     info!(
                         "Summary saved successfully for meeting_id: {}",

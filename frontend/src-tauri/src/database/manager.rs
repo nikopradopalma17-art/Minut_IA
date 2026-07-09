@@ -6,6 +6,7 @@ use tauri::Manager;
 #[derive(Clone)]
 pub struct DatabaseManager {
     pool: SqlitePool,
+    fts_available: bool,
 }
 
 impl DatabaseManager {
@@ -34,7 +35,106 @@ impl DatabaseManager {
 
         sqlx::migrate!("./migrations").run(&pool).await?;
 
-        Ok(DatabaseManager { pool })
+        // Full-text search index lives outside sqlx migrations on purpose:
+        // FTS5 may be missing from the bundled SQLite, and a failed
+        // migration would block app startup. Probe first, degrade to LIKE.
+        let fts_available = Self::init_search_index(&pool).await;
+
+        Ok(DatabaseManager {
+            pool,
+            fts_available,
+        })
+    }
+
+    /// Probe FTS5 support and (when available) create the search index,
+    /// its transcript triggers, and backfill existing content. Idempotent.
+    /// Returns whether FTS-backed search can be used this session.
+    async fn init_search_index(pool: &SqlitePool) -> bool {
+        // Probe: creating a scratch virtual table fails when FTS5 is absent
+        let probe = sqlx::query("CREATE VIRTUAL TABLE IF NOT EXISTS __fts5_probe USING fts5(x)")
+            .execute(pool)
+            .await;
+        if let Err(e) = probe {
+            log::warn!("FTS5 unavailable, smart search will use LIKE fallback: {}", e);
+            return false;
+        }
+        let _ = sqlx::query("DROP TABLE IF EXISTS __fts5_probe").execute(pool).await;
+
+        let statements = [
+            r#"CREATE VIRTUAL TABLE IF NOT EXISTS search_fts USING fts5(
+                content,
+                meeting_id UNINDEXED,
+                source UNINDEXED,
+                source_id UNINDEXED,
+                tokenize='unicode61 remove_diacritics 2'
+            )"#,
+            r#"CREATE TRIGGER IF NOT EXISTS transcripts_fts_insert
+               AFTER INSERT ON transcripts BEGIN
+                 INSERT INTO search_fts(content, meeting_id, source, source_id)
+                 VALUES (NEW.transcript, NEW.meeting_id, 'transcript', NEW.id);
+               END"#,
+            r#"CREATE TRIGGER IF NOT EXISTS transcripts_fts_delete
+               AFTER DELETE ON transcripts BEGIN
+                 DELETE FROM search_fts WHERE source = 'transcript' AND source_id = OLD.id;
+               END"#,
+            r#"CREATE TRIGGER IF NOT EXISTS transcripts_fts_update
+               AFTER UPDATE OF transcript ON transcripts BEGIN
+                 DELETE FROM search_fts WHERE source = 'transcript' AND source_id = OLD.id;
+                 INSERT INTO search_fts(content, meeting_id, source, source_id)
+                 VALUES (NEW.transcript, NEW.meeting_id, 'transcript', NEW.id);
+               END"#,
+        ];
+
+        for statement in statements {
+            if let Err(e) = sqlx::query(statement).execute(pool).await {
+                log::warn!("Failed to initialize search index, falling back to LIKE: {}", e);
+                return false;
+            }
+        }
+
+        // One-time backfill: only when the index is empty but content exists
+        let backfill = async {
+            let (indexed,): (i64,) = sqlx::query_as("SELECT COUNT(*) FROM search_fts")
+                .fetch_one(pool)
+                .await?;
+            if indexed > 0 {
+                return Ok::<(), sqlx::Error>(());
+            }
+
+            sqlx::query(
+                r#"INSERT INTO search_fts(content, meeting_id, source, source_id)
+                   SELECT transcript, meeting_id, 'transcript', id
+                   FROM transcripts
+                   WHERE transcript IS NOT NULL AND transcript != ''"#,
+            )
+            .execute(pool)
+            .await?;
+
+            // Completed summaries: result is a JSON envelope { markdown, ... }
+            sqlx::query(
+                r#"INSERT INTO search_fts(content, meeting_id, source, source_id)
+                   SELECT json_extract(result, '$.markdown'), meeting_id, 'summary', meeting_id
+                   FROM summary_processes
+                   WHERE status = 'completed'
+                     AND json_extract(result, '$.markdown') IS NOT NULL"#,
+            )
+            .execute(pool)
+            .await?;
+
+            Ok(())
+        };
+
+        if let Err(e) = backfill.await {
+            log::warn!("Search index backfill failed (search stays FTS-enabled): {}", e);
+        }
+
+        log::info!("FTS5 search index ready");
+        true
+    }
+
+    /// Whether FTS5-backed smart search is available this session
+    pub fn fts_available(&self) -> bool {
+        self.fts_available
     }
 
     // NOTE: So for the first time users they needs to start the application

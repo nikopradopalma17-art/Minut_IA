@@ -639,6 +639,7 @@ pub fn run() {
             groq::groq::get_groq_models,
             api::api_get_meetings,
             api::api_get_dashboard_stats,
+            api::api_smart_search,
             api::api_get_commitments,
             api::api_get_meeting_commitments,
             api::api_update_commitment_status,

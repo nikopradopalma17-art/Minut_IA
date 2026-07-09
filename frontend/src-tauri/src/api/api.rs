@@ -9,6 +9,7 @@ use crate::{
         models::{CommitmentWithMeetingModel, MeetingModel},
         repositories::{
             commitment::CommitmentsRepository, meeting::MeetingsRepository,
+            search::{SearchRepository, SmartSearchResults},
             setting::SettingsRepository,
             transcript::TranscriptsRepository,
         },
@@ -442,6 +443,28 @@ pub async fn api_get_dashboard_stats<R: Runtime>(
     };
 
     Ok(stats)
+}
+
+/// Smart search across meetings, transcripts, summaries and commitments.
+/// Understands light intent ("compromisos de Juan", "vencen esta semana")
+/// and uses FTS5 when the index is available, LIKE otherwise.
+#[tauri::command]
+pub async fn api_smart_search<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    query: String,
+) -> Result<SmartSearchResults, String> {
+    log_info!("api_smart_search called");
+
+    let pool = state.db_manager.pool();
+    let fts_available = state.db_manager.fts_available();
+
+    SearchRepository::smart_search(pool, &query, fts_available)
+        .await
+        .map_err(|e| {
+            log_error!("Smart search failed: {}", e);
+            e.to_string()
+        })
 }
 
 #[tauri::command]
