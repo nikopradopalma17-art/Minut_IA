@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
@@ -75,6 +75,7 @@ function startOfToday() {
 export default function CompromisosPage() {
   const { t } = useTranslation();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { setCurrentMeeting } = useSidebar();
 
   const [commitments, setCommitments] = useState<CommitmentItem[]>([]);
@@ -85,6 +86,7 @@ export default function CompromisosPage() {
   const [statusFilter, setStatusFilter] = useState<'all' | CommitmentStatus>('all');
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [highlightedCommitmentId, setHighlightedCommitmentId] = useState<string | null>(null);
 
   const isMountedRef = useRef(true);
 
@@ -122,6 +124,28 @@ export default function CompromisosPage() {
   useEffect(() => {
     void loadCommitments();
   }, []);
+
+  const highlightId = searchParams.get('highlight');
+
+  useEffect(() => {
+    if (!highlightId) {
+      setHighlightedCommitmentId(null);
+      return;
+    }
+
+    setHighlightedCommitmentId(highlightId);
+  }, [highlightId]);
+
+  useEffect(() => {
+    if (!highlightedCommitmentId) {
+      return;
+    }
+
+    const element = document.getElementById(`commitment-${highlightedCommitmentId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [highlightedCommitmentId, commitments.length]);
 
   const today = useMemo(() => startOfToday(), []);
   const weekAhead = useMemo(() => {
@@ -484,7 +508,14 @@ export default function CompromisosPage() {
                       {filteredCommitments.map((commitment) => (
                         <tr
                           key={commitment.id}
-                          className={commitment.status === 'completed' ? 'bg-slate-50/40' : ''}
+                          id={`commitment-${commitment.id}`}
+                          className={`transition-colors ${
+                            commitment.id === highlightedCommitmentId
+                              ? 'bg-amber-50/80'
+                              : commitment.status === 'completed'
+                                ? 'bg-slate-50/40'
+                                : ''
+                          }`}
                         >
                           <td className="px-6 py-5 align-top">
                             <div className="max-w-xl space-y-2">

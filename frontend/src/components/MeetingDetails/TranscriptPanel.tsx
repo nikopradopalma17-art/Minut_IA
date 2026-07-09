@@ -6,6 +6,7 @@ import { VirtualizedTranscriptView } from '@/components/VirtualizedTranscriptVie
 import { TranscriptButtonGroup } from './TranscriptButtonGroup';
 import { useMemo } from 'react';
 import { useSpeakerNames } from '@/hooks/meeting-details/useSpeakerNames';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface TranscriptPanelProps {
   transcripts: Transcript[];
@@ -51,6 +52,7 @@ export function TranscriptPanel({
   onRefetchTranscripts,
 }: TranscriptPanelProps) {
   const { names: speakerNames, rename: renameSpeaker } = useSpeakerNames(meetingId);
+  const { t } = useTranslation();
 
   // Convert transcripts to segments if pagination is not used but we want virtualization
   const convertedSegments = useMemo(() => {
@@ -107,7 +109,7 @@ export function TranscriptPanel({
       {!isRecording && convertedSegments.length > 0 && (
         <div className="p-1 border-t border-gray-200">
           <textarea
-            placeholder="Add context for AI summary. For example people involved, meeting overview, objective etc..."
+            placeholder={t('meeting_details.transcript_context_placeholder')}
             className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm min-h-[80px] resize-y"
             value={customPrompt}
             onChange={(e) => onPromptChange(e.target.value)}

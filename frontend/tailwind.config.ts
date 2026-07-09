@@ -9,13 +9,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        // Consistent color palette
-        primary: "hsl(221, 83%, 53%)", // blue-600
-        secondary: "hsl(210, 40%, 96%)", // gray-50
-        accent: "hsl(221, 83%, 53%)", // blue-600
-        destructive: "hsl(0, 84%, 60%)", // red-500
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: "hsl(var(--card))",
+        "card-foreground": "hsl(var(--card-foreground))",
+        popover: "hsl(var(--popover))",
+        "popover-foreground": "hsl(var(--popover-foreground))",
+        primary: "hsl(var(--primary))",
+        "primary-foreground": "hsl(var(--primary-foreground))",
+        secondary: "hsl(var(--secondary))",
+        "secondary-foreground": "hsl(var(--secondary-foreground))",
+        muted: "hsl(var(--muted))",
+        "muted-foreground": "hsl(var(--muted-foreground))",
+        accent: "hsl(var(--accent))",
+        "accent-foreground": "hsl(var(--accent-foreground))",
+        destructive: "hsl(var(--destructive))",
+        "destructive-foreground": "hsl(var(--destructive-foreground))",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        brand: {
+          azul: '#003e7e',
+          amarillo: '#fdb813',
+          teal: '#00b8b9',
+        },
       },
       fontSize: {
         'display': ['32px', { lineHeight: '1.2', fontWeight: '700' }],
