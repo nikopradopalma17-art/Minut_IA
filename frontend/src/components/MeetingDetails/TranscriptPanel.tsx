@@ -5,6 +5,7 @@ import { TranscriptView } from '@/components/TranscriptView';
 import { VirtualizedTranscriptView } from '@/components/VirtualizedTranscriptView';
 import { TranscriptButtonGroup } from './TranscriptButtonGroup';
 import { useMemo } from 'react';
+import { useSpeakerNames } from '@/hooks/meeting-details/useSpeakerNames';
 
 interface TranscriptPanelProps {
   transcripts: Transcript[];
@@ -49,6 +50,8 @@ export function TranscriptPanel({
   meetingFolderPath,
   onRefetchTranscripts,
 }: TranscriptPanelProps) {
+  const { names: speakerNames, rename: renameSpeaker } = useSpeakerNames(meetingId);
+
   // Convert transcripts to segments if pagination is not used but we want virtualization
   const convertedSegments = useMemo(() => {
     if (usePagination && segments) {
@@ -95,6 +98,8 @@ export function TranscriptPanel({
           totalCount={totalCount}
           loadedCount={loadedCount}
           onLoadMore={onLoadMore}
+          speakerNames={speakerNames}
+          onRenameSpeaker={renameSpeaker}
         />
       </div>
 

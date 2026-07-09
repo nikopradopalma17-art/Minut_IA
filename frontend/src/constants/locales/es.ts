@@ -234,5 +234,14 @@ export const es = {
   "language.saved": "Preferencia de idioma guardada",
   "language.saved_desc": "El idioma de transcripción se estableció en {language}",
   "language.save_failed": "No se pudo guardar la preferencia de idioma",
-  "language.current": "Idioma actual:"
+  "language.current": "Idioma actual:",
+
+  "speakers.label": "Hablante {n}",
+  "speakers.rename": "Renombrar hablante",
+  "speakers.rename_placeholder": "Nombre del hablante",
+  "speakers.save": "Guardar",
+  "speakers.identify": "Identificar hablantes",
+  "speakers.identifying": "Identificando hablantes...",
+  "speakers.identified": "Se identificaron {n} hablantes",
+  "speakers.identify_failed": "No se pudieron identificar los hablantes"
 };

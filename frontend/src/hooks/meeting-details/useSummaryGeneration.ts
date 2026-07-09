@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import Analytics from '@/lib/analytics';
 import { isOllamaNotInstalledError } from '@/lib/utils';
 import { BuiltInModelInfo } from '@/lib/builtin-ai';
+import { formatSpeakerLabel } from '@/lib/speakerLabels';
+import { recordingService } from '@/services/recordingService';
 import {
   detectAndCacheSummaryLanguage,
   readMeetingSummaryLanguage,
@@ -433,7 +435,7 @@ export function useSummaryGeneration({
     }
   }, []);
 
-  const buildSummaryTranscriptPayload = useCallback((allTranscripts: Transcript[]) => {
+  const buildSummaryTranscriptPayload = useCallback(async (allTranscripts: Transcript[]) => {
     const formatTime = (seconds: number | undefined, fallbackTimestamp: string): string => {
       if (seconds === undefined) {
         return fallbackTimestamp;
@@ -444,13 +446,29 @@ export function useSummaryGeneration({
       return `[${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}]`;
     };
 
+    // Resolve speaker display names so the LLM can attribute participants,
+    // agreements and commitments to real people in the minutes.
+    let speakerNames: Record<string, string> = {};
+    try {
+      const entries = await recordingService.listSpeakerNames(meeting.id);
+      speakerNames = Object.fromEntries(
+        entries.map(entry => [entry.speaker_id, entry.display_name])
+      );
+    } catch (error) {
+      console.warn('Could not load speaker names for summary payload:', error);
+    }
+
+    const lineFor = (t: Transcript): string => {
+      const label = formatSpeakerLabel(t.speaker, { names: speakerNames });
+      const attribution = label ? ` ${label}:` : '';
+      return `${formatTime(t.audio_start_time, t.timestamp)}${attribution} ${t.text}`;
+    };
+
     return {
-      transcriptText: allTranscripts
-        .map(t => `${formatTime(t.audio_start_time, t.timestamp)} ${t.text}`)
-        .join('\n'),
+      transcriptText: allTranscripts.map(lineFor).join('\n'),
       transcriptTexts: allTranscripts.map(t => t.text),
     };
-  }, []);
+  }, [meeting.id]);
 
   // Public API: Generate summary from transcripts
   const handleGenerateSummary = useCallback(async (customPrompt: string = '') => {
@@ -608,7 +626,7 @@ export function useSummaryGeneration({
       }
     }
 
-    const summaryPayload = buildSummaryTranscriptPayload(allTranscripts);
+    const summaryPayload = await buildSummaryTranscriptPayload(allTranscripts);
 
     await processSummary({
       ...summaryPayload,
@@ -627,7 +645,7 @@ export function useSummaryGeneration({
     }
 
     await processSummary({
-      ...buildSummaryTranscriptPayload(allTranscripts),
+      ...(await buildSummaryTranscriptPayload(allTranscripts)),
       isRegeneration: true
     });
   }, [meeting.id, fetchAllTranscripts, buildSummaryTranscriptPayload, processSummary]);

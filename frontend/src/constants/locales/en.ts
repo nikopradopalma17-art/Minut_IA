@@ -238,5 +238,14 @@ export const en: Record<keyof typeof es, string> = {
   "language.saved": "Language preference saved",
   "language.saved_desc": "Transcription language set to {language}",
   "language.save_failed": "Failed to save language preference",
-  "language.current": "Current:"
+  "language.current": "Current:",
+
+  "speakers.label": "Speaker {n}",
+  "speakers.rename": "Rename speaker",
+  "speakers.rename_placeholder": "Speaker name",
+  "speakers.save": "Save",
+  "speakers.identify": "Identify speakers",
+  "speakers.identifying": "Identifying speakers...",
+  "speakers.identified": "Identified {n} speakers",
+  "speakers.identify_failed": "Could not identify speakers"
 };

@@ -9,6 +9,7 @@ import { RetranscribeDialog } from './RetranscribeDialog';
 import { useConfig } from '@/contexts/ConfigContext';
 import { recordingService } from '@/services/recordingService';
 import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 
 interface TranscriptButtonGroupProps {
@@ -29,6 +30,7 @@ export function TranscriptButtonGroup({
   meetingFolderPath,
   onRefetchTranscripts,
 }: TranscriptButtonGroupProps) {
+  const { t } = useTranslation();
   const { betaFeatures } = useConfig();
   const [showRetranscribeDialog, setShowRetranscribeDialog] = useState(false);
   const [isDiarizing, setIsDiarizing] = useState(false);
@@ -46,7 +48,7 @@ export function TranscriptButtonGroup({
     }
 
     setIsDiarizing(true);
-    toast.loading('Identifying speakers...', {
+    toast.loading(t('speakers.identifying'), {
       id: 'meeting-diarization',
       duration: 0,
     });
@@ -55,9 +57,7 @@ export function TranscriptButtonGroup({
       const speakerCount = await recordingService.diarizeMeeting(meetingId);
 
       toast.success(
-        speakerCount > 0
-          ? `Identified ${speakerCount + 1} speakers`
-          : 'Speaker identification complete',
+        t('speakers.identified').replace('{n}', String(speakerCount + 1)),
         { id: 'meeting-diarization' }
       );
 
@@ -66,14 +66,14 @@ export function TranscriptButtonGroup({
       }
     } catch (error) {
       console.error('Failed to diarize meeting:', error);
-      toast.error('Speaker identification failed', {
+      toast.error(t('speakers.identify_failed'), {
         id: 'meeting-diarization',
-        description: error instanceof Error ? error.message : 'Unable to identify speakers for this meeting.',
+        description: error instanceof Error ? error.message : undefined,
       });
     } finally {
       setIsDiarizing(false);
     }
-  }, [meetingId, meetingFolderPath, isDiarizing, onRefetchTranscripts]);
+  }, [meetingId, meetingFolderPath, isDiarizing, onRefetchTranscripts, t]);
 
   return (
     <div className="flex items-center justify-center w-full gap-2">
@@ -132,10 +132,10 @@ export function TranscriptButtonGroup({
               void handleDiarizeMeeting();
             }}
             disabled={isDiarizing}
-            title="Identify and cluster speakers locally"
+            title={t('speakers.identify')}
           >
             <Users className="xl:mr-2" size={18} />
-            <span className="hidden lg:inline">Speakers</span>
+            <span className="hidden lg:inline">{t('speakers.identify')}</span>
           </Button>
         )}
       </ButtonGroup>

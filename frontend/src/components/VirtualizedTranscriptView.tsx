@@ -9,7 +9,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 import { RecordingStatusBar } from "./RecordingStatusBar";
 import { motion, AnimatePresence } from "framer-motion";
 import { TranscriptSegmentData } from "@/types";
-import { formatSpeakerLabel } from "@/lib/speakerLabels";
+import { SpeakerChip } from "./SpeakerChip";
 
 export interface VirtualizedTranscriptViewProps {
     /** Transcript segments to display */
@@ -35,6 +35,11 @@ export interface VirtualizedTranscriptViewProps {
     totalCount?: number;
     loadedCount?: number;
     onLoadMore?: () => void;
+
+    /** Custom speaker names keyed by canonical speaker id */
+    speakerNames?: Record<string, string>;
+    /** When provided, speaker chips open a rename popover */
+    onRenameSpeaker?: (speakerId: string, name: string) => Promise<void> | void;
 }
 
 // Threshold for enabling virtualization (below this, use simple rendering)
@@ -73,6 +78,8 @@ const TranscriptSegment = memo(function TranscriptSegment({
     isStreaming,
     showConfidence,
     speaker,
+    speakerNames,
+    onRenameSpeaker,
 }: {
     id: string;
     timestamp: number;
@@ -81,9 +88,10 @@ const TranscriptSegment = memo(function TranscriptSegment({
     isStreaming: boolean;
     showConfidence: boolean;
     speaker?: string;
+    speakerNames?: Record<string, string>;
+    onRenameSpeaker?: (speakerId: string, name: string) => Promise<void> | void;
 }) {
     const displayText = cleanStopWords(text) || (text.trim() === '' ? '[Silence]' : text);
-    const speakerLabel = formatSpeakerLabel(speaker);
 
     return (
         <div id={`segment-${id}`} className="mb-3">
@@ -101,13 +109,11 @@ const TranscriptSegment = memo(function TranscriptSegment({
                     </TooltipContent>
                 </Tooltip>
                 <div className="flex-1">
-                    {speakerLabel && (
-                        <div className="mb-1 select-none">
-                            <span className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-[11px] font-semibold text-blue-700">
-                                {speakerLabel}
-                            </span>
-                        </div>
-                    )}
+                    <SpeakerChip
+                        speaker={speaker}
+                        names={speakerNames}
+                        onRename={onRenameSpeaker}
+                    />
                     {isStreaming ? (
                         <div className="bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
                             <p className="text-base text-gray-800 leading-relaxed">{displayText}</p>
@@ -135,6 +141,8 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
     totalCount = 0,
     loadedCount = 0,
     onLoadMore,
+    speakerNames,
+    onRenameSpeaker,
 }) => {
     // Create scroll ref first - shared between virtualizer and auto-scroll hook
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -308,6 +316,8 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                                         isStreaming={isStreaming}
                                         showConfidence={showConfidence}
                                         speaker={segment.speaker}
+                                        speakerNames={speakerNames}
+                                        onRenameSpeaker={onRenameSpeaker}
                                     />
                                 </div>
                             );
@@ -365,6 +375,8 @@ export const VirtualizedTranscriptView: React.FC<VirtualizedTranscriptViewProps>
                                         isStreaming={isStreaming}
                                         showConfidence={showConfidence}
                                         speaker={segment.speaker}
+                                        speakerNames={speakerNames}
+                                        onRenameSpeaker={onRenameSpeaker}
                                     />
                                 </motion.div>
                             );
