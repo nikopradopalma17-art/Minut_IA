@@ -16,3 +16,10 @@ anyhow = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 tokio = { version = "1.32.0", features = ["full"] }
+
+# Patch whisper-rs-sys to use Windows-compatible bindings.
+# The published v0.11.1 has Linux glibc bindings (size of _G_fpos_t, _IO_FILE)
+# that fail to compile on Windows MSVC. The local patch skips bindgen on Windows
+# and uses pre-baked bindings without the Linux-specific struct size assertions.
+[patch.crates-io]
+whisper-rs-sys = { path = "local-crates/whisper-rs-sys" }
