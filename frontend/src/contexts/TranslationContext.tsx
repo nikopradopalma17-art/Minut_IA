@@ -6,10 +6,12 @@ import { en } from '@/constants/locales/en';
 
 type Language = 'es' | 'en';
 
+export type TranslationKey = keyof typeof es;
+
 interface TranslationContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
-  t: (key: string) => string;
+  t: (key: TranslationKey) => string;
 }
 
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
@@ -84,9 +86,8 @@ export function TranslationProvider({ children }: { children: React.ReactNode })
     })();
   };
 
-  const t = (key: string): string => {
-    const dict = dictionaries[language];
-    return (dict as any)[key] || (dictionaries.es as any)[key] || key;
+  const t = (key: TranslationKey): string => {
+    return dictionaries[language][key] || dictionaries.es[key] || key;
   };
 
   return (

@@ -1,4 +1,8 @@
-export const en = {
+import type { es } from './es';
+
+// Typed against the Spanish dictionary: a key missing here (or added only
+// here) is a compile error, keeping both locales in parity.
+export const en: Record<keyof typeof es, string> = {
   // Sidebar & Navigation
   "nav.home": "Home",
   "nav.new_call": "New call",
