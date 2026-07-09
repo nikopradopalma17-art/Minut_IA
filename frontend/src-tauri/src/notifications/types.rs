@@ -115,19 +115,19 @@ impl Default for NotificationTimeout {
 impl Notification {
     pub fn recording_started(meeting_name: Option<String>) -> Self {
         let body = match meeting_name {
-            Some(name) => format!("Recording started for meeting: {}", name),
-            None => "Recording has started. Please inform others in the meeting that you are recording.".to_string(),
+            Some(name) => format!("Grabación iniciada para la reunión: {}", name),
+            None => "La grabación ha comenzado. Informa a los demás participantes de que estás grabando.".to_string(),
         };
 
-        Notification::new("Meetily", body, NotificationType::RecordingStarted)
+        Notification::new("MinutIA", body, NotificationType::RecordingStarted)
             .with_priority(NotificationPriority::High)
             .with_timeout(NotificationTimeout::Seconds(5))
     }
 
     pub fn recording_stopped() -> Self {
         Notification::new(
-            "Meetily",
-            "Recording has been stopped and saved",
+            "MinutIA",
+            "La grabación se ha detenido y guardado",
             NotificationType::RecordingStopped
         )
         .with_priority(NotificationPriority::Normal)
@@ -136,8 +136,8 @@ impl Notification {
 
     pub fn recording_paused() -> Self {
         Notification::new(
-            "Meetily",
-            "Recording has been paused",
+            "MinutIA",
+            "La grabación está en pausa",
             NotificationType::RecordingPaused
         )
         .with_priority(NotificationPriority::Normal)
@@ -146,8 +146,8 @@ impl Notification {
 
     pub fn recording_resumed() -> Self {
         Notification::new(
-            "Meetily",
-            "Recording has been resumed",
+            "MinutIA",
+            "La grabación se ha reanudado",
             NotificationType::RecordingResumed
         )
         .with_priority(NotificationPriority::Normal)
@@ -156,22 +156,22 @@ impl Notification {
 
     pub fn transcription_complete(file_path: Option<String>) -> Self {
         let body = match file_path {
-            Some(path) => format!("Transcription completed and saved to: {}", path),
-            None => "Transcription has been completed".to_string(),
+            Some(path) => format!("Transcripción completada y guardada en: {}", path),
+            None => "La transcripción ha finalizado".to_string(),
         };
 
-        Notification::new("Meetily", body, NotificationType::TranscriptionComplete)
+        Notification::new("MinutIA", body, NotificationType::TranscriptionComplete)
             .with_priority(NotificationPriority::Normal)
             .with_timeout(NotificationTimeout::Seconds(5))
     }
 
     pub fn meeting_reminder(minutes_until: u64, meeting_title: Option<String>) -> Self {
         let body = match meeting_title {
-            Some(title) => format!("Meeting '{}' starts in {} minutes", title, minutes_until),
-            None => format!("Meeting starts in {} minutes", minutes_until),
+            Some(title) => format!("La reunión '{}' comienza en {} minutos", title, minutes_until),
+            None => format!("La reunión comienza en {} minutos", minutes_until),
         };
 
-        Notification::new("Meetily", body, NotificationType::MeetingReminder(minutes_until))
+        Notification::new("MinutIA", body, NotificationType::MeetingReminder(minutes_until))
             .with_priority(NotificationPriority::High)
             .with_timeout(NotificationTimeout::Seconds(10))
     }
@@ -179,7 +179,7 @@ impl Notification {
     pub fn system_error(error: impl Into<String>) -> Self {
         let error_string = error.into();
         Notification::new(
-            "Meetily Error",
+            "Error de MinutIA",
             error_string.clone(),
             NotificationType::SystemError(error_string)
         )
@@ -189,8 +189,8 @@ impl Notification {
 
     pub fn test_notification() -> Self {
         Notification::new(
-            "Meetily",
-            "This is a test notification to verify the system is working correctly",
+            "MinutIA",
+            "Esta es una notificación de prueba para verificar que el sistema funciona correctamente",
             NotificationType::Test
         )
         .with_priority(NotificationPriority::Normal)
