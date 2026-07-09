@@ -9,6 +9,8 @@ pub mod vad;
 pub mod devices;
 pub mod capture;
 pub mod permissions;
+pub mod screenshot;
+pub mod vision_speaker;
 
 // NEW: Device detection and diagnostics for adaptive buffering
 pub mod device_detection;
