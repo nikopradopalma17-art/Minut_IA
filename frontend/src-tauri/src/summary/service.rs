@@ -1,8 +1,10 @@
 use crate::database::repositories::{
-    meeting::MeetingsRepository, setting::SettingsRepository, summary::SummaryProcessesRepository,
+    commitment::CommitmentsRepository, meeting::MeetingsRepository,
+    setting::SettingsRepository, summary::SummaryProcessesRepository,
 };
 use crate::summary::llm_client::LLMProvider;
 use crate::summary::language_detection::detect_summary_language;
+use crate::summary::commitments::extract_commitments_from_markdown;
 use crate::summary::metadata::read_detected_summary_language_from_metadata;
 use crate::summary::processor::{
     extract_meeting_name_from_markdown, generate_meeting_summary, language_name_from_code,
@@ -576,6 +578,26 @@ impl SummaryService {
                         meeting_id, e
                     );
                 } else {
+                    let commitments = extract_commitments_from_markdown(&final_markdown);
+                    if let Err(e) = CommitmentsRepository::replace_meeting_commitments(
+                        &pool,
+                        &meeting_id,
+                        &commitments,
+                    )
+                    .await
+                    {
+                        error!(
+                            "Failed to persist commitments for meeting_id {}: {}",
+                            meeting_id, e
+                        );
+                    } else {
+                        info!(
+                            "Persisted {} commitments for meeting_id: {}",
+                            commitments.len(),
+                            meeting_id
+                        );
+                    }
+
                     info!(
                         "Summary saved successfully for meeting_id: {}",
                         meeting_id

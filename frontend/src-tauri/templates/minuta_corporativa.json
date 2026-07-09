@@ -1,0 +1,47 @@
+{
+  "name": "Minuta Corporativa",
+  "description": "Plantilla corporativa en español para minutas ejecutivas con acuerdos y compromisos accionables.",
+  "sections": [
+    {
+      "title": "Resumen ejecutivo",
+      "instruction": "Redacta un resumen breve y ejecutivo de la reunión, destacando el contexto, el objetivo y el resultado principal.",
+      "format": "paragraph"
+    },
+    {
+      "title": "Fecha",
+      "instruction": "Indica la fecha de la reunión en formato YYYY-MM-DD.",
+      "format": "string"
+    },
+    {
+      "title": "Participantes",
+      "instruction": "Lista las personas participantes y, si es posible, su rol o área.",
+      "format": "list"
+    },
+    {
+      "title": "Temas tratados",
+      "instruction": "Resume los temas principales tratados durante la reunión en viñetas claras y breves.",
+      "format": "list"
+    },
+    {
+      "title": "Acuerdos",
+      "instruction": "Enumera los acuerdos alcanzados, con un lenguaje preciso y accionable.",
+      "format": "list"
+    },
+    {
+      "title": "Decisiones tomadas",
+      "instruction": "Lista las decisiones formales tomadas durante la reunión.",
+      "format": "list"
+    },
+    {
+      "title": "Compromisos",
+      "instruction": "Enumera todos los compromisos asignados, con responsable y fecha límite. Si no hay fecha, usa un guion.",
+      "format": "list",
+      "item_format": "| **Responsable** | Compromiso | Fecha límite |"
+    },
+    {
+      "title": "Próximas acciones",
+      "instruction": "Describe los siguientes pasos inmediatos para dar seguimiento a la reunión.",
+      "format": "list"
+    }
+  ]
+}

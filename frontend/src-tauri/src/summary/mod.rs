@@ -31,6 +31,7 @@ pub struct CustomOpenAIConfig {
 }
 
 pub mod commands;
+pub mod commitments;
 pub(crate) mod language_detection;
 pub mod llm_client;
 pub(crate) mod metadata;
