@@ -14,6 +14,11 @@ module.exports = {
   			]
   		},
   		colors: {
+  			brand: {
+  				azul: '#003e7e',
+  				amarillo: '#fdb813',
+  				teal: '#00b8b9'
+  			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			border: 'hsl(var(--border))',

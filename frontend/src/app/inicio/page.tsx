@@ -78,7 +78,7 @@ export default function InicioPage() {
       label: t('dashboard.metrics.meetings'),
       value: isLoading ? '—' : String(stats?.meetings_count ?? recentMeetings.length),
       icon: Mic,
-      tone: 'bg-blue-50 text-blue-700',
+      tone: 'bg-primary/10 text-primary',
     },
     {
       label: t('dashboard.metrics.summaries'),
@@ -109,10 +109,10 @@ export default function InicioPage() {
       className="min-h-screen bg-[radial-gradient(circle_at_top_right,_rgba(37,99,235,0.14),_transparent_28%),linear-gradient(180deg,_#f8fbff_0%,_#f8fafc_100%)]"
     >
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-6 py-8 lg:px-8">
-        <section className="overflow-hidden rounded-3xl border border-blue-100 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
+        <section className="overflow-hidden rounded-3xl border border-primary/15 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
           <div className="grid gap-8 px-6 py-8 lg:grid-cols-[1.3fr_0.9fr] lg:px-8 lg:py-10">
             <div className="space-y-5">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
                 MinutIA
               </div>
@@ -127,7 +127,7 @@ export default function InicioPage() {
               <div className="flex flex-wrap gap-3">
                 <Button
                   onClick={startRecording}
-                  className="h-11 rounded-full bg-blue-700 px-5 text-white hover:bg-blue-800"
+                  className="h-11 rounded-full bg-primary px-5 text-primary-foreground hover:bg-primary/90"
                 >
                   {t('dashboard.primary_cta')}
                   <ArrowRight className="ml-2 h-4 w-4" />
@@ -152,7 +152,7 @@ export default function InicioPage() {
                     {latestTitle}
                   </h2>
                 </div>
-                <div className="rounded-full bg-blue-100 p-3 text-blue-700">
+                <div className="rounded-full bg-primary/10 p-3 text-primary">
                   <Clock3 className="h-5 w-5" />
                 </div>
               </div>
@@ -226,7 +226,7 @@ export default function InicioPage() {
                   <button
                     key={meeting.id}
                     onClick={() => router.push(`/meeting-details?id=${meeting.id}`)}
-                    className="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-4 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/60"
+                    className="flex w-full items-center justify-between rounded-2xl border border-slate-200 px-4 py-4 text-left transition-colors hover:border-primary/30 hover:bg-primary/5"
                   >
                     <div className="space-y-1">
                       <p className="font-medium text-slate-900">{meeting.title}</p>
@@ -260,8 +260,8 @@ export default function InicioPage() {
               </Button>
             </div>
 
-            <div className="rounded-3xl border border-blue-100 bg-blue-50/70 p-6">
-              <p className="text-sm font-medium text-blue-800">
+            <div className="rounded-3xl border border-primary/20 bg-primary/5 p-6">
+              <p className="text-sm font-medium text-primary">
                 {t('dashboard.latest_prefix')} {t('dashboard.latest_suffix')}
               </p>
               <p className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">

@@ -56,8 +56,8 @@ export function About() {
                 </div>
             </div>
 
-            <div className="bg-blue-50 rounded p-3">
-                <p className="text-s text-blue-800">
+            <div className="bg-primary/10 rounded p-3">
+                <p className="text-s text-primary">
                     <span className="font-bold">Coming soon:</span> A library of on-device AI agents-automating follow-ups, action tracking, and more.
                 </p>
             </div>
@@ -69,7 +69,7 @@ export function About() {
                 </p>
                 <Button
                     onClick={handleContactClick}
-                    className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded transition-colors duration-200 shadow-sm hover:shadow-md"
+                    className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
                     Contacto
                 </Button>

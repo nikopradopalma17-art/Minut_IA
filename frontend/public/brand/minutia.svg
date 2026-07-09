@@ -1,0 +1,35 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- MinutIA app icon: lápiz con sombrero chotano peruano, flat design (Fluent) -->
+  <defs>
+    <linearGradient id="plate" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#00509e"/>
+      <stop offset="1" stop-color="#003e7e"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Placa Fluent -->
+  <rect x="64" y="64" width="896" height="896" rx="200" fill="url(#plate)"/>
+
+  <!-- Punta del lápiz -->
+  <polygon points="437,780 587,780 512,935" fill="#ecc78f"/>
+  <polygon points="484,857 540,857 512,935" fill="#3b4a54"/>
+
+  <!-- Cuerpo del lápiz (3 facetas) -->
+  <rect x="437" y="450" width="50" height="335" fill="#ffc93d"/>
+  <rect x="487" y="450" width="50" height="335" fill="#fdb813"/>
+  <rect x="537" y="450" width="50" height="335" fill="#e09f00"/>
+
+  <!-- Goma teal asomando bajo el ala -->
+  <rect x="447" y="408" width="130" height="52" rx="16" fill="#00b8b9"/>
+
+  <!-- Sombrero chotano: ala ancha, copa redondeada, cinta -->
+  <ellipse cx="512" cy="392" rx="242" ry="62" fill="#f7f1e1"/>
+  <path d="M 270 392 A 242 62 0 0 0 754 392 L 754 376 A 242 62 0 0 1 270 376 Z" fill="#e7dcc0"/>
+  <path d="M 388 384 Q 388 246 512 246 Q 636 246 636 384 Z" fill="#f7f1e1"/>
+  <path d="M 388 384 Q 388 246 512 246 Q 550 246 578 262 Q 512 262 470 296 Q 420 336 416 384 Z" fill="#efe6cc"/>
+  <rect x="388" y="352" width="248" height="34" rx="10" fill="#123a66"/>
+
+  <!-- Destello IA -->
+  <path d="M 704 560 L 722 606 L 768 624 L 722 642 L 704 688 L 686 642 L 640 624 L 686 606 Z" fill="#fdb813"/>
+  <path d="M 762 500 L 771 522 L 793 531 L 771 540 L 762 562 L 753 540 L 731 531 L 753 522 Z" fill="#00b8b9"/>
+</svg>

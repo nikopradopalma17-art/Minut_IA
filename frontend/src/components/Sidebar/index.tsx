@@ -526,9 +526,9 @@ const Sidebar: React.FC = () => {
               <TooltipTrigger asChild>
                 <button
                   onClick={() => openImportDialog()}
-                  className="p-2 rounded-lg transition-colors duration-150 hover:bg-blue-100 bg-blue-50"
+                  className="p-2 rounded-lg transition-colors duration-150 hover:bg-primary/15 bg-primary/10"
                 >
-                  <Upload className="w-5 h-5 text-blue-600" />
+                  <Upload className="w-5 h-5 text-primary" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
@@ -566,7 +566,7 @@ const Sidebar: React.FC = () => {
         <div
           className={`flex items-center transition-all duration-150 group ${item.type === 'folder' && depth === 0
             ? 'p-3 text-lg font-semibold h-10 mx-3 mt-3 rounded-lg'
-            : `px-3 py-2 my-0.5 rounded-md text-sm ${isActive ? 'bg-blue-100 text-blue-700 font-medium' :
+            : `px-3 py-2 my-0.5 rounded-md text-sm ${isActive ? 'bg-primary/15 text-primary font-medium' :
               hasTranscriptMatch ? 'bg-yellow-50' : 'hover:bg-gray-50'
             } cursor-pointer`
             }`}
@@ -577,7 +577,7 @@ const Sidebar: React.FC = () => {
             } else {
               setCurrentMeeting({ id: item.id, title: item.title });
               const basePath = item.id.startsWith('intro-call') ? '/' :
-                item.id.includes('-') ? `/meeting-details?id=${item.id}` : `/notes/${item.id}`;
+                `/meeting-details?id=${item.id}`;
               router.push(basePath);
             }
           }}
@@ -598,7 +598,7 @@ const Sidebar: React.FC = () => {
                 )}
               </div>
               {searchQuery && item.id === 'meetings' && isSearching && (
-                <span className="ml-2 text-xs text-blue-500 animate-pulse">{t("nav.searching")}</span>
+                <span className="ml-2 text-xs text-primary/70 animate-pulse">{t("nav.searching")}</span>
               )}
             </>
           ) : (
@@ -609,8 +609,8 @@ const Sidebar: React.FC = () => {
                     <File className="w-3.5 h-3.5 text-gray-600" />
                   </div>
                 ) : (
-                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full mr-2 bg-blue-100">
-                    <Plus className="w-3.5 h-3.5 text-blue-600" />
+                  <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full mr-2 bg-primary/15">
+                    <Plus className="w-3.5 h-3.5 text-primary" />
                   </div>
                 )}
                 <span className="flex-1 break-words">{item.title}</span>
@@ -621,7 +621,7 @@ const Sidebar: React.FC = () => {
                         e.stopPropagation();
                         handleEditStart(item.id, item.title);
                       }}
-                      className="hover:text-blue-600 p-1 rounded-md hover:bg-blue-50 flex-shrink-0"
+                      className="hover:text-primary p-1 rounded-md hover:bg-primary/10 flex-shrink-0"
                       aria-label={t("sidebar.edit_title")}
                     >
                       <Pencil className="w-4 h-4" />
@@ -734,10 +734,10 @@ const Sidebar: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => navigateTo(item.href)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'
                     }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-gray-500'}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -756,7 +756,7 @@ const Sidebar: React.FC = () => {
                       <NotebookPen className="w-4 h-4 mr-2 text-gray-600" />
                       <span className="text-gray-700">{t("nav.meetings")}</span>
                       {searchQuery && item.id === 'meetings' && isSearching && (
-                        <span className="ml-2 text-xs text-blue-500 animate-pulse">{t("nav.searching")}</span>
+                        <span className="ml-2 text-xs text-primary/70 animate-pulse">{t("nav.searching")}</span>
                       )}
                     </div>
                   </div>
@@ -804,7 +804,7 @@ const Sidebar: React.FC = () => {
             {betaFeatures.importAndRetranscribe && (
               <button
                 onClick={() => openImportDialog()}
-                className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-gray-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors shadow-sm"
+                className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-gray-700 bg-primary/15 hover:bg-primary/25 rounded-lg transition-colors shadow-sm"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 <span>{t("nav.import_audio")}</span>
@@ -853,7 +853,7 @@ const Sidebar: React.FC = () => {
                       handleEditCancel();
                     }
                   }}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                   placeholder={t("sidebar.meeting_title_placeholder")}
                   autoFocus
                 />
@@ -869,7 +869,7 @@ const Sidebar: React.FC = () => {
             </button>
             <button
               onClick={handleEditConfirm}
-              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+              className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md transition-colors"
             >
               {t("dialog.save")}
             </button>

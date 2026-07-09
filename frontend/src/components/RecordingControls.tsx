@@ -371,7 +371,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                       className="relative w-24 h-1 bg-gray-200 rounded-full"
                     >
                       <div
-                        className="absolute h-full bg-blue-500 rounded-full"
+                        className="absolute h-full bg-primary rounded-full"
                         style={{ width: `${progress}%` }}
                       />
                     </div>
@@ -424,7 +424,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
                               handleStartRecording(true);
                             }}
                             disabled={isStarting || isProcessing || isRecordingDisabled || isValidatingModel}
-                            className={`px-4 py-2 flex items-center space-x-2 text-xs font-semibold ${isStarting || isProcessing || isValidatingModel ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+                            className={`px-4 py-2 flex items-center space-x-2 text-xs font-semibold ${isStarting || isProcessing || isValidatingModel ? 'bg-gray-400' : 'bg-primary hover:bg-primary/90'
                               } rounded-full text-white transition-colors relative`}
                           >
                             <Monitor size={14} />
