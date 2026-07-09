@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { ChevronDown, ChevronRight, File, Settings, ChevronLeftCircle, ChevronRightCircle, Calendar, StickyNote, Home, Trash2, Mic, Square, Plus, Search, Pencil, NotebookPen, SearchIcon, X, Upload } from 'lucide-react';
+import { ChevronDown, ChevronRight, File, Settings, ChevronLeftCircle, ChevronRightCircle, Calendar, StickyNote, Home, Trash2, Mic, Square, Plus, Pencil, NotebookPen, SearchIcon, X, Upload } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSidebar } from './SidebarProvider';
 import type { CurrentMeeting } from '@/components/Sidebar/SidebarProvider';
@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useRecordingState } from '@/contexts/RecordingStateContext';
 import { useImportDialog } from '@/contexts/ImportDialogContext';
 import { useConfig } from '@/contexts/ConfigContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 import {
   Dialog,
@@ -40,6 +41,7 @@ interface SidebarItem {
 }
 
 const Sidebar: React.FC = () => {
+  const { t } = useTranslation();
   const router = useRouter();
   const pathname = usePathname();
   const {
@@ -76,6 +78,14 @@ const Sidebar: React.FC = () => {
     model: 'parakeet-tdt-0.6b-v3-int8',
   });
   const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<boolean | null>(null);
+  const navItems = [
+    { id: 'inicio', href: '/inicio', label: t('nav.home'), icon: Home },
+    { id: 'reuniones', href: '/reuniones', label: t('nav.meetings'), icon: NotebookPen },
+    { id: 'minutas', href: '/minutas', label: t('nav.minutes'), icon: File },
+    { id: 'compromisos', href: '/compromisos', label: t('nav.commitments'), icon: StickyNote },
+    { id: 'historial', href: '/historial', label: t('nav.history'), icon: Calendar },
+    { id: 'configuracion', href: '/settings', label: t('nav.settings'), icon: Settings },
+  ] as const;
 
   // State for edit modal
   const [editModalState, setEditModalState] = useState<{ isOpen: boolean; meetingId: string | null; currentTitle: string }>({
@@ -337,18 +347,18 @@ const Sidebar: React.FC = () => {
       Analytics.trackMeetingDeleted(itemId);
 
       // Show success toast
-      toast.success("Meeting deleted successfully", {
-        description: "All associated data has been removed"
+      toast.success(t("sidebar.meeting_deleted_success"), {
+        description: t("sidebar.meeting_deleted_success_desc")
       });
 
       // If deleting the active meeting, navigate to home
       if (currentMeeting?.id === itemId) {
-        setCurrentMeeting({ id: 'intro-call', title: '+ New Call' });
+        setCurrentMeeting({ id: 'intro-call', title: `+ ${t("nav.new_call")}` });
         router.push('/');
       }
     } catch (error) {
       console.error('Failed to delete meeting:', error);
-      toast.error("Failed to delete meeting", {
+      toast.error(t("sidebar.meeting_deleted_error"), {
         description: error instanceof Error ? error.message : String(error)
       });
     }
@@ -379,7 +389,7 @@ const Sidebar: React.FC = () => {
 
     // Prevent empty titles
     if (!newTitle) {
-      toast.error("Meeting title cannot be empty");
+      toast.error(t("sidebar.meeting_title_empty"));
       return;
     }
 
@@ -403,14 +413,14 @@ const Sidebar: React.FC = () => {
       // Track the edit
       Analytics.trackButtonClick('edit_meeting_title', 'sidebar');
 
-      toast.success("Meeting title updated successfully");
+      toast.success(t("sidebar.meeting_title_updated"));
 
       // Close modal and reset state
       setEditModalState({ isOpen: false, meetingId: null, currentTitle: '' });
       setEditingTitle('');
     } catch (error) {
       console.error('Failed to update meeting title:', error);
-      toast.error("Failed to update meeting title", {
+      toast.error(t("sidebar.meeting_title_update_failed"), {
         description: error instanceof Error ? error.message : String(error)
       });
     }
@@ -432,6 +442,11 @@ const Sidebar: React.FC = () => {
     setExpandedFolders(newExpanded);
   };
 
+  const navigateTo = (href: string) => {
+    setCurrentMeeting(null);
+    router.push(href);
+  };
+
   // Expose setShowModelSettings to window for Rust tray to call
   useEffect(() => {
     (window as any).openSettings = () => {
@@ -447,8 +462,11 @@ const Sidebar: React.FC = () => {
   const renderCollapsedIcons = () => {
     if (!isCollapsed) return null;
 
-    const isHomePage = pathname === '/';
-    const isMeetingPage = pathname?.includes('/meeting-details');
+    const isDashboardPage = pathname === '/inicio';
+    const isMeetingsPage = pathname === '/reuniones' || pathname?.startsWith('/meeting-details');
+    const isMinutesPage = pathname === '/minutas';
+    const isCommitmentsPage = pathname === '/compromisos';
+    const isHistoryPage = pathname === '/historial';
     const isSettingsPage = pathname === '/settings';
 
     return (
@@ -456,20 +474,33 @@ const Sidebar: React.FC = () => {
         <div className="flex flex-col items-center space-y-4 mt-4">
           <Logo isCollapsed={isCollapsed} />
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => router.push('/')}
-                className={`p-2 rounded-lg transition-colors duration-150 ${isHomePage ? 'bg-gray-100' : 'hover:bg-gray-100'
-                  }`}
-              >
-                <Home className="w-5 h-5 text-gray-600" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Home</p>
-            </TooltipContent>
-          </Tooltip>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive =
+              (item.id === 'inicio' && isDashboardPage) ||
+              (item.id === 'reuniones' && isMeetingsPage) ||
+              (item.id === 'minutas' && isMinutesPage) ||
+              (item.id === 'compromisos' && isCommitmentsPage) ||
+              (item.id === 'historial' && isHistoryPage) ||
+              (item.id === 'configuracion' && isSettingsPage);
+
+            return (
+              <Tooltip key={item.id}>
+                <TooltipTrigger asChild>
+                  <button
+                    onClick={() => navigateTo(item.href)}
+                    className={`p-2 rounded-lg transition-colors duration-150 ${isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
+                      }`}
+                  >
+                    <Icon className="w-5 h-5 text-gray-600" />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>{item.label}</p>
+                </TooltipContent>
+              </Tooltip>
+            );
+          })}
 
           <Tooltip>
             <TooltipTrigger asChild>
@@ -486,7 +517,7 @@ const Sidebar: React.FC = () => {
               </button>
             </TooltipTrigger>
             <TooltipContent side="right">
-              <p>{isRecording ? "Recording in progress..." : "Start Recording"}</p>
+              <p>{isRecording ? t("recording.in_progress") : t("recording.start")}</p>
             </TooltipContent>
           </Tooltip>
 
@@ -501,43 +532,10 @@ const Sidebar: React.FC = () => {
                 </button>
               </TooltipTrigger>
               <TooltipContent side="right">
-                <p>Import Audio</p>
+                <p>{t("nav.import_audio")}</p>
               </TooltipContent>
             </Tooltip>
           )}
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => {
-                  if (isCollapsed) toggleCollapse();
-                  toggleFolder('meetings');
-                }}
-                className={`p-2 rounded-lg transition-colors duration-150 ${isMeetingPage ? 'bg-gray-100' : 'hover:bg-gray-100'
-                  }`}
-              >
-                <NotebookPen className="w-5 h-5 text-gray-600" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Meeting Notes</p>
-            </TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                onClick={() => router.push('/settings')}
-                className={`p-2 rounded-lg transition-colors duration-150 ${isSettingsPage ? 'bg-gray-100' : 'hover:bg-gray-100'
-                  }`}
-              >
-                <Settings className="w-5 h-5 text-gray-600" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              <p>Settings</p>
-            </TooltipContent>
-          </Tooltip>
 
           <Info isCollapsed={isCollapsed} />
         </div>
@@ -600,7 +598,7 @@ const Sidebar: React.FC = () => {
                 )}
               </div>
               {searchQuery && item.id === 'meetings' && isSearching && (
-                <span className="ml-2 text-xs text-blue-500 animate-pulse">Searching...</span>
+                <span className="ml-2 text-xs text-blue-500 animate-pulse">{t("nav.searching")}</span>
               )}
             </>
           ) : (
@@ -624,7 +622,7 @@ const Sidebar: React.FC = () => {
                         handleEditStart(item.id, item.title);
                       }}
                       className="hover:text-blue-600 p-1 rounded-md hover:bg-blue-50 flex-shrink-0"
-                      aria-label="Edit meeting title"
+                      aria-label={t("sidebar.edit_title")}
                     >
                       <Pencil className="w-4 h-4" />
                     </button>
@@ -645,7 +643,7 @@ const Sidebar: React.FC = () => {
               {/* Show transcript match snippet if available */}
               {hasTranscriptMatch && (
                 <div className="mt-1 ml-8 text-xs text-gray-500 bg-yellow-50 p-1.5 rounded border border-yellow-100 line-clamp-2">
-                  <span className="font-medium text-yellow-600">Match:</span> {matchingResult.matchContext}
+                <span className="font-medium text-yellow-600">{t("sidebar.match_label")}</span> {matchingResult.matchContext}
                 </div>
               )}
             </div>
@@ -690,13 +688,13 @@ const Sidebar: React.FC = () => {
             {!isCollapsed && (
               <div className="p-3">
                 {/* <span className="text-lg text-center border rounded-full bg-blue-50 border-white font-semibold text-gray-700 mb-2 block items-center">
-                  <span>Meetily</span>
+                  <span>MinutIA</span>
                 </span> */}
                 <Logo isCollapsed={isCollapsed} />
 
                 <div className="relative mb-1">
                   <InputGroup >
-                    <InputGroupInput placeholder='Search meeting content...' value={searchQuery}
+                    <InputGroupInput placeholder={t("nav.search_placeholder")} value={searchQuery}
                       onChange={(e) => handleSearchChange(e.target.value)}
                     />
                     <InputGroupAddon>
@@ -721,33 +719,44 @@ const Sidebar: React.FC = () => {
         {/* Main content - scrollable area */}
         <div className="flex-1 flex flex-col min-h-0">
           {/* Fixed navigation items */}
-          <div className="flex-shrink-0">
-            {!isCollapsed && (
-              <div
-                onClick={() => router.push('/')}
-                className="p-3  text-lg font-semibold items-center hover:bg-gray-100 h-10   flex mx-3 mt-3 rounded-lg cursor-pointer"
-              >
-                <Home className="w-4 h-4 mr-2" />
-                <span>Home</span>
-              </div>
-            )}
+          <div className="flex-shrink-0 px-3 pt-2 space-y-1">
+            {!isCollapsed && navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive =
+                (item.id === 'inicio' && pathname === '/inicio') ||
+                (item.id === 'reuniones' && (pathname === '/reuniones' || pathname?.startsWith('/meeting-details'))) ||
+                (item.id === 'minutas' && pathname === '/minutas') ||
+                (item.id === 'compromisos' && pathname === '/compromisos') ||
+                (item.id === 'historial' && pathname === '/historial') ||
+                (item.id === 'configuracion' && pathname === '/settings');
+
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => navigateTo(item.href)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                >
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-blue-700' : 'text-gray-500'}`} />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           {/* Content area */}
           <div className="flex-1 flex flex-col min-h-0">
             {renderCollapsedIcons()}
-            {/* Meeting Notes folder header - fixed */}
+            {/* Meetings folder header - fixed */}
             {!isCollapsed && (
               <div className="flex-shrink-0">
                 {filteredSidebarItems.filter(item => item.type === 'folder').map(item => (
                   <div key={item.id}>
-                    <div
-                      className="flex items-center transition-all duration-150 p-3 text-lg font-semibold h-10 mx-3 mt-3 rounded-lg"
-                    >
+                    <div className="flex items-center transition-all duration-150 p-3 text-lg font-semibold h-10 mx-3 mt-3 rounded-lg">
                       <NotebookPen className="w-4 h-4 mr-2 text-gray-600" />
-                      <span className="text-gray-700">{item.title}</span>
+                      <span className="text-gray-700">{t("nav.meetings")}</span>
                       {searchQuery && item.id === 'meetings' && isSearching && (
-                        <span className="ml-2 text-xs text-blue-500 animate-pulse">Searching...</span>
+                        <span className="ml-2 text-xs text-blue-500 animate-pulse">{t("nav.searching")}</span>
                       )}
                     </div>
                   </div>
@@ -782,12 +791,12 @@ const Sidebar: React.FC = () => {
               {isRecording ? (
                 <>
                   <Square className="w-4 h-4 mr-2" />
-                  <span>Recording in progress...</span>
+                  <span>{t("recording.in_progress")}</span>
                 </>
               ) : (
                 <>
                   <Mic className="w-4 h-4 mr-2" />
-                  <span>Start Recording</span>
+                  <span>{t("recording.start")}</span>
                 </>
               )}
             </button>
@@ -798,17 +807,9 @@ const Sidebar: React.FC = () => {
                 className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-gray-700 bg-blue-100 hover:bg-blue-200 rounded-lg transition-colors shadow-sm"
               >
                 <Upload className="w-4 h-4 mr-2" />
-                <span>Import Audio</span>
+                <span>{t("nav.import_audio")}</span>
               </button>
             )}
-
-            <button
-              onClick={() => router.push('/settings')}
-              className="w-full flex items-center justify-center px-3 py-1.5 mt-1 mb-1 text-sm font-medium text-gray-700 bg-gray-200 hover:bg-gray-300 rounded-lg transition-colors shadow-sm"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              <span>Settings</span>
-            </button>
             <Info isCollapsed={isCollapsed} />
             <div className="w-full flex items-center justify-center px-3 py-1 text-xs text-gray-400">
               v0.4.0
@@ -820,7 +821,7 @@ const Sidebar: React.FC = () => {
       {/* Confirmation Modal for Delete */}
       <ConfirmationModal
         isOpen={deleteModalState.isOpen}
-        text="Are you sure you want to delete this meeting? This action cannot be undone."
+        text={t("dialog.confirm_delete_desc")}
         onConfirm={handleDeleteConfirm}
         onCancel={() => setDeleteModalState({ isOpen: false, itemId: null })}
       />
@@ -831,14 +832,14 @@ const Sidebar: React.FC = () => {
       }}>
         <DialogContent className="sm:max-w-[425px]">
           <VisuallyHidden>
-            <DialogTitle>Edit Meeting Title</DialogTitle>
+            <DialogTitle>{t("sidebar.edit_title")}</DialogTitle>
           </VisuallyHidden>
           <div className="py-4">
-            <h3 className="text-lg font-semibold mb-4">Edit Meeting Title</h3>
+            <h3 className="text-lg font-semibold mb-4">{t("sidebar.edit_title_heading")}</h3>
             <div className="space-y-4">
               <div>
                 <label htmlFor="meeting-title" className="block text-sm font-medium text-gray-700 mb-2">
-                  Meeting Title
+                  {t("sidebar.meeting_title_label")}
                 </label>
                 <input
                   id="meeting-title"
@@ -853,7 +854,7 @@ const Sidebar: React.FC = () => {
                     }
                   }}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter meeting title"
+                  placeholder={t("sidebar.meeting_title_placeholder")}
                   autoFocus
                 />
               </div>
@@ -864,13 +865,13 @@ const Sidebar: React.FC = () => {
               onClick={handleEditCancel}
               className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
             >
-              Cancel
+              {t("dialog.cancel")}
             </button>
             <button
               onClick={handleEditConfirm}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
             >
-              Save
+              {t("dialog.save")}
             </button>
           </DialogFooter>
         </DialogContent>
