@@ -4,6 +4,7 @@ import { BlockNoteSummaryViewRef } from '@/components/AISummary/BlockNoteSummary
 import { toast } from 'sonner';
 import Analytics from '@/lib/analytics';
 import { invoke as invokeTauri } from '@tauri-apps/api/core';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface UseCopyOperationsProps {
   meeting: any;
@@ -20,6 +21,7 @@ export function useCopyOperations({
   aiSummary,
   blockNoteSummaryRef,
 }: UseCopyOperationsProps) {
+  const { t } = useTranslation();
 
   // Helper function to fetch ALL transcripts for copying (not just paginated data)
   const fetchAllTranscripts = useCallback(async (meetingId: string): Promise<Transcript[]> => {
@@ -51,7 +53,7 @@ export function useCopyOperations({
       return allData.transcripts;
     } catch (error) {
       console.error('❌ Error fetching all transcripts:', error);
-      toast.error('Failed to fetch transcripts for copying');
+      toast.error(t('toasts.copy_fetch_failed'));
       return [];
     }
   }, []);
@@ -63,7 +65,7 @@ export function useCopyOperations({
     const allTranscripts = await fetchAllTranscripts(meeting.id);
 
     if (!allTranscripts.length) {
-      const error_msg = 'No transcripts available to copy';
+      const error_msg = t('toasts.copy_no_transcripts');
       console.log(error_msg);
       toast.error(error_msg);
       return;
@@ -90,7 +92,7 @@ export function useCopyOperations({
       .join('\n');
 
     await navigator.clipboard.writeText(header + date + fullTranscript);
-    toast.success("Transcript copied to clipboard");
+    toast.success(t('toasts.transcript_copied'));
 
     // Track copy analytics
     const wordCount = allTranscripts
@@ -152,7 +154,7 @@ export function useCopyOperations({
       // If still no summary content, show message
       if (!summaryMarkdown.trim()) {
         console.error('❌ No summary content available to copy');
-        toast.error('No summary content available to copy');
+        toast.error(t('toasts.copy_no_summary'));
         return;
       }
 
@@ -176,7 +178,7 @@ export function useCopyOperations({
       await navigator.clipboard.writeText(fullMarkdown);
 
       console.log('✅ Successfully copied to clipboard!');
-      toast.success("Summary copied to clipboard");
+      toast.success(t('toasts.summary_copied'));
 
       // Track copy analytics
       await Analytics.trackCopy('summary', {
@@ -185,7 +187,7 @@ export function useCopyOperations({
       });
     } catch (error) {
       console.error('❌ Failed to copy summary:', error);
-      toast.error("Failed to copy summary");
+      toast.error(t('toasts.copy_summary_failed'));
     }
   }, [aiSummary, meetingTitle, meeting, blockNoteSummaryRef]);
 

@@ -538,5 +538,19 @@ export const es = {
   "about.customize_title": "¿Quieres adaptar MinutIA a tu organización?",
   "about.customize_body": "La plataforma está pensada para trabajo interno, privacidad y automatización de minutas.",
   "about.contact": "Contacto",
-  "about.local_edition": "MinutIA edición local"
+  "about.local_edition": "MinutIA edición local",
+
+  "toasts.model_download_progress": "Descarga de modelo en curso",
+  "toasts.model_download_progress_desc": "Espera a que termine la descarga del modelo de transcripción antes de grabar.",
+  "toasts.model_not_ready": "Modelo de transcripción no listo",
+  "toasts.model_not_ready_desc": "Descarga un modelo de transcripción antes de grabar.",
+  "toasts.model_setup_required": "Se requiere configurar el modelo de transcripción",
+  "toasts.unknown_error": "Error desconocido",
+  "toasts.diarization_failed_desc": "No se pudieron identificar los hablantes de esta reunión.",
+  "toasts.copy_fetch_failed": "No se pudieron obtener las transcripciones para copiar",
+  "toasts.copy_no_summary": "No hay contenido de resumen para copiar",
+  "toasts.copy_no_transcripts": "No hay transcripciones para copiar",
+  "settings.recordings": "Grabaciones",
+  "settings.beta": "Beta",
+  "settings.back": "Atrás"
 };

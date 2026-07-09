@@ -542,5 +542,19 @@ export const en: Record<keyof typeof es, string> = {
   "about.customize_title": "Want to adapt MinutIA to your organization?",
   "about.customize_body": "The platform is designed for internal work, privacy, and minutes automation.",
   "about.contact": "Contact",
-  "about.local_edition": "MinutIA local edition"
+  "about.local_edition": "MinutIA local edition",
+
+  "toasts.model_download_progress": "Model download in progress",
+  "toasts.model_download_progress_desc": "Please wait for the transcription model to finish downloading before recording.",
+  "toasts.model_not_ready": "Transcription model not ready",
+  "toasts.model_not_ready_desc": "Please download a transcription model before recording.",
+  "toasts.model_setup_required": "Transcription model setup required",
+  "toasts.unknown_error": "Unknown error",
+  "toasts.diarization_failed_desc": "Unable to identify speakers for this meeting.",
+  "toasts.copy_fetch_failed": "Failed to fetch transcripts for copying",
+  "toasts.copy_no_summary": "No summary content available to copy",
+  "toasts.copy_no_transcripts": "No transcripts available to copy",
+  "settings.recordings": "Recordings",
+  "settings.beta": "Beta",
+  "settings.back": "Back"
 };

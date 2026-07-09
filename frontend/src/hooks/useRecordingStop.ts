@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { listen } from '@tauri-apps/api/event';
 import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useTranscripts } from '@/contexts/TranscriptContext';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
 import { useRecordingState, RecordingStatus } from '@/contexts/RecordingStateContext';
@@ -42,6 +43,7 @@ export function useRecordingStop(
   setIsRecording: (value: boolean) => void,
   setIsRecordingDisabled: (value: boolean) => void
 ): UseRecordingStopReturn {
+  const { t } = useTranslation();
   // USE global state instead
   const recordingState = useRecordingState();
   const {
@@ -301,7 +303,7 @@ export function useRecordingStop(
           sessionStorage.removeItem('recording_enable_diarization');
           if (shouldRunDiarization) {
             try {
-              toast.loading('Identifying speakers...', {
+              toast.loading(t('speakers.identifying'), {
                 id: 'recording-diarization',
                 duration: 0,
               });
@@ -316,9 +318,9 @@ export function useRecordingStop(
               );
             } catch (error) {
               console.warn('Speaker diarization failed:', error);
-              toast.error('Speaker identification failed', {
+              toast.error(t('speakers.identify_failed'), {
                 id: 'recording-diarization',
-                description: error instanceof Error ? error.message : 'Unable to identify speakers for this meeting.',
+                description: error instanceof Error ? error.message : t('toasts.diarization_failed_desc'),
               });
             }
           }
@@ -350,10 +352,10 @@ export function useRecordingStop(
           setStatus(RecordingStatus.COMPLETED);
 
           // Show success toast with navigation option
-          toast.success('Recording saved successfully!', {
-            description: `${freshTranscripts.length} transcript segments saved.`,
+          toast.success(t('toasts.recording_saved'), {
+            description: t('toasts.recording_saved_desc').replace('{n}', String(freshTranscripts.length)),
             action: {
-              label: 'View Meeting',
+              label: t('toasts.view_meeting'),
               onClick: () => {
                 router.push(`/meeting-details?id=${meetingId}`);
                 Analytics.trackButtonClick('view_meeting_from_toast', 'recording_complete');
@@ -425,8 +427,8 @@ export function useRecordingStop(
         } catch (saveError) {
           console.error('Failed to save meeting to database:', saveError);
           setStatus(RecordingStatus.ERROR, saveError instanceof Error ? saveError.message : 'Unknown error');
-          toast.error('Failed to save meeting', {
-            description: saveError instanceof Error ? saveError.message : 'Unknown error'
+          toast.error(t('toasts.save_meeting_failed'), {
+            description: saveError instanceof Error ? saveError.message : t('toasts.unknown_error')
           });
           throw saveError;
         }

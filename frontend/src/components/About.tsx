@@ -4,8 +4,10 @@ import Image from 'next/image';
 import AnalyticsConsentSwitch from "./AnalyticsConsentSwitch";
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export function About() {
+    const { t } = useTranslation();
     const [currentVersion, setCurrentVersion] = useState<string>('0.4.0');
 
     useEffect(() => {
@@ -13,7 +15,7 @@ export function About() {
     }, []);
 
     const handleContactClick = async () => {
-        toast.info('Contacto externo no configurado todavía.');
+        toast.info(t('about.contact_toast'));
     };
 
     return (
@@ -30,54 +32,54 @@ export function About() {
                 </div>
                 <span className="text-sm text-gray-500"> v{currentVersion}</span>
                 <p className="text-medium text-gray-600 mt-1">
-                    Asistente corporativo para actas, acuerdos y seguimiento de reuniones.
+                    {t('about.tagline')}
                 </p>
             </div>
 
             <div className="space-y-3">
-                <h2 className="text-base font-semibold text-gray-800">What makes MinutIA different</h2>
+                <h2 className="text-base font-semibold text-gray-800">{t('about.diff_title')}</h2>
                 <div className="grid grid-cols-2 gap-2">
                     <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">Privacy-first</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">Your data & AI processing workflow can now stay within your premise. No cloud, no leaks.</p>
+                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.privacy_title')}</h3>
+                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.privacy_desc')}</p>
                     </div>
                     <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">Use Any Model</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">Prefer local open-source model? Great. Want to plug in an external API? Also fine. No lock-in.</p>
+                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.any_model_title')}</h3>
+                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.any_model_desc')}</p>
                     </div>
                     <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">Cost-Smart</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">Avoid pay-per-minute bills by running models locally (or pay only for the calls you choose).</p>
+                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.cost_title')}</h3>
+                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.cost_desc')}</p>
                     </div>
                     <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">Works everywhere</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">Google Meet, Zoom, Teams-online or offline.</p>
+                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.everywhere_title')}</h3>
+                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.everywhere_desc')}</p>
                     </div>
                 </div>
             </div>
 
             <div className="bg-primary/10 rounded p-3">
                 <p className="text-s text-primary">
-                    <span className="font-bold">Coming soon:</span> A library of on-device AI agents-automating follow-ups, action tracking, and more.
+                    <span className="font-bold">{t('about.coming_soon_label')}</span> {t('about.coming_soon_body')}
                 </p>
             </div>
 
             <div className="text-center space-y-2">
-                <h3 className="text-medium font-semibold text-gray-800">¿Quieres adaptar MinutIA a tu organización?</h3>
+                <h3 className="text-medium font-semibold text-gray-800">{t('about.customize_title')}</h3>
                 <p className="text-s text-gray-600">
-                    La plataforma está pensada para trabajo interno, privacidad y automatización de minutas.
+                    {t('about.customize_body')}
                 </p>
                 <Button
                     onClick={handleContactClick}
                     className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded transition-colors duration-200 shadow-sm hover:shadow-md"
                 >
-                    Contacto
+                    {t('about.contact')}
                 </Button>
             </div>
 
             <div className="pt-2 border-t border-gray-200 text-center">
                 <p className="text-xs text-gray-400">
-                    MinutIA local edition
+                    {t('about.local_edition')}
                 </p>
             </div>
             <AnalyticsConsentSwitch />
