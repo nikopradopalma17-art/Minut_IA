@@ -1,9 +1,21 @@
 "use client";
 
+import { useState, type RefObject } from 'react';
 import { Button } from '@/components/ui/button';
 import { ButtonGroup } from '@/components/ui/button-group';
-import { Copy, Save, Loader2, Search, FolderOpen } from 'lucide-react';
+import { Copy, Save, Loader2, FileDown, FolderOpen } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import Analytics from '@/lib/analytics';
+import { toast } from 'sonner';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { exportSummary } from '@/lib/export/summary-export';
+import type { BlockNoteSummaryViewRef } from '@/components/AISummary/BlockNoteSummaryView';
+import type { Summary } from '@/types';
 
 interface SummaryUpdaterButtonGroupProps {
   isSaving: boolean;
@@ -13,6 +25,14 @@ interface SummaryUpdaterButtonGroupProps {
   onFind?: () => void;
   onOpenFolder: () => Promise<void>;
   hasSummary: boolean;
+  meetingTitle: string;
+  meeting: {
+    id: string;
+    title: string;
+    created_at: string;
+  };
+  summaryRef: RefObject<BlockNoteSummaryViewRef>;
+  aiSummary: Summary | null;
 }
 
 export function SummaryUpdaterButtonGroup({
@@ -22,8 +42,65 @@ export function SummaryUpdaterButtonGroup({
   onCopy,
   onFind,
   onOpenFolder,
-  hasSummary
+  hasSummary,
+  meetingTitle,
+  meeting,
+  summaryRef,
+  aiSummary,
 }: SummaryUpdaterButtonGroupProps) {
+  const { t } = useTranslation();
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExport = async (format: 'pdf' | 'docx' | 'markdown') => {
+    if (!hasSummary || isExporting) {
+      return;
+    }
+
+    setIsExporting(true);
+    const toastId = `summary-export-${format}`;
+    toast.loading(t('export.exporting'), {
+      id: toastId,
+      duration: 0,
+    });
+
+    try {
+      const path = await exportSummary(
+          {
+            meeting,
+            summaryRef,
+            aiSummary,
+            meetingTitle,
+          },
+          format
+        );
+
+      if (!path) {
+        toast.dismiss(toastId);
+        return;
+      }
+
+      const label =
+        format === 'pdf'
+          ? t('export.pdf')
+          : format === 'docx'
+            ? t('export.word')
+            : t('export.markdown');
+
+      toast.success(t('export.success').replace('{format}', label), {
+        id: toastId,
+        description: path,
+      });
+    } catch (error) {
+      console.error('Failed to export summary:', error);
+      toast.error(t('export.failed'), {
+        id: toastId,
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <ButtonGroup>
       {/* Save button */}
@@ -66,6 +143,32 @@ export function SummaryUpdaterButtonGroup({
         <Copy />
         <span className="hidden lg:inline">Copy</span>
       </Button>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            title={t('export.menu')}
+            disabled={!hasSummary || isExporting}
+            className="cursor-pointer"
+          >
+            {isExporting ? <Loader2 className="animate-spin" /> : <FileDown />}
+            <span className="hidden lg:inline">{t('export.menu')}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => void handleExport('pdf')}>
+            {t('export.pdf')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void handleExport('docx')}>
+            {t('export.word')}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => void handleExport('markdown')}>
+            {t('export.markdown')}
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       {/* Find button */}
       {/* {onFind && (

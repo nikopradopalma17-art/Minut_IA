@@ -63,6 +63,7 @@
                         "store:default",
                         "notification:default",
                         "notification:allow-is-permission-granted",
+                        "dialog:default",
                         "process:default",
                         {
                             "identifier": "fs:scope",
