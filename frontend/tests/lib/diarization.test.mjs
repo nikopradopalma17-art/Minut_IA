@@ -72,6 +72,31 @@ test('recording service sends camelCase top-level Tauri arguments', async () => 
   ]));
 });
 
+test('paginated transcript conversion preserves the persisted speaker label', () => {
+  const { convertTranscriptsToSegments } = loadTsModule('src/hooks/usePaginatedTranscripts.ts', {
+    react: {},
+    '@tauri-apps/api/core': {},
+  });
+
+  const segments = convertTranscriptsToSegments([{
+    id: 'segment-1',
+    text: 'Follow up with Ada',
+    timestamp: '10:00:00',
+    audio_start_time: 12,
+    audio_end_time: 15,
+    speaker: 'speaker_1',
+  }]);
+
+  assert.equal(JSON.stringify(segments), JSON.stringify([{
+    id: 'segment-1',
+    timestamp: 12,
+    endTime: 15,
+    text: 'Follow up with Ada',
+    confidence: undefined,
+    speaker: 'speaker_1',
+  }]));
+});
+
 test('diarization subscribes before execution, localizes errors, and always unsubscribes', async () => {
   const steps = [];
   let emitProgress;
