@@ -7,8 +7,7 @@ import { Copy, FolderOpen, RefreshCw, Users } from 'lucide-react';
 import Analytics from '@/lib/analytics';
 import { RetranscribeDialog } from './RetranscribeDialog';
 import { useConfig } from '@/contexts/ConfigContext';
-import { recordingService } from '@/services/recordingService';
-import { toast } from 'sonner';
+import { runDiarization } from '@/lib/diarization';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 
@@ -48,27 +47,12 @@ export function TranscriptButtonGroup({
     }
 
     setIsDiarizing(true);
-    toast.loading(t('speakers.identifying'), {
-      id: 'meeting-diarization',
-      duration: 0,
-    });
-
     try {
-      const speakerCount = await recordingService.diarizeMeeting(meetingId);
-
-      toast.success(
-        t('speakers.identified').replace('{n}', String(speakerCount + 1)),
-        { id: 'meeting-diarization' }
-      );
-
-      if (onRefetchTranscripts) {
-        await onRefetchTranscripts();
-      }
-    } catch (error) {
-      console.error('Failed to diarize meeting:', error);
-      toast.error(t('speakers.identify_failed'), {
-        id: 'meeting-diarization',
-        description: error instanceof Error ? error.message : undefined,
+      await runDiarization({
+        meetingId,
+        toastId: 'meeting-diarization',
+        t,
+        onSuccess: onRefetchTranscripts,
       });
     } finally {
       setIsDiarizing(false);

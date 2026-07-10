@@ -249,6 +249,10 @@ export const es = {
   "speakers.identify_failed": "No se pudieron identificar los hablantes",
   "speakers.identification_complete": "Identificación de hablantes completada",
   "speakers.identify_failed_desc": "No se pudieron identificar los hablantes de esta reunión.",
+  "speakers.downloading_model": "Descargando modelo de identificación de voz… {pct}%",
+  "speakers.error_no_audio": "Esta reunión no tiene audio guardado para identificar hablantes.",
+  "speakers.error_no_segments": "No hay segmentos con tiempos de audio para analizar en esta reunión.",
+  "speakers.error_timeout": "Se agotó el tiempo al descargar el modelo. Revisa tu conexión e inténtalo de nuevo.",
 
   // Common
   "common.loading": "Cargando...",

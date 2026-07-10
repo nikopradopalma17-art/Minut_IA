@@ -27,6 +27,15 @@ export interface SpeakerNameEntry {
   display_name: string;
 }
 
+export interface DiarizationModelDownloadProgress {
+  downloaded_bytes: number;
+  total_bytes: number;
+  downloaded_mb: number;
+  total_mb: number;
+  speed_mbps: number;
+  percent: number;
+}
+
 /**
  * Recording Service
  * Singleton service for managing recording lifecycle operations
@@ -61,7 +70,7 @@ export class RecordingService {
    * @returns Promise<void>
    */
   async startRecording(enableDiarization: boolean = false): Promise<void> {
-    return invoke('start_recording', { enable_diarization: enableDiarization });
+    return invoke('start_recording', { enableDiarization });
   }
 
   /**
@@ -79,10 +88,10 @@ export class RecordingService {
     enableDiarization: boolean = false
   ): Promise<void> {
     return invoke('start_recording_with_devices_and_meeting', {
-      mic_device_name: micDeviceName,
-      system_device_name: systemDeviceName,
-      meeting_name: meetingName,
-      enable_diarization: enableDiarization
+      micDeviceName,
+      systemDeviceName,
+      meetingName,
+      enableDiarization
     });
   }
 
@@ -103,14 +112,14 @@ export class RecordingService {
    * @returns Promise<number> number of discovered non-mic speakers
    */
   async diarizeMeeting(meetingId: string): Promise<number> {
-    return invoke<number>('diarize_meeting', { meeting_id: meetingId });
+    return invoke<number>('diarize_meeting', { meetingId });
   }
 
   /**
    * Get the persisted display names for a meeting's speakers
    */
   async listSpeakerNames(meetingId: string): Promise<SpeakerNameEntry[]> {
-    return invoke<SpeakerNameEntry[]>('list_speaker_names', { meeting_id: meetingId });
+    return invoke<SpeakerNameEntry[]>('list_speaker_names', { meetingId });
   }
 
   /**
@@ -122,9 +131,9 @@ export class RecordingService {
     displayName: string
   ): Promise<void> {
     return invoke('rename_speaker', {
-      meeting_id: meetingId,
-      speaker_id: speakerId,
-      display_name: displayName,
+      meetingId,
+      speakerId,
+      displayName,
     });
   }
 
@@ -202,6 +211,23 @@ export class RecordingService {
    */
   async onSpeechDetected(callback: () => void): Promise<UnlistenFn> {
     return listen('speech-detected', callback);
+  }
+
+  /**
+   * Listen for diarization model (WeSpeaker) download progress.
+   * Emitted only during the first diarization run while the ~26 MB model downloads.
+   * @param callback - Function to call with each progress update
+   * @returns Promise that resolves to unlisten function
+   */
+  async onDiarizationModelDownloadProgress(
+    callback: (progress: DiarizationModelDownloadProgress) => void
+  ): Promise<UnlistenFn> {
+    return listen<DiarizationModelDownloadProgress>(
+      'diarization-model-download-progress',
+      (event) => {
+        callback(event.payload);
+      }
+    );
   }
 }
 

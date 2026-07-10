@@ -253,6 +253,10 @@ export const en: Record<keyof typeof es, string> = {
   "speakers.identify_failed": "Could not identify speakers",
   "speakers.identification_complete": "Speaker identification complete",
   "speakers.identify_failed_desc": "Unable to identify speakers for this meeting.",
+  "speakers.downloading_model": "Downloading voice identification model… {pct}%",
+  "speakers.error_no_audio": "This meeting has no saved audio to identify speakers.",
+  "speakers.error_no_segments": "There are no segments with audio timings to analyze in this meeting.",
+  "speakers.error_timeout": "The model download timed out. Check your connection and try again.",
 
   // Common
   "common.loading": "Loading...",

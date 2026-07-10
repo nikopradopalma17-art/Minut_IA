@@ -9,7 +9,7 @@ import { useRecordingState, RecordingStatus } from '@/contexts/RecordingStateCon
 import { storageService } from '@/services/storageService';
 import { transcriptService } from '@/services/transcriptService';
 import Analytics from '@/lib/analytics';
-import { recordingService } from '@/services/recordingService';
+import { runDiarization } from '@/lib/diarization';
 import {
   applyPinnedSummaryLanguageToMeeting,
   detectAndCacheSummaryLanguage,
@@ -302,27 +302,7 @@ export function useRecordingStop(
           const shouldRunDiarization = sessionStorage.getItem('recording_enable_diarization') === 'true';
           sessionStorage.removeItem('recording_enable_diarization');
           if (shouldRunDiarization) {
-            try {
-              toast.loading(t('speakers.identifying'), {
-                id: 'recording-diarization',
-                duration: 0,
-              });
-              const speakerCount = await recordingService.diarizeMeeting(meetingId);
-              toast.success(
-                speakerCount > 0
-                  ? `Identified ${speakerCount + 1} speakers`
-                  : 'Speaker identification complete',
-                {
-                  id: 'recording-diarization',
-                }
-              );
-            } catch (error) {
-              console.warn('Speaker diarization failed:', error);
-              toast.error(t('speakers.identify_failed'), {
-                id: 'recording-diarization',
-                description: error instanceof Error ? error.message : t('toasts.diarization_failed_desc'),
-              });
-            }
+            await runDiarization({ meetingId, toastId: 'recording-diarization', t });
           }
 
           // Clean up session storage

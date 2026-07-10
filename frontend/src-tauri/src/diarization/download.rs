@@ -4,7 +4,7 @@ use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
-use tauri::{AppHandle, Emitter, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tokio::fs;
 use tokio::io::{AsyncWriteExt, BufWriter};
 use tokio::time::timeout;
@@ -42,7 +42,7 @@ impl DownloadProgress {
 }
 
 pub async fn ensure_wespeaker_model<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
-    let models_dir = diarization_models_dir()?;
+    let models_dir = diarization_models_dir(app)?;
     let model_path = models_dir.join(DEFAULT_MODEL_NAME);
     if model_path.exists() {
         let size = fs::metadata(&model_path)
@@ -158,17 +158,16 @@ pub async fn download_wespeaker_model<R: Runtime>(
     Ok(())
 }
 
-pub fn diarization_models_dir() -> Result<PathBuf> {
-    let base = if cfg!(debug_assertions) {
-        std::env::current_dir()
-            .map_err(|e| anyhow!("Failed to resolve current directory: {}", e))?
-    } else {
-        dirs::data_dir()
-            .or_else(|| dirs::home_dir())
-            .ok_or_else(|| anyhow!("Could not find system data directory"))?
-    };
+pub fn diarization_models_dir<R: Runtime>(app: &AppHandle<R>) -> Result<PathBuf> {
+    // Store the WeSpeaker model alongside the other models under the app's data
+    // directory (e.g. %APPDATA%\Roaming\com.minutia.app\models\diarization) so it
+    // sits next to the whisper/parakeet models instead of a stray "MinutIA" folder.
+    let base = app
+        .path()
+        .app_data_dir()
+        .map_err(|e| anyhow!("Could not resolve app data directory: {}", e))?;
 
-    Ok(base.join("MinutIA").join("models").join("diarization"))
+    Ok(base.join("models").join("diarization"))
 }
 
 #[allow(dead_code)]
