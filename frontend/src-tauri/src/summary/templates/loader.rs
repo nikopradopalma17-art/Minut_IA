@@ -1,5 +1,6 @@
 use super::defaults;
 use super::types::Template;
+use std::fs;
 use std::path::PathBuf;
 use tracing::{debug, info, warn};
 use once_cell::sync::Lazy;
@@ -22,11 +23,40 @@ pub fn set_bundled_templates_dir(path: PathBuf) {
 /// - macOS: ~/Library/Application Support/MinutIA/templates/
 /// - Windows: %APPDATA%\MinutIA\templates\
 /// - Linux: ~/.config/MinutIA/templates/
-fn get_custom_templates_dir() -> Option<PathBuf> {
+pub fn get_custom_templates_dir() -> Option<PathBuf> {
     let mut path = dirs::data_dir()?;
     path.push("MinutIA");
     path.push("templates");
     Some(path)
+}
+
+fn validate_template_id(template_id: &str) -> Result<(), String> {
+    let trimmed = template_id.trim();
+    if trimmed.is_empty() {
+        return Err("Template id cannot be empty".to_string());
+    }
+
+    if trimmed.contains('/') || trimmed.contains('\\') || trimmed.contains("..") {
+        return Err("Template id contains invalid path characters".to_string());
+    }
+
+    if !trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Err(
+            "Template id must contain only ASCII letters, numbers, underscores, or hyphens"
+                .to_string(),
+        );
+    }
+
+    Ok(())
+}
+
+fn custom_template_path(template_id: &str) -> Option<PathBuf> {
+    let mut dir = get_custom_templates_dir()?;
+    dir.push(format!("{template_id}.json"));
+    Some(dir)
 }
 
 /// Load a template from the bundled resources directory
@@ -62,8 +92,7 @@ fn load_bundled_template(template_id: &str) -> Option<String> {
 /// # Returns
 /// The template JSON content if found, None otherwise
 fn load_custom_template(template_id: &str) -> Option<String> {
-    let custom_dir = get_custom_templates_dir()?;
-    let template_path = custom_dir.join(format!("{}.json", template_id));
+    let template_path = custom_template_path(template_id)?;
 
     debug!("Checking for custom template at: {:?}", template_path);
 
@@ -77,6 +106,55 @@ fn load_custom_template(template_id: &str) -> Option<String> {
             None
         }
     }
+}
+
+/// Returns the full path for a custom template if the app data directory can be resolved.
+pub fn get_custom_template_path(template_id: &str) -> Option<PathBuf> {
+    custom_template_path(template_id)
+}
+
+/// Returns true when a custom template file exists for the provided identifier.
+pub fn is_custom_template(template_id: &str) -> bool {
+    custom_template_path(template_id)
+        .as_ref()
+        .is_some_and(|path| path.exists())
+}
+
+/// Persist a validated template as a custom template JSON file.
+pub fn save_custom_template(template_id: &str, template: &Template) -> Result<(), String> {
+    validate_template_id(template_id)?;
+
+    let dir = get_custom_templates_dir()
+        .ok_or_else(|| "Unable to resolve the custom templates directory".to_string())?;
+    fs::create_dir_all(&dir)
+        .map_err(|e| format!("Failed to create custom templates directory: {e}"))?;
+
+    let path = dir.join(format!("{template_id}.json"));
+    let json = serde_json::to_string_pretty(template)
+        .map_err(|e| format!("Failed to serialize template JSON: {e}"))?;
+    fs::write(&path, json)
+        .map_err(|e| format!("Failed to write template file '{}': {e}", path.display()))?;
+
+    info!("Saved custom template '{}' to {:?}", template_id, path);
+    Ok(())
+}
+
+/// Delete a custom template JSON file if it exists.
+pub fn delete_custom_template(template_id: &str) -> Result<(), String> {
+    validate_template_id(template_id)?;
+
+    let path = custom_template_path(template_id)
+        .ok_or_else(|| "Unable to resolve the custom templates directory".to_string())?;
+
+    if !path.exists() {
+        return Err(format!("Custom template '{}' does not exist", template_id));
+    }
+
+    fs::remove_file(&path)
+        .map_err(|e| format!("Failed to delete template file '{}': {e}", path.display()))?;
+
+    info!("Deleted custom template '{}' from {:?}", template_id, path);
+    Ok(())
 }
 
 /// Load and parse a template by identifier
@@ -173,7 +251,7 @@ pub fn list_template_ids() -> Vec<String> {
     // Add custom templates if directory exists
     if let Some(custom_dir) = get_custom_templates_dir() {
         if custom_dir.exists() {
-            match std::fs::read_dir(&custom_dir) {
+            match fs::read_dir(&custom_dir) {
                 Ok(entries) => {
                     for entry in entries.flatten() {
                         if let Some(filename) = entry.file_name().to_str() {
@@ -199,14 +277,20 @@ pub fn list_template_ids() -> Vec<String> {
 
 /// List all available templates with their metadata
 ///
-/// Returns a list of (id, name, description) tuples
-pub fn list_templates() -> Vec<(String, String, String)> {
+/// Returns a list of (id, name, description, system_prompt, is_custom) tuples
+pub fn list_templates() -> Vec<(String, String, String, Option<String>, bool)> {
     let mut templates = Vec::new();
 
     for id in list_template_ids() {
         match get_template(&id) {
             Ok(template) => {
-                templates.push((id, template.name, template.description));
+                templates.push((
+                    id.clone(),
+                    template.name,
+                    template.description,
+                    template.system_prompt,
+                    is_custom_template(&id),
+                ));
             }
             Err(e) => {
                 warn!("Failed to load template '{}': {}", id, e);
@@ -223,11 +307,11 @@ mod tests {
 
     #[test]
     fn test_get_builtin_template() {
-        let template = get_template("daily_standup");
+        let template = get_template("reunion_diaria");
         assert!(template.is_ok());
 
         let template = template.unwrap();
-        assert_eq!(template.name, "Daily Standup");
+        assert_eq!(template.name, "Reunión diaria");
         assert!(!template.sections.is_empty());
     }
 
@@ -240,9 +324,10 @@ mod tests {
     #[test]
     fn test_list_template_ids() {
         let ids = list_template_ids();
-        assert!(ids.contains(&"daily_standup".to_string()));
-        assert!(ids.contains(&"standard_meeting".to_string()));
-        assert!(ids.contains(&"minuta_corporativa".to_string()));
+        assert!(ids.contains(&"reunion_diaria".to_string()));
+        assert!(ids.contains(&"presentacion_clientes".to_string()));
+        assert!(ids.contains(&"comite_interno".to_string()));
+        assert!(ids.contains(&"reunion_estandar".to_string()));
     }
 
     #[test]

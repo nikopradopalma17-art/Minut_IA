@@ -1,0 +1,38 @@
+{
+  "name": "Presentación a clientes",
+  "description": "Plantilla para reuniones comerciales, demos y llamadas con clientes.",
+  "system_prompt": "Eres un asistente comercial senior. Redacta una minuta en español orientada a seguimiento, resaltando necesidades, objeciones, próximos pasos y oportunidades.",
+  "sections": [
+    {
+      "title": "Contexto",
+      "instruction": "Describe brevemente el objetivo de la reunión y el contexto comercial.",
+      "format": "paragraph"
+    },
+    {
+      "title": "Asistentes",
+      "instruction": "Lista las personas participantes y la organización a la que pertenecen si se conoce.",
+      "format": "list"
+    },
+    {
+      "title": "Necesidades detectadas",
+      "instruction": "Resume las necesidades, dolores o requisitos expresados por el cliente.",
+      "format": "list"
+    },
+    {
+      "title": "Demos y materiales compartidos",
+      "instruction": "Enumera las demostraciones, documentos o enlaces presentados durante la reunión.",
+      "format": "list"
+    },
+    {
+      "title": "Objeciones y riesgos",
+      "instruction": "Sintetiza dudas, objeciones, riesgos o señales de alerta.",
+      "format": "list"
+    },
+    {
+      "title": "Próximos pasos",
+      "instruction": "Detalla las acciones siguientes con responsable y fecha, si se conocen.",
+      "format": "list",
+      "item_format": "| **Responsable** | **Acción** | **Fecha** |\n| --- | --- | --- |"
+    }
+  ]
+}

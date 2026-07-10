@@ -16,7 +16,7 @@
 //! use app_lib::summary::templates;
 //!
 //! // Load a specific template
-//! let template = templates::get_template("daily_standup").expect("daily standup template exists");
+//! let template = templates::get_template("reunion_estandar").expect("default template exists");
 //!
 //! // Generate markdown structure
 //! let markdown = template.to_markdown_structure();
@@ -43,8 +43,9 @@ mod types;
 
 // Re-export public API
 pub use loader::{
-    get_template, list_template_ids, list_templates, set_bundled_templates_dir,
-    validate_and_parse_template,
+    delete_custom_template, get_custom_template_path, get_custom_templates_dir, get_template,
+    is_custom_template, list_template_ids, list_templates, save_custom_template,
+    set_bundled_templates_dir, validate_and_parse_template,
 };
 pub use types::{Template, TemplateSection};
 
@@ -74,10 +75,14 @@ mod tests {
         let templates = list_templates();
         assert!(!templates.is_empty());
 
-        for (id, name, description) in templates {
+        for (id, name, description, system_prompt, is_custom) in templates {
             assert!(!id.is_empty());
             assert!(!name.is_empty());
             assert!(!description.is_empty());
+            if let Some(prompt) = system_prompt {
+                assert!(!prompt.trim().is_empty());
+            }
+            let _ = is_custom;
         }
     }
 }

@@ -14,6 +14,12 @@ pub struct TemplateInfo {
 
     /// Brief description of the template's purpose
     pub description: String,
+
+    /// Optional template system prompt
+    pub system_prompt: Option<String>,
+
+    /// Whether the template is stored in the user's custom templates directory
+    pub is_custom: bool,
 }
 
 /// Detailed template structure for preview/debugging
@@ -28,8 +34,20 @@ pub struct TemplateDetails {
     /// Description
     pub description: String,
 
+    /// Optional system prompt
+    pub system_prompt: Option<String>,
+
     /// List of section titles in order
-    pub sections: Vec<String>,
+    pub sections: Vec<templates::TemplateSection>,
+
+    /// Whether the template is custom and editable
+    pub is_custom: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TemplateSaveRequest {
+    pub template_id: String,
+    pub template: templates::Template,
 }
 
 /// Lists all available templates
@@ -49,10 +67,12 @@ pub async fn api_list_templates<R: Runtime>(
 
     let template_infos: Vec<TemplateInfo> = templates
         .into_iter()
-        .map(|(id, name, description)| TemplateInfo {
+        .map(|(id, name, description, system_prompt, is_custom)| TemplateInfo {
             id,
             name,
             description,
+            system_prompt,
+            is_custom,
         })
         .collect();
 
@@ -75,19 +95,16 @@ pub async fn api_get_template_details<R: Runtime>(
 ) -> Result<TemplateDetails, String> {
     info!("api_get_template_details called for template_id: {}", template_id);
 
+    let is_custom = templates::is_custom_template(&template_id);
     let template = templates::get_template(&template_id)?;
-
-    let section_titles: Vec<String> = template
-        .sections
-        .iter()
-        .map(|section| section.title.clone())
-        .collect();
 
     let details = TemplateDetails {
         id: template_id,
         name: template.name,
         description: template.description,
-        sections: section_titles,
+        system_prompt: template.system_prompt,
+        sections: template.sections,
+        is_custom,
     };
 
     info!("Retrieved template details for '{}'", details.name);
@@ -121,6 +138,37 @@ pub async fn api_validate_template<R: Runtime>(
             Err(e)
         }
     }
+}
+
+/// Creates or updates a custom template on disk.
+#[tauri::command]
+pub async fn api_save_custom_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    request: TemplateSaveRequest,
+) -> Result<TemplateDetails, String> {
+    info!("api_save_custom_template called for template_id: {}", request.template_id);
+
+    let template = request.template;
+    templates::save_custom_template(&request.template_id, &template)?;
+
+    Ok(TemplateDetails {
+        id: request.template_id,
+        name: template.name,
+        description: template.description,
+        system_prompt: template.system_prompt,
+        sections: template.sections,
+        is_custom: true,
+    })
+}
+
+/// Deletes a custom template from disk.
+#[tauri::command]
+pub async fn api_delete_custom_template<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+    template_id: String,
+) -> Result<(), String> {
+    info!("api_delete_custom_template called for template_id: {}", template_id);
+    templates::delete_custom_template(&template_id)
 }
 
 #[cfg(test)]

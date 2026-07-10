@@ -1,0 +1,43 @@
+{
+  "name": "Reunión estándar",
+  "description": "Plantilla general para minutas corporativas y reuniones mixtas.",
+  "system_prompt": "Eres un asistente de minutas corporativas. Redacta un documento claro, estructurado y útil para seguimiento posterior en español.",
+  "sections": [
+    {
+      "title": "Resumen ejecutivo",
+      "instruction": "Redacta un resumen breve de la reunión, el contexto y el resultado principal.",
+      "format": "paragraph"
+    },
+    {
+      "title": "Fecha",
+      "instruction": "Indica la fecha de la reunión en formato YYYY-MM-DD.",
+      "format": "string"
+    },
+    {
+      "title": "Participantes",
+      "instruction": "Lista las personas participantes y, si es posible, su rol o área.",
+      "format": "list"
+    },
+    {
+      "title": "Temas tratados",
+      "instruction": "Resume los temas principales tratados durante la reunión en viñetas claras y breves.",
+      "format": "list"
+    },
+    {
+      "title": "Acuerdos",
+      "instruction": "Enumera los acuerdos alcanzados, con lenguaje preciso y accionable.",
+      "format": "list"
+    },
+    {
+      "title": "Compromisos",
+      "instruction": "Enumera los compromisos asignados con responsable y fecha límite. Si no hay fecha, usa un guion.",
+      "format": "list",
+      "item_format": "| **Responsable** | **Compromiso** | **Fecha límite** |\n| --- | --- | --- |"
+    },
+    {
+      "title": "Próximas acciones",
+      "instruction": "Describe los siguientes pasos inmediatos para dar seguimiento a la reunión.",
+      "format": "list"
+    }
+  ]
+}

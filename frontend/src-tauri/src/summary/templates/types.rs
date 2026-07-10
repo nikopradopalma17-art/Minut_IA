@@ -30,6 +30,10 @@ pub struct Template {
     /// Brief description of the template's purpose
     pub description: String,
 
+    /// Optional system prompt that frames the template before section instructions
+    #[serde(default)]
+    pub system_prompt: Option<String>,
+
     /// List of sections in the template
     pub sections: Vec<TemplateSection>,
 }
@@ -118,6 +122,7 @@ mod tests {
         let template = Template {
             name: "Test Template".to_string(),
             description: "A test template".to_string(),
+            system_prompt: None,
             sections: vec![
                 TemplateSection {
                     title: "Summary".to_string(),
@@ -137,6 +142,7 @@ mod tests {
         let template = Template {
             name: "".to_string(),
             description: "A test template".to_string(),
+            system_prompt: None,
             sections: vec![],
         };
 
@@ -148,6 +154,7 @@ mod tests {
         let template = Template {
             name: "Test".to_string(),
             description: "Test".to_string(),
+            system_prompt: None,
             sections: vec![
                 TemplateSection {
                     title: "Test".to_string(),

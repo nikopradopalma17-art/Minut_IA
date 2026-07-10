@@ -4,25 +4,50 @@ This directory contains template definitions for meeting summary generation.
 
 ## Available Templates
 
-### 1. `daily_standup.json`
-Time-boxed daily updates template designed for engineering/product teams.
+### 1. `reunion_diaria.json`
+Plantilla breve para seguimiento diario del equipo.
 
 **Sections:**
-- Date
-- Attendees
-- Yesterday (completed work)
-- Today (planned work)
-- Blockers
-- Notes
+- Fecha
+- Participantes
+- Ayer
+- Hoy
+- Bloqueos
+- Notas
 
-### 2. `standard_meeting.json`
-General-purpose meeting notes template focusing on key outcomes and actions.
+### 2. `presentacion_clientes.json`
+Plantilla para reuniones comerciales, demos y llamadas con clientes.
 
 **Sections:**
-- Summary
-- Key Decisions
-- Action Items
-- Discussion Highlights
+- Contexto
+- Asistentes
+- Necesidades detectadas
+- Demos y materiales compartidos
+- Objeciones y riesgos
+- Próximos pasos
+
+### 3. `comite_interno.json`
+Plantilla para comités, revisiones operativas y reuniones de coordinación interna.
+
+**Sections:**
+- Resumen ejecutivo
+- Participantes
+- Temas revisados
+- Decisiones
+- Riesgos y dependencias
+- Acciones
+
+### 4. `reunion_estandar.json`
+Plantilla general para minutas corporativas y reuniones mixtas.
+
+**Sections:**
+- Resumen ejecutivo
+- Fecha
+- Participantes
+- Temas tratados
+- Acuerdos
+- Compromisos
+- Próximas acciones
 
 ## Template Structure
 
@@ -32,12 +57,14 @@ Each template JSON file follows this schema:
 {
   "name": "Template Name",
   "description": "Brief description of the template's purpose",
+  "system_prompt": "Optional system-level instructions",
   "sections": [
     {
       "title": "Section Title",
       "instruction": "Instructions for the LLM on what to extract/include",
       "format": "paragraph|list|string",
-      "item_format": "Optional: Markdown table format for list items"
+      "item_format": "Optional: Markdown table format for list items",
+      "example_item_format": "Optional alternative format"
     }
   ]
 }
@@ -47,9 +74,9 @@ Each template JSON file follows this schema:
 
 Users can add custom templates to the application data directory:
 
-- **macOS**: `~/Library/Application Support/Meetily/templates/`
-- **Windows**: `%APPDATA%\Meetily\templates\`
-- **Linux**: `~/.config/Meetily/templates/`
+- **macOS**: `~/Library/Application Support/MinutIA/templates/`
+- **Windows**: `%APPDATA%\MinutIA\templates\`
+- **Linux**: `~/.config/MinutIA/templates/`
 
 Custom templates override built-in templates with the same filename.
 
@@ -58,6 +85,7 @@ Custom templates override built-in templates with the same filename.
 ### Root Level
 - `name` (required): Display name for the template
 - `description` (required): Brief explanation of the template's use case
+- `system_prompt` (optional): Extra instructions injected before the section instructions
 - `sections` (required): Array of section definitions
 
 ### Section Object
@@ -75,7 +103,7 @@ Templates are loaded using the `templates` module:
 use crate::summary::templates;
 
 // Get a specific template
-let template = templates::get_template("daily_standup")?;
+let template = templates::get_template("reunion_estandar")?;
 
 // List available templates
 let available = templates::list_templates();

@@ -1,0 +1,38 @@
+{
+  "name": "Comité interno",
+  "description": "Plantilla para comités, revisiones operativas y reuniones de coordinación interna.",
+  "system_prompt": "Eres un asistente de coordinación interna. Resume en español decisiones, riesgos, responsables y acuerdos de seguimiento con tono formal y preciso.",
+  "sections": [
+    {
+      "title": "Resumen ejecutivo",
+      "instruction": "Resume la reunión en un párrafo breve, destacando el objetivo y el resultado.",
+      "format": "paragraph"
+    },
+    {
+      "title": "Participantes",
+      "instruction": "Lista los participantes y el área o cargo, si está disponible.",
+      "format": "list"
+    },
+    {
+      "title": "Temas revisados",
+      "instruction": "Enumera los temas tratados durante la sesión de comité.",
+      "format": "list"
+    },
+    {
+      "title": "Decisiones",
+      "instruction": "Describe las decisiones aprobadas con claridad y sin ambigüedades.",
+      "format": "list"
+    },
+    {
+      "title": "Riesgos y dependencias",
+      "instruction": "Detalla los riesgos, bloqueos o dependencias identificadas.",
+      "format": "list"
+    },
+    {
+      "title": "Acciones",
+      "instruction": "Enumera las acciones acordadas con responsable y plazo.",
+      "format": "list",
+      "item_format": "| **Responsable** | **Acción** | **Plazo** |\n| --- | --- | --- |"
+    }
+  ]
+}
