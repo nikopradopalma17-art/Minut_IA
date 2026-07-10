@@ -7,7 +7,7 @@ import { Label } from './ui/label';
 import { Eye, EyeOff, Lock, Unlock } from 'lucide-react';
 import { ModelManager } from './WhisperModelManager';
 import { ParakeetModelManager } from './ParakeetModelManager';
-
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface TranscriptModelProps {
     provider: 'localWhisper' | 'parakeet' | 'deepgram' | 'elevenLabs' | 'groq' | 'openai';
@@ -22,13 +22,13 @@ export interface TranscriptSettingsProps {
 }
 
 export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelConfig, onModelSelect }: TranscriptSettingsProps) {
+    const { t } = useTranslation();
     const [apiKey, setApiKey] = useState<string | null>(transcriptModelConfig.apiKey || null);
     const [showApiKey, setShowApiKey] = useState<boolean>(false);
     const [isApiKeyLocked, setIsApiKeyLocked] = useState<boolean>(true);
     const [isLockButtonVibrating, setIsLockButtonVibrating] = useState<boolean>(false);
     const [uiProvider, setUiProvider] = useState<TranscriptModelProps['provider']>(transcriptModelConfig.provider);
 
-    // Sync uiProvider when backend config changes (e.g., after model selection or initial load)
     useEffect(() => {
         setUiProvider(transcriptModelConfig.provider);
     }, [transcriptModelConfig.provider]);
@@ -41,24 +41,28 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
 
     const fetchApiKey = async (provider: string) => {
         try {
-
             const data = await invoke('api_get_transcript_api_key', { provider }) as string;
-
             setApiKey(data || '');
         } catch (err) {
             console.error('Error fetching API key:', err);
             setApiKey(null);
         }
     };
+
     const modelOptions = {
-        localWhisper: [], // Model selection handled by ModelManager component
-        parakeet: [], // Model selection handled by ParakeetModelManager component
+        localWhisper: [],
+        parakeet: [],
         deepgram: ['nova-2-phonecall'],
         elevenLabs: ['eleven_multilingual_v2'],
         groq: ['llama-3.3-70b-versatile'],
         openai: ['gpt-4o'],
     };
-    const requiresApiKey = transcriptModelConfig.provider === 'deepgram' || transcriptModelConfig.provider === 'elevenLabs' || transcriptModelConfig.provider === 'openai' || transcriptModelConfig.provider === 'groq';
+
+    const requiresApiKey =
+        transcriptModelConfig.provider === 'deepgram' ||
+        transcriptModelConfig.provider === 'elevenLabs' ||
+        transcriptModelConfig.provider === 'openai' ||
+        transcriptModelConfig.provider === 'groq';
 
     const handleInputClick = () => {
         if (isApiKeyLocked) {
@@ -68,28 +72,22 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
     };
 
     const handleWhisperModelSelect = (modelName: string) => {
-        // Always update config when model is selected, regardless of current provider
-        // This ensures the model is set when user switches back
         setTranscriptModelConfig({
             ...transcriptModelConfig,
-            provider: 'localWhisper', // Ensure provider is set correctly
+            provider: 'localWhisper',
             model: modelName
         });
-        // Close modal after selection
         if (onModelSelect) {
             onModelSelect();
         }
     };
 
     const handleParakeetModelSelect = (modelName: string) => {
-        // Always update config when model is selected, regardless of current provider
-        // This ensures the model is set when user switches back
         setTranscriptModelConfig({
             ...transcriptModelConfig,
-            provider: 'parakeet', // Ensure provider is set correctly
+            provider: 'parakeet',
             model: modelName
         });
-        // Close modal after selection
         if (onModelSelect) {
             onModelSelect();
         }
@@ -98,13 +96,10 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
     return (
         <div>
             <div>
-                {/* <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Transcript Settings</h3>
-                </div> */}
                 <div className="space-y-4 pb-6">
                     <div>
                         <Label className="block text-sm font-medium text-gray-700 mb-1">
-                            Transcript Model
+                            {t('settings.transcript_model')}
                         </Label>
                         <div className="flex space-x-2 mx-1">
                             <Select
@@ -117,16 +112,12 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                     }
                                 }}
                             >
-                                <SelectTrigger className='focus:ring-1 focus:ring-blue-500 focus:border-blue-500'>
-                                    <SelectValue placeholder="Select provider" />
+                                <SelectTrigger className="focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    <SelectValue placeholder={t('settings.select_provider')} />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="parakeet">⚡ Parakeet (Recommended - Real-time / Accurate)</SelectItem>
-                                    <SelectItem value="localWhisper">🏠 Local Whisper (High Accuracy)</SelectItem>
-                                    {/* <SelectItem value="deepgram">☁️ Deepgram (Backup)</SelectItem>
-                                    <SelectItem value="elevenLabs">☁️ ElevenLabs</SelectItem>
-                                    <SelectItem value="groq">☁️ Groq</SelectItem>
-                                    <SelectItem value="openai">☁️ OpenAI</SelectItem> */}
+                                    <SelectItem value="parakeet">{t('settings.provider_parakeet')}</SelectItem>
+                                    <SelectItem value="localWhisper">{t('settings.provider_whisper')}</SelectItem>
                                 </SelectContent>
                             </Select>
 
@@ -138,8 +129,8 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                         setTranscriptModelConfig({ ...transcriptModelConfig, provider: uiProvider, model });
                                     }}
                                 >
-                                    <SelectTrigger className='focus:ring-1 focus:ring-blue-500 focus:border-blue-500'>
-                                        <SelectValue placeholder="Select model" />
+                                    <SelectTrigger className="focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                        <SelectValue placeholder={t('settings.select_model')} />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {modelOptions[uiProvider].map((model) => (
@@ -148,7 +139,6 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                     </SelectContent>
                                 </Select>
                             )}
-
                         </div>
                     </div>
 
@@ -172,22 +162,20 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                         </div>
                     )}
 
-
                     {requiresApiKey && (
                         <div>
                             <Label className="block text-sm font-medium text-gray-700 mb-1">
-                                API Key
+                                {t('settings.api_key')}
                             </Label>
                             <div className="relative mx-1">
                                 <Input
                                     type={showApiKey ? "text" : "password"}
-                                    className={`pr-24 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${isApiKeyLocked ? 'bg-gray-100 cursor-not-allowed' : ''
-                                        }`}
+                                    className={`pr-24 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${isApiKeyLocked ? 'bg-gray-100 cursor-not-allowed' : ''}`}
                                     value={apiKey || ''}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     disabled={isApiKeyLocked}
                                     onClick={handleInputClick}
-                                    placeholder="Enter your API key"
+                                    placeholder={t('settings.api_key_placeholder')}
                                 />
                                 {isApiKeyLocked && (
                                     <div
@@ -201,9 +189,8 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setIsApiKeyLocked(!isApiKeyLocked)}
-                                        className={`transition-colors duration-200 ${isLockButtonVibrating ? 'animate-vibrate text-red-500' : ''
-                                            }`}
-                                        title={isApiKeyLocked ? "Unlock to edit" : "Lock to prevent editing"}
+                                        className={`transition-colors duration-200 ${isLockButtonVibrating ? 'animate-vibrate text-red-500' : ''}`}
+                                        title={isApiKeyLocked ? t('settings.unlock_to_edit') : t('settings.lock_to_prevent')}
                                     >
                                         {isApiKeyLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                                     </Button>
@@ -221,14 +208,6 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                     )}
                 </div>
             </div>
-        </div >
+        </div>
     )
 }
-
-
-
-
-
-
-
-

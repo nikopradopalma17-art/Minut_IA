@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -72,7 +72,7 @@ function startOfToday() {
   return now;
 }
 
-export default function CompromisosPage() {
+function CompromisosContent() {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -634,5 +634,19 @@ export default function CompromisosPage() {
         </section>
       </div>
     </motion.div>
+  );
+}
+
+export default function CompromisosPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-slate-50">
+          <RefreshCw className="h-6 w-6 animate-spin text-blue-700" />
+        </div>
+      }
+    >
+      <CompromisosContent />
+    </Suspense>
   );
 }

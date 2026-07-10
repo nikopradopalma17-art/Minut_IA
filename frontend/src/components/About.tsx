@@ -1,9 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { getVersion } from '@tauri-apps/api/app';
 import Image from 'next/image';
-import AnalyticsConsentSwitch from "./AnalyticsConsentSwitch";
-import { Button } from './ui/button';
-import { toast } from 'sonner';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export function About() {
@@ -14,16 +11,12 @@ export function About() {
         getVersion().then(setCurrentVersion).catch(console.error);
     }, []);
 
-    const handleContactClick = async () => {
-        toast.info(t('about.contact_toast'));
-    };
-
     return (
         <div className="p-4 space-y-4 h-[80vh] overflow-y-auto">
             <div className="text-center">
                 <div className="mb-3">
                     <Image
-                        src="icon_128x128.png"
+                        src={`/icon_128x128.png?v=${encodeURIComponent(currentVersion)}`}
                         alt="MinutIA Logo"
                         width={64}
                         height={64}
@@ -58,23 +51,14 @@ export function About() {
                 </div>
             </div>
 
-            <div className="bg-primary/10 rounded p-3">
-                <p className="text-s text-primary">
-                    <span className="font-bold">{t('about.coming_soon_label')}</span> {t('about.coming_soon_body')}
-                </p>
-            </div>
-
             <div className="text-center space-y-2">
                 <h3 className="text-medium font-semibold text-gray-800">{t('about.customize_title')}</h3>
                 <p className="text-s text-gray-600">
                     {t('about.customize_body')}
                 </p>
-                <Button
-                    onClick={handleContactClick}
-                    className="inline-flex items-center px-4 py-2 bg-primary hover:bg-primary/90 text-white text-sm font-medium rounded transition-colors duration-200 shadow-sm hover:shadow-md"
-                >
-                    {t('about.contact')}
-                </Button>
+                <p className="text-xs text-gray-500">
+                    {t('about.customize_hint')}
+                </p>
             </div>
 
             <div className="pt-2 border-t border-gray-200 text-center">
@@ -82,7 +66,6 @@ export function About() {
                     {t('about.local_edition')}
                 </p>
             </div>
-            <AnalyticsConsentSwitch />
         </div>
     )
 }
