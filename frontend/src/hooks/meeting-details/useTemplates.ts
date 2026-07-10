@@ -36,7 +36,7 @@ export interface TemplatePayload {
 export function useTemplates() {
   const { t } = useTranslation();
   const [availableTemplates, setAvailableTemplates] = useState<TemplateInfo[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('reunion_estandar');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>('minuta_corporativa');
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   const refreshTemplates = useCallback(async () => {
@@ -68,7 +68,7 @@ export function useTemplates() {
 
   const getTemplateDetails = useCallback(async (templateId: string) => {
     const template = await invokeTauri('api_get_template_details', {
-      template_id: templateId,
+      templateId,
     }) as TemplateDetails;
     return template;
   }, []);
@@ -91,7 +91,7 @@ export function useTemplates() {
 
   const deleteCustomTemplate = useCallback(async (templateId: string) => {
     await invokeTauri('api_delete_custom_template', {
-      template_id: templateId,
+      templateId,
     });
 
     await refreshTemplates();

@@ -16,7 +16,7 @@
 //! use app_lib::summary::templates;
 //!
 //! // Load a specific template
-//! let template = templates::get_template("reunion_estandar").expect("default template exists");
+//! let template = templates::get_template("minuta_corporativa").expect("default template exists");
 //!
 //! // Generate markdown structure
 //! let markdown = template.to_markdown_structure();

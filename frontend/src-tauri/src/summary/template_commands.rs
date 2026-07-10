@@ -6,7 +6,7 @@ use tracing::{info, warn};
 /// Template metadata for UI display
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TemplateInfo {
-    /// Template identifier (e.g., "daily_standup", "standard_meeting")
+    /// Template identifier (e.g., "reunion_diaria", "minuta_corporativa")
     pub id: String,
 
     /// Display name for the template
@@ -84,7 +84,7 @@ pub async fn api_list_templates<R: Runtime>(
 /// Gets detailed information about a specific template
 ///
 /// # Arguments
-/// * `template_id` - Template identifier (e.g., "daily_standup")
+/// * `template_id` - Template identifier (e.g., "reunion_diaria")
 ///
 /// # Returns
 /// TemplateDetails with full template structure

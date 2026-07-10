@@ -15,7 +15,20 @@ Plantilla breve para seguimiento diario del equipo.
 - Bloqueos
 - Notas
 
-### 2. `presentacion_clientes.json`
+### 2. `minuta_corporativa.json`
+Plantilla corporativa para minutas ejecutivas con acuerdos y compromisos accionables.
+
+**Sections:**
+- Resumen ejecutivo
+- Fecha
+- Participantes
+- Temas tratados
+- Acuerdos
+- Decisiones tomadas
+- Compromisos
+- Próximas acciones
+
+### 3. `reunion_cliente.json`
 Plantilla para reuniones comerciales, demos y llamadas con clientes.
 
 **Sections:**
@@ -25,29 +38,6 @@ Plantilla para reuniones comerciales, demos y llamadas con clientes.
 - Demos y materiales compartidos
 - Objeciones y riesgos
 - Próximos pasos
-
-### 3. `comite_interno.json`
-Plantilla para comités, revisiones operativas y reuniones de coordinación interna.
-
-**Sections:**
-- Resumen ejecutivo
-- Participantes
-- Temas revisados
-- Decisiones
-- Riesgos y dependencias
-- Acciones
-
-### 4. `reunion_estandar.json`
-Plantilla general para minutas corporativas y reuniones mixtas.
-
-**Sections:**
-- Resumen ejecutivo
-- Fecha
-- Participantes
-- Temas tratados
-- Acuerdos
-- Compromisos
-- Próximas acciones
 
 ## Template Structure
 
@@ -103,7 +93,7 @@ Templates are loaded using the `templates` module:
 use crate::summary::templates;
 
 // Get a specific template
-let template = templates::get_template("reunion_estandar")?;
+let template = templates::get_template("minuta_corporativa")?;
 
 // List available templates
 let available = templates::list_templates();

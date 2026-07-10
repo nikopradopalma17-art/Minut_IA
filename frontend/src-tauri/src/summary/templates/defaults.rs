@@ -6,15 +6,11 @@
 /// Reunión diaria para seguimiento corto del equipo
 pub const REUNION_DIARIA: &str = include_str!("../../../templates/reunion_diaria.json");
 
-/// Presentación a clientes o prospects
-pub const PRESENTACION_CLIENTES: &str =
-    include_str!("../../../templates/presentacion_clientes.json");
+/// Minuta ejecutiva para reuniones corporativas
+pub const MINUTA_CORPORATIVA: &str = include_str!("../../../templates/minuta_corporativa.json");
 
-/// Comité interno / revisión de proyectos
-pub const COMITE_INTERNO: &str = include_str!("../../../templates/comite_interno.json");
-
-/// Reunión estándar para minutas generales
-pub const REUNION_ESTANDAR: &str = include_str!("../../../templates/reunion_estandar.json");
+/// Reunión comercial con clientes
+pub const REUNION_CLIENTE: &str = include_str!("../../../templates/reunion_cliente.json");
 
 /// Registry of all built-in templates
 ///
@@ -22,25 +18,23 @@ pub const REUNION_ESTANDAR: &str = include_str!("../../../templates/reunion_esta
 pub fn get_builtin_templates() -> Vec<(&'static str, &'static str)> {
     vec![
         ("reunion_diaria", REUNION_DIARIA),
-        ("presentacion_clientes", PRESENTACION_CLIENTES),
-        ("comite_interno", COMITE_INTERNO),
-        ("reunion_estandar", REUNION_ESTANDAR),
+        ("minuta_corporativa", MINUTA_CORPORATIVA),
+        ("reunion_cliente", REUNION_CLIENTE),
     ]
 }
 
 /// Get a built-in template by identifier
 ///
 /// # Arguments
-/// * `id` - Template identifier (e.g., "daily_standup", "standard_meeting")
+/// * `id` - Template identifier (e.g., "reunion_diaria")
 ///
 /// # Returns
 /// The template JSON content if found, None otherwise
 pub fn get_builtin_template(id: &str) -> Option<&'static str> {
     match id {
-        "reunion_diaria" | "daily_standup" => Some(REUNION_DIARIA),
-        "presentacion_clientes" | "sales_marketing_client_call" => Some(PRESENTACION_CLIENTES),
-        "comite_interno" | "project_sync" => Some(COMITE_INTERNO),
-        "reunion_estandar" | "standard_meeting" | "minuta_corporativa" => Some(REUNION_ESTANDAR),
+        "reunion_diaria" => Some(REUNION_DIARIA),
+        "minuta_corporativa" => Some(MINUTA_CORPORATIVA),
+        "reunion_cliente" => Some(REUNION_CLIENTE),
         _ => None,
     }
 }
@@ -49,9 +43,8 @@ pub fn get_builtin_template(id: &str) -> Option<&'static str> {
 pub fn list_builtin_template_ids() -> Vec<&'static str> {
     vec![
         "reunion_diaria",
-        "presentacion_clientes",
-        "comite_interno",
-        "reunion_estandar",
+        "minuta_corporativa",
+        "reunion_cliente",
     ]
 }
 
@@ -73,13 +66,30 @@ mod tests {
     }
 
     #[test]
-    fn test_get_builtin_template() {
-        assert!(get_builtin_template("reunion_diaria").is_some());
-        assert!(get_builtin_template("daily_standup").is_some());
-        assert!(get_builtin_template("presentacion_clientes").is_some());
-        assert!(get_builtin_template("comite_interno").is_some());
-        assert!(get_builtin_template("reunion_estandar").is_some());
-        assert!(get_builtin_template("minuta_corporativa").is_some());
-        assert!(get_builtin_template("nonexistent").is_none());
+    fn builtins_are_exactly_the_three_supported_templates() {
+        let ids = list_builtin_template_ids();
+        assert_eq!(
+            ids,
+            vec!["reunion_diaria", "minuta_corporativa", "reunion_cliente"]
+        );
+
+        for id in &ids {
+            assert!(get_builtin_template(id).is_some(), "missing built-in {id}");
+        }
+
+        for removed_id in [
+            "daily_standup",
+            "presentacion_clientes",
+            "sales_marketing_client_call",
+            "comite_interno",
+            "project_sync",
+            "reunion_estandar",
+            "standard_meeting",
+        ] {
+            assert!(
+                get_builtin_template(removed_id).is_none(),
+                "removed template alias {removed_id} must not resolve"
+            );
+        }
     }
 }

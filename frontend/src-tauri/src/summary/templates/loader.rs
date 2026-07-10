@@ -166,7 +166,7 @@ pub fn delete_custom_template(template_id: &str) -> Result<(), String> {
 /// 4. Return error if not found in any location
 ///
 /// # Arguments
-/// * `template_id` - Template identifier (e.g., "daily_standup", "standard_meeting")
+/// * `template_id` - Template identifier (e.g., "reunion_diaria")
 ///
 /// # Returns
 /// Parsed and validated Template struct
@@ -324,10 +324,14 @@ mod tests {
     #[test]
     fn test_list_template_ids() {
         let ids = list_template_ids();
-        assert!(ids.contains(&"reunion_diaria".to_string()));
-        assert!(ids.contains(&"presentacion_clientes".to_string()));
-        assert!(ids.contains(&"comite_interno".to_string()));
-        assert!(ids.contains(&"reunion_estandar".to_string()));
+        assert_eq!(
+            ids,
+            vec![
+                "minuta_corporativa".to_string(),
+                "reunion_cliente".to_string(),
+                "reunion_diaria".to_string(),
+            ]
+        );
     }
 
     #[test]
