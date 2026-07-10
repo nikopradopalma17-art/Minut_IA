@@ -72,6 +72,52 @@ test('recording service sends camelCase top-level Tauri arguments', async () => 
   ]));
 });
 
+test('template commands keep nested template_id snake_case while top-level ids are camelCase', async () => {
+  const calls = [];
+  const invoke = async (command, payload) => {
+    calls.push({ command, payload });
+    if (command === 'api_save_custom_template') {
+      return { id: 'custom-template', name: 'Custom template' };
+    }
+    if (command === 'api_get_template_details') {
+      return { id: 'custom-template', name: 'Custom template', sections: [] };
+    }
+    return [];
+  };
+  const { useTemplates } = loadTsModule('src/hooks/meeting-details/useTemplates.ts', {
+    react: {
+      useCallback: (fn) => fn,
+      useEffect: () => {},
+      useState: (initial) => [initial, () => {}],
+    },
+    '@tauri-apps/api/core': { invoke },
+    sonner: { toast: { error: () => {}, success: () => {} } },
+    '@/lib/analytics': { default: { trackFeatureUsed: () => {} } },
+    '@/contexts/TranslationContext': { useTranslation: () => ({ t: (key) => key }) },
+  });
+  const templates = useTemplates();
+  const payload = {
+    name: 'Custom template',
+    description: 'A test template',
+    sections: [],
+  };
+
+  await templates.getTemplateDetails('custom-template');
+  await templates.saveCustomTemplate('custom-template', payload);
+  await templates.deleteCustomTemplate('custom-template');
+
+  assert.equal(JSON.stringify(calls), JSON.stringify([
+    { command: 'api_get_template_details', payload: { templateId: 'custom-template' } },
+    {
+      command: 'api_save_custom_template',
+      payload: { request: { template_id: 'custom-template', template: payload } },
+    },
+    { command: 'api_list_templates' },
+    { command: 'api_delete_custom_template', payload: { templateId: 'custom-template' } },
+    { command: 'api_list_templates' },
+  ]));
+});
+
 test('diarization subscribes before execution, localizes errors, and always unsubscribes', async () => {
   const steps = [];
   const toast = {
