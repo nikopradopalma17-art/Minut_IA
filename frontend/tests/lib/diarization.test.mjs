@@ -74,6 +74,7 @@ test('recording service sends camelCase top-level Tauri arguments', async () => 
 
 test('diarization subscribes before execution, localizes errors, and always unsubscribes', async () => {
   const steps = [];
+  let emitProgress;
   const toast = {
     loading: (...args) => steps.push(['loading', ...args]),
     success: (...args) => steps.push(['success', ...args]),
@@ -83,11 +84,13 @@ test('diarization subscribes before execution, localizes errors, and always unsu
     sonner: { toast },
     '@/services/recordingService': {
       recordingService: {
-        onDiarizationModelDownloadProgress: async () => {
+        onDiarizationModelDownloadProgress: async (callback) => {
           steps.push(['subscribe']);
+          emitProgress = callback;
           return () => steps.push(['unlisten']);
         },
         diarizeMeeting: async () => {
+          emitProgress({ percent: 42 });
           steps.push(['diarize']);
           throw new Error('No diarizable transcript slices found');
         },
@@ -101,6 +104,7 @@ test('diarization subscribes before execution, localizes errors, and always unsu
   assert.equal(JSON.stringify(steps), JSON.stringify([
     ['loading', 'speakers.identifying', { id: 'diarization', duration: 0 }],
     ['subscribe'],
+    ['loading', 'speakers.downloading_model', { id: 'diarization', duration: 0 }],
     ['diarize'],
     [
       'error',
