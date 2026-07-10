@@ -108,9 +108,17 @@ export function TranscriptPanel({
       {/* Custom prompt input at bottom of transcript section */}
       {!isRecording && convertedSegments.length > 0 && (
         <div className="p-1 border-t border-gray-200">
+          <div className="px-3 pt-2 pb-1">
+            <div className="text-xs font-semibold text-gray-700">
+              {t('meeting_details.transcript_context_title')}
+            </div>
+            <div className="text-[11px] leading-4 text-gray-500 mt-0.5">
+              {t('meeting_details.transcript_context_help')}
+            </div>
+          </div>
           <textarea
             placeholder={t('meeting_details.transcript_context_placeholder')}
-            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white shadow-sm min-h-[80px] resize-y"
+            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white shadow-sm min-h-[88px] resize-y"
             value={customPrompt}
             onChange={(e) => onPromptChange(e.target.value)}
           />

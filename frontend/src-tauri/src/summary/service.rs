@@ -750,6 +750,7 @@ mod tests {
         Template {
             name: "Test".to_string(),
             description: "Test template".to_string(),
+            system_prompt: None,
             sections: vec![crate::summary::templates::TemplateSection {
                 title: section_title.to_string(),
                 instruction: "Summarize this section".to_string(),

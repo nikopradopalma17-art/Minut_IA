@@ -16,13 +16,14 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Sparkles, Settings, Loader2, FileText, Check, Square } from 'lucide-react';
+import { Sparkles, Settings, Loader2, FileText, Check, Square, Pencil } from 'lucide-react';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
 import { useState, useEffect, useRef, ReactNode } from 'react';
 import { isOllamaNotInstalledError } from '@/lib/utils';
 import { BuiltInModelInfo } from '@/lib/builtin-ai';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 interface SummaryGeneratorButtonGroupProps {
   languageSlot?: ReactNode;
@@ -36,6 +37,7 @@ interface SummaryGeneratorButtonGroupProps {
   availableTemplates: Array<{ id: string, name: string, description: string }>;
   selectedTemplate: string;
   onTemplateSelect: (templateId: string, templateName: string) => void;
+  onManageTemplates?: () => void;
   hasTranscripts?: boolean;
   hasSummary?: boolean;
   isModelConfigLoading?: boolean;
@@ -53,6 +55,7 @@ export function SummaryGeneratorButtonGroup({
   availableTemplates,
   selectedTemplate,
   onTemplateSelect,
+  onManageTemplates,
   hasTranscripts = true,
   hasSummary = false,
   isModelConfigLoading = false,
@@ -61,6 +64,7 @@ export function SummaryGeneratorButtonGroup({
 }: SummaryGeneratorButtonGroupProps) {
   const [isCheckingModels, setIsCheckingModels] = useState(false);
   const [settingsDialogOpen, setSettingsDialogOpen] = useState(false);
+  const { t } = useTranslation();
 
   // Expose the function to open the modal via callback registration
   useEffect(() => {
@@ -331,10 +335,10 @@ export function SummaryGeneratorButtonGroup({
             <Button
               variant="outline"
               size="sm"
-              title="Select summary template"
+              title={t('templates.select_title')}
             >
               <FileText />
-              <span className="hidden lg:inline">Template</span>
+              <span className="hidden lg:inline">{t('templates.menu')}</span>
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
@@ -351,6 +355,15 @@ export function SummaryGeneratorButtonGroup({
                 )}
               </DropdownMenuItem>
             ))}
+            {onManageTemplates && (
+              <DropdownMenuItem
+                onClick={onManageTemplates}
+                className="flex items-center gap-2"
+              >
+                <Pencil className="h-4 w-4" />
+                <span>{t('templates.manage')}</span>
+              </DropdownMenuItem>
+            )}
 
           </DropdownMenuContent>
         </DropdownMenu>

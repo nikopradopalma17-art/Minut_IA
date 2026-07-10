@@ -8,6 +8,7 @@ use super::processor::language_name_from_code;
 
 const SUMMARY_LANGUAGE_FIELD: &str = "summary_language";
 const DETECTED_SUMMARY_LANGUAGE_FIELD: &str = "detected_summary_language";
+const SUMMARY_CONTEXT_FIELD: &str = "summary_context";
 const METADATA_FILE: &str = "metadata.json";
 const METADATA_TEMP_FILE_PREFIX: &str = ".metadata.json.";
 static METADATA_WRITE_LOCK: Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
@@ -34,6 +35,17 @@ pub(crate) fn write_detected_summary_language_to_metadata(
     summary_language: Option<&str>,
 ) -> Result<()> {
     write_language_field_to_metadata(folder, DETECTED_SUMMARY_LANGUAGE_FIELD, summary_language)
+}
+
+pub(crate) fn read_summary_context_from_metadata(folder: &Path) -> Result<Option<String>> {
+    read_text_field_from_metadata(folder, SUMMARY_CONTEXT_FIELD)
+}
+
+pub(crate) fn write_summary_context_to_metadata(
+    folder: &Path,
+    summary_context: Option<&str>,
+) -> Result<()> {
+    write_text_field_to_metadata(folder, SUMMARY_CONTEXT_FIELD, summary_context)
 }
 
 fn read_language_field_from_metadata(folder: &Path, field: &str) -> Result<Option<String>> {
@@ -84,6 +96,72 @@ fn write_language_field_to_metadata(
             object.insert(field.to_string(), Value::String(normalised));
         }
         None => {
+            object.remove(field);
+        }
+    }
+
+    let json_string = serde_json::to_string_pretty(&value)
+        .context("Failed to serialize metadata.json")?;
+    std::fs::write(&temp_path, json_string)
+        .with_context(|| format!("Failed to write {}", temp_path.display()))?;
+    std::fs::rename(&temp_path, &metadata_path).with_context(|| {
+        format!(
+            "Failed to replace {} with {}",
+            metadata_path.display(),
+            temp_path.display()
+        )
+    })?;
+
+    Ok(())
+}
+
+fn read_text_field_from_metadata(folder: &Path, field: &str) -> Result<Option<String>> {
+    let metadata_path = metadata_path(folder);
+    if !metadata_path.exists() {
+        return Ok(None);
+    }
+
+    let raw = std::fs::read_to_string(&metadata_path)
+        .with_context(|| format!("Failed to read {}", metadata_path.display()))?;
+    let value = parse_metadata_json(&raw)?;
+
+    let Some(text) = value.get(field) else {
+        return Ok(None);
+    };
+
+    match text.as_str().map(str::trim).filter(|s| !s.is_empty()) {
+        Some(value) => Ok(Some(value.to_string())),
+        None => Ok(None),
+    }
+}
+
+fn write_text_field_to_metadata(
+    folder: &Path,
+    field: &str,
+    text: Option<&str>,
+) -> Result<()> {
+    let _guard = METADATA_WRITE_LOCK.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let metadata_path = metadata_path(folder);
+    let temp_path = metadata_temp_path(folder);
+
+    let mut value = if metadata_path.exists() {
+        let raw = std::fs::read_to_string(&metadata_path)
+            .with_context(|| format!("Failed to read {}", metadata_path.display()))?;
+        parse_metadata_json(&raw)?
+    } else {
+        Value::Object(serde_json::Map::new())
+    };
+
+    if !value.is_object() {
+        bail!("Failed to parse metadata.json: root value must be a JSON object");
+    }
+
+    let object = value.as_object_mut().expect("metadata value checked as object");
+    match text {
+        Some(value) if !value.trim().is_empty() => {
+            object.insert(field.to_string(), Value::String(value.trim().to_string()));
+        }
+        _ => {
             object.remove(field);
         }
     }

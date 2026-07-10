@@ -16,6 +16,8 @@ use tokio::time::timeout;
 
 use super::models::{get_available_models, get_model_by_name};
 
+const DOWNLOAD_STREAM_STALL_TIMEOUT_SECS: u64 = 60;
+
 // ============================================================================
 // Model Status Types
 // ============================================================================
@@ -584,13 +586,17 @@ impl ModelManager {
                 }
             }
 
-            // Add per-chunk timeout (30 seconds) to detect stalled connections
-            let next_result = timeout(Duration::from_secs(30), stream.next()).await;
+            // Add per-chunk timeout to detect stalled connections
+            let next_result = timeout(Duration::from_secs(DOWNLOAD_STREAM_STALL_TIMEOUT_SECS), stream.next()).await;
 
             let chunk = match next_result {
-                // Timeout - no data received for 30 seconds
+                // Timeout - no data received within the configured stall timeout
                 Err(_) => {
-                    log::warn!("Download timeout for {}: no data received for 30 seconds", model_name);
+                    log::warn!(
+                        "Download timeout for {}: no data received for {} seconds",
+                        model_name,
+                        DOWNLOAD_STREAM_STALL_TIMEOUT_SECS
+                    );
                     let _ = writer.flush().await;
 
                     // Cleanup: Remove from active downloads
@@ -601,11 +607,17 @@ impl ModelManager {
                     {
                         let mut models = self.available_models.write().await;
                         if let Some(model_info) = models.get_mut(model_name) {
-                            model_info.status = ModelStatus::Error("Download timeout - No data received for 30 seconds".to_string());
+                            model_info.status = ModelStatus::Error(format!(
+                                "Download timeout - No data received for {} seconds",
+                                DOWNLOAD_STREAM_STALL_TIMEOUT_SECS
+                            ));
                         }
                     }
 
-                    return Err(anyhow!("Download timeout - No data received for 30 seconds"));
+                    return Err(anyhow!(
+                        "Download timeout - No data received for {} seconds",
+                        DOWNLOAD_STREAM_STALL_TIMEOUT_SECS
+                    ));
                 },
                 // Stream ended
                 Ok(None) => break,

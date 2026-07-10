@@ -674,7 +674,9 @@ pub fn run() {
             summary::commands::api_get_summary,
             summary::commands::api_save_meeting_summary,
             summary::commands::api_get_meeting_summary_language,
+            summary::commands::api_get_meeting_summary_context,
             summary::commands::api_save_meeting_summary_language,
+            summary::commands::api_save_meeting_summary_context,
             summary::commands::api_get_meeting_detected_summary_language,
             summary::commands::api_save_meeting_detected_summary_language,
             summary::commands::api_detect_transcript_summary_language,
@@ -683,6 +685,8 @@ pub fn run() {
             summary::template_commands::api_list_templates,
             summary::template_commands::api_get_template_details,
             summary::template_commands::api_validate_template,
+            summary::template_commands::api_save_custom_template,
+            summary::template_commands::api_delete_custom_template,
             // Built-in AI commands
             summary::summary_engine::commands::builtin_ai_list_models,
             summary::summary_engine::commands::builtin_ai_get_model_info,

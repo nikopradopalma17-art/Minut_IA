@@ -5,7 +5,9 @@ use crate::database::repositories::{
 use crate::state::AppState;
 use crate::summary::metadata::{
     read_detected_summary_language_from_metadata, read_summary_language_from_metadata,
+    read_summary_context_from_metadata,
     write_detected_summary_language_to_metadata, write_summary_language_to_metadata,
+    write_summary_context_to_metadata,
 };
 use crate::summary::language_detection::{
     detect_summary_language, SummaryLanguageDetection,
@@ -199,6 +201,48 @@ pub async fn api_save_meeting_detected_summary_language<R: Runtime>(
     }
 }
 
+/// Gets the per-meeting summary context override from metadata.json.
+#[tauri::command]
+pub async fn api_get_meeting_summary_context<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    meeting_id: String,
+) -> Result<Option<String>, String> {
+    log_info!(
+        "api_get_meeting_summary_context called for meeting_id: {}",
+        meeting_id
+    );
+
+    match resolve_meeting_folder(state.db_manager.pool(), &meeting_id).await? {
+        MeetingFolderResolution::Folder(folder) => read_summary_context_from_metadata(&folder)
+            .map_err(|e| e.to_string()),
+        MeetingFolderResolution::NoFolder => Ok(None),
+    }
+}
+
+/// Saves or clears the per-meeting summary context override in metadata.json.
+#[tauri::command]
+pub async fn api_save_meeting_summary_context<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    meeting_id: String,
+    summary_context: Option<String>,
+) -> Result<Option<String>, String> {
+    log_info!(
+        "api_save_meeting_summary_context called for meeting_id: {}",
+        meeting_id
+    );
+
+    match resolve_meeting_folder(state.db_manager.pool(), &meeting_id).await? {
+        MeetingFolderResolution::Folder(folder) => {
+            write_summary_context_to_metadata(&folder, summary_context.as_deref())
+                .map_err(|e| e.to_string())?;
+            read_summary_context_from_metadata(&folder).map_err(|e| e.to_string())
+        }
+        MeetingFolderResolution::NoFolder => Ok(None),
+    }
+}
+
 /// Detects the dominant supported summary language from transcript segments.
 #[tauri::command]
 pub async fn api_detect_transcript_summary_language(
@@ -348,7 +392,7 @@ pub async fn api_process_transcript<R: Runtime>(
 
     let pool = state.db_manager.pool().clone();
     let final_prompt = custom_prompt.unwrap_or_else(|| "".to_string());
-    let final_template_id = template_id.unwrap_or_else(|| "minuta_corporativa".to_string());
+    let final_template_id = template_id.unwrap_or_else(|| "reunion_estandar".to_string());
 
     // Normalise empty / whitespace-only to None so "" and null behave identically
     let summary_language = summary_language.and_then(|s| {

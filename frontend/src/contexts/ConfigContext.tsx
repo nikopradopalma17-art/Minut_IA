@@ -391,6 +391,15 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
   // Toggle beta feature with localStorage persistence and analytics
   const toggleBetaFeature = useCallback((featureKey: BetaFeatureKey, enabled: boolean) => {
+    if (featureKey === 'importAndRetranscribe' && !enabled) {
+      setBetaFeatures(prev => {
+        const updated = { ...prev, importAndRetranscribe: true };
+        saveBetaFeatures(updated);
+        return updated;
+      });
+      return;
+    }
+
     setBetaFeatures(prev => {
       const updated = { ...prev, [featureKey]: enabled };
       saveBetaFeatures(updated);

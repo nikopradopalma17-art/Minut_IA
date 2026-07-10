@@ -8,6 +8,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'sonner';
 import { TranscriptPanel } from '@/components/MeetingDetails/TranscriptPanel';
 import { SummaryPanel } from '@/components/MeetingDetails/SummaryPanel';
+import { TemplateManagerDialog } from '@/components/MeetingDetails/TemplateManagerDialog';
 import { ModelConfig } from '@/components/ModelSettingsModal';
 
 // Custom hooks
@@ -58,6 +59,9 @@ export default function PageContent({
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [isRecording] = useState(false);
   const [summaryResponse] = useState<SummaryResponse | null>(null);
+  const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
+  const summaryContextLoadedRef = useRef(false);
+  const lastSavedSummaryContextRef = useRef<string>('');
 
   // Ref to store the modal open function from SummaryGeneratorButtonGroup
   const openModelSettingsRef = useRef<(() => void) | null>(null);
@@ -88,6 +92,65 @@ export default function PageContent({
       console.warn('⚠️ Modal open function not yet registered');
     }
   };
+
+  useEffect(() => {
+    let cancelled = false;
+    summaryContextLoadedRef.current = false;
+    lastSavedSummaryContextRef.current = '';
+
+    const loadSummaryContext = async () => {
+      try {
+        const stored = await invoke('api_get_meeting_summary_context', {
+          meetingId: meeting.id,
+        }) as string | null;
+
+        if (!cancelled) {
+          const normalized = stored || '';
+          setCustomPrompt(normalized);
+          lastSavedSummaryContextRef.current = normalized;
+        }
+      } catch (error) {
+        console.error('Failed to load summary context:', error);
+      } finally {
+        if (!cancelled) {
+          summaryContextLoadedRef.current = true;
+        }
+      }
+    };
+
+    loadSummaryContext();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [meeting.id]);
+
+  useEffect(() => {
+    if (!summaryContextLoadedRef.current) {
+      return;
+    }
+
+    const nextValue = customPrompt.trim();
+    if (nextValue === lastSavedSummaryContextRef.current) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      void (async () => {
+        try {
+          const saved = await invoke('api_save_meeting_summary_context', {
+            meetingId: meeting.id,
+            summaryContext: nextValue.length > 0 ? nextValue : null,
+          }) as string | null;
+          lastSavedSummaryContextRef.current = saved || '';
+        } catch (error) {
+          console.error('Failed to save summary context:', error);
+        }
+      })();
+    }, 600);
+
+    return () => window.clearTimeout(timeout);
+  }, [customPrompt, meeting.id]);
 
   // Save model config to backend database and sync via event
   const handleSaveModelConfig = async (config?: ModelConfig) => {
@@ -226,10 +289,23 @@ export default function PageContent({
           availableTemplates={templates.availableTemplates}
           selectedTemplate={templates.selectedTemplate}
           onTemplateSelect={templates.handleTemplateSelection}
+          onManageTemplates={() => setTemplatesDialogOpen(true)}
           isModelConfigLoading={false}
           onOpenModelSettings={handleRegisterModalOpen}
         />
       </div>
+
+      <TemplateManagerDialog
+        open={templatesDialogOpen}
+        onOpenChange={setTemplatesDialogOpen}
+        templates={templates.availableTemplates}
+        selectedTemplate={templates.selectedTemplate}
+        onSelectTemplate={templates.handleTemplateSelection}
+        getTemplateDetails={templates.getTemplateDetails}
+        saveCustomTemplate={templates.saveCustomTemplate}
+        deleteCustomTemplate={templates.deleteCustomTemplate}
+        onTemplatesUpdated={templates.refreshTemplates}
+      />
     </motion.div>
   );
 }

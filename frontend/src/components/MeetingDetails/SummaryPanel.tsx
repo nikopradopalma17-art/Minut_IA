@@ -54,11 +54,12 @@ interface SummaryPanelProps {
   onSummaryChange: (summary: Summary) => void;
   onDirtyChange: (isDirty: boolean) => void;
   summaryError: string | null;
-  onRegenerateSummary: () => Promise<void>;
+  onRegenerateSummary: (customPrompt: string) => Promise<void>;
   getSummaryStatusMessage: (status: 'idle' | 'processing' | 'summarizing' | 'regenerating' | 'completed' | 'error') => string;
   availableTemplates: Array<{ id: string, name: string, description: string }>;
   selectedTemplate: string;
   onTemplateSelect: (templateId: string, templateName: string) => void;
+  onManageTemplates?: () => void;
   isModelConfigLoading?: boolean;
   onOpenModelSettings?: (openFn: () => void) => void;
 }
@@ -95,6 +96,7 @@ export function SummaryPanel({
   availableTemplates,
   selectedTemplate,
   onTemplateSelect,
+  onManageTemplates,
   isModelConfigLoading = false,
   onOpenModelSettings
 }: SummaryPanelProps) {
@@ -282,6 +284,7 @@ export function SummaryPanel({
                 availableTemplates={availableTemplates}
                 selectedTemplate={selectedTemplate}
                 onTemplateSelect={onTemplateSelect}
+                onManageTemplates={onManageTemplates}
                 hasTranscripts={transcripts.length > 0}
                 hasSummary={!!aiSummary}
                 isModelConfigLoading={isModelConfigLoading}
@@ -328,6 +331,7 @@ export function SummaryPanel({
               availableTemplates={availableTemplates}
               selectedTemplate={selectedTemplate}
               onTemplateSelect={onTemplateSelect}
+              onManageTemplates={onManageTemplates}
               hasTranscripts={transcripts.length > 0}
               isModelConfigLoading={isModelConfigLoading}
               onOpenModelSettings={onOpenModelSettings}
@@ -356,6 +360,7 @@ export function SummaryPanel({
               availableTemplates={availableTemplates}
               selectedTemplate={selectedTemplate}
               onTemplateSelect={onTemplateSelect}
+              onManageTemplates={onManageTemplates}
               hasTranscripts={transcripts.length > 0}
               hasSummary={false}
               isModelConfigLoading={isModelConfigLoading}
@@ -428,7 +433,7 @@ export function SummaryPanel({
               error={summaryError}
               onRegenerateSummary={() => {
                 Analytics.trackButtonClick('regenerate_summary', 'meeting_details');
-                onRegenerateSummary();
+                onRegenerateSummary(customPrompt);
               }}
               meeting={{
                 id: meeting.id,

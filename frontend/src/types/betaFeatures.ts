@@ -64,7 +64,7 @@ export function loadBetaFeatures(): BetaFeatures {
     if (saved) {
       const parsed = JSON.parse(saved) as Partial<BetaFeatures>;
       // Merge with defaults to handle missing keys (graceful degradation)
-      return { ...DEFAULT_BETA_FEATURES, ...parsed };
+      return { ...DEFAULT_BETA_FEATURES, ...parsed, importAndRetranscribe: true };
     }
   } catch (error) {
     console.error('[BetaFeatures] Failed to load from localStorage:', error);
@@ -82,7 +82,7 @@ export function saveBetaFeatures(features: BetaFeatures): void {
   if (typeof window === 'undefined') return;
 
   try {
-    localStorage.setItem('betaFeatures', JSON.stringify(features));
+    localStorage.setItem('betaFeatures', JSON.stringify({ ...features, importAndRetranscribe: true }));
   } catch (error) {
     console.error('[BetaFeatures] Failed to save to localStorage:', error);
   }
