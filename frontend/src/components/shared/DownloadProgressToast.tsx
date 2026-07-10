@@ -59,17 +59,21 @@ function DownloadToastContent({
   const hasError = download.status === 'error';
   const isCancelled = download.status === 'cancelled';
   const unitLabel = download.unitLabel ?? 'MB';
+  const isOptionalSummaryDownload = download.unitLabel === 'MiB';
+  const errorTextClass = isOptionalSummaryDownload ? 'text-amber-700' : 'text-red-600';
+  const errorIconClass = isOptionalSummaryDownload ? 'text-amber-600' : 'text-red-600';
+  const errorBubbleClass = isOptionalSummaryDownload ? 'bg-amber-100' : 'bg-red-100';
 
   return (
     <div className="flex items-center gap-3 w-full max-w-sm bg-white rounded-lg shadow-lg border border-gray-200 p-3 relative">
 
       {/* Icon */}
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete ? 'bg-green-100' : hasError ? 'bg-red-100' : isCancelled ? 'bg-gray-100' : 'bg-gray-100'
+      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isComplete ? 'bg-green-100' : hasError ? errorBubbleClass : isCancelled ? 'bg-gray-100' : 'bg-gray-100'
         }`}>
         {isComplete ? (
           <Check className="w-4 h-4 text-green-600" />
         ) : hasError ? (
-          <X className="w-4 h-4 text-red-600" />
+          <X className={`w-4 h-4 ${errorIconClass}`} />
         ) : isCancelled ? (
           <X className="w-4 h-4 text-gray-600" />
         ) : (
@@ -86,7 +90,7 @@ function DownloadToastContent({
         </div>
 
         {hasError ? (
-          <p className="text-xs text-red-600">{download.error || 'Download failed'}</p>
+          <p className={`text-xs ${errorTextClass}`}>{download.error || (isOptionalSummaryDownload ? 'Optional download unavailable' : 'Download failed')}</p>
         ) : isComplete ? (
           <p className="text-xs text-green-600">Download complete</p>
         ) : isCancelled ? (
