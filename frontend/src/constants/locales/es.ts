@@ -467,6 +467,7 @@ export const es = {
   "retranscribe.failed_title": "Falló la retranscripción",
   "retranscribe.failed_desc": "Ocurrió un error durante la retranscripción",
   "retranscribe.processing_desc": "Procesando audio...",
+  "retranscribe.processing": "Retranscribiendo...",
   "retranscribe.description": "Reprocesa el audio con ajustes de idioma distintos",
   "retranscribe.language": "Idioma",
   "retranscribe.select_language": "Seleccionar idioma",

@@ -984,7 +984,7 @@ export function ModelSettingsModal({
                 type="password"
                 value={customOpenAIApiKey}
                 onChange={(e) => setCustomOpenAIApiKey(e.target.value)}
-                placeholder="Leave empty if not required"
+                placeholder={t('models.api_key_optional_placeholder')}
                 className="mt-1"
               />
             </div>
@@ -1006,7 +1006,7 @@ export function ModelSettingsModal({
               {isCustomOpenAIAdvancedOpen && (
                 <div className="space-y-3 pl-2 border-l-2 border-muted mt-2">
                   <div>
-                    <Label htmlFor="custom-max-tokens">Max Tokens</Label>
+                    <Label htmlFor="custom-max-tokens">{t('models.max_tokens')}</Label>
                     <Input
                       id="custom-max-tokens"
                       type="number"
@@ -1017,7 +1017,7 @@ export function ModelSettingsModal({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="custom-temperature">Temperature (0.0-2.0)</Label>
+                    <Label htmlFor="custom-temperature">{t('models.temperature')}</Label>
                     <Input
                       id="custom-temperature"
                       type="number"
@@ -1031,7 +1031,7 @@ export function ModelSettingsModal({
                     />
                   </div>
                   <div>
-                    <Label htmlFor="custom-top-p">Top P (0.0-1.0)</Label>
+                    <Label htmlFor="custom-top-p">{t('models.top_p')}</Label>
                     <Input
                       id="custom-top-p"
                       type="number"
@@ -1081,7 +1081,7 @@ export function ModelSettingsModal({
                 value={apiKey || ''}
                 onChange={(e) => setApiKey(e.target.value)}
                 disabled={isApiKeyLocked}
-                placeholder="Enter your API key"
+                placeholder={t('settings.api_key_placeholder')}
                 className="pr-24"
               />
               {isApiKeyLocked && apiKey?.trim() && (

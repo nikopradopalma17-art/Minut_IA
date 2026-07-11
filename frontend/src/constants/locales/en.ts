@@ -471,6 +471,7 @@ export const en: Record<keyof typeof es, string> = {
   "retranscribe.failed_title": "Retranscription failed",
   "retranscribe.failed_desc": "An error occurred during retranscription",
   "retranscribe.processing_desc": "Processing audio...",
+  "retranscribe.processing": "Retranscribing...",
   "retranscribe.description": "Re-process the audio with different language settings",
   "retranscribe.language": "Language",
   "retranscribe.select_language": "Select language",
