@@ -575,8 +575,7 @@ export const en: Record<keyof typeof es, string> = {
   // <!-- EDITAR --> Replace with the author's approved biography.
   "about.author_body": "Text to be defined by Nikolas Prado: a short personal introduction, experience, and motivation for creating MinutIA.",
   "about.impulso_title": "Impulso IA",
-  // <!-- EDITAR --> Replace with the brand's approved description.
-  "about.impulso_body": "Text to be defined: the official description of Impulso IA, its purpose, and its relationship with MinutIA.",
+  "about.impulso_body": "We are Impulso IA, created by Nikolas Prado. It exists to transform the way people work through artificial intelligence, process optimization, and agile digital solutions.",
   "about.contact_toast": "External contact is not configured yet.",
   "about.diff_title": "What makes MinutIA different",
   "about.privacy_title": "Privacy-first",

@@ -571,8 +571,7 @@ export const es = {
   // <!-- EDITAR --> Sustituir con la biografía oficial del autor.
   "about.author_body": "Texto por definir por Nikolas Prado: breve presentación personal, experiencia y motivación para crear MinutIA.",
   "about.impulso_title": "Impulso IA",
-  // <!-- EDITAR --> Sustituir con la descripción oficial de la marca.
-  "about.impulso_body": "Texto por definir: descripción oficial de Impulso IA, su propósito y su relación con MinutIA.",
+  "about.impulso_body": "Somos Impulso IA, creada por Nikolas Prado. Nace para transformar la forma de trabajar mediante inteligencia artificial, optimización de procesos y soluciones digitales ágiles.",
   "about.contact_toast": "Contacto externo no configurado todavía.",
   "about.diff_title": "Qué hace diferente a MinutIA",
   "about.privacy_title": "Privacidad primero",
