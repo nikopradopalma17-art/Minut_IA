@@ -214,39 +214,19 @@ pub fn validate_and_parse_template(json_content: &str) -> Result<Template, Strin
 /// List all available template identifiers
 ///
 /// Returns a combined list of:
-/// - Built-in template IDs
-/// - Bundled template IDs (from app resources)
+/// - Built-in template IDs (the fixed, curated set embedded in the binary)
 /// - Custom template IDs (from user's data directory)
+///
+/// NOTE: We intentionally do NOT scan the bundled resources directory for
+/// arbitrary `*.json` files. Doing so surfaced stale templates left over in the
+/// resource/app-data folders from older builds (e.g. `project_sync`,
+/// `retrospective`). The built-in set is owned by `defaults.rs`; only genuine
+/// user-created templates in the custom directory are added on top.
 pub fn list_template_ids() -> Vec<String> {
     let mut ids: Vec<String> = defaults::list_builtin_template_ids()
         .into_iter()
         .map(|s| s.to_string())
         .collect();
-
-    // Add bundled templates if directory is set
-    if let Ok(bundled_dir_lock) = BUNDLED_TEMPLATES_DIR.read() {
-        if let Some(bundled_dir) = bundled_dir_lock.as_ref() {
-            if bundled_dir.exists() {
-                match std::fs::read_dir(bundled_dir) {
-                    Ok(entries) => {
-                        for entry in entries.flatten() {
-                            if let Some(filename) = entry.file_name().to_str() {
-                                if filename.ends_with(".json") {
-                                    let id = filename.trim_end_matches(".json").to_string();
-                                    if !ids.contains(&id) {
-                                        ids.push(id);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Err(e) => {
-                        warn!("Failed to read bundled templates directory: {}", e);
-                    }
-                }
-            }
-        }
-    }
 
     // Add custom templates if directory exists
     if let Some(custom_dir) = get_custom_templates_dir() {
@@ -307,11 +287,11 @@ mod tests {
 
     #[test]
     fn test_get_builtin_template() {
-        let template = get_template("reunion_diaria");
+        let template = get_template("reunion_estandar");
         assert!(template.is_ok());
 
         let template = template.unwrap();
-        assert_eq!(template.name, "Reunión diaria");
+        assert_eq!(template.name, "Reunión estándar");
         assert!(!template.sections.is_empty());
     }
 
@@ -327,9 +307,10 @@ mod tests {
         assert_eq!(
             ids,
             vec![
+                "comite_interno".to_string(),
                 "minuta_corporativa".to_string(),
                 "reunion_cliente".to_string(),
-                "reunion_diaria".to_string(),
+                "reunion_estandar".to_string(),
             ]
         );
     }
