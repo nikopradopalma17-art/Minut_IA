@@ -257,7 +257,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
       {/* Recording Status Bar - Sticky at top, always visible when recording */}
       <AnimatePresence>
         {isRecording && (
-          <div className="sticky top-4 z-10 bg-white pb-2">
+          <div className="sticky top-4 z-10 bg-card pb-2">
             <RecordingStatusBar isPaused={isPaused} />
           </div>
         )}
@@ -287,7 +287,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
             <div className="flex items-start gap-2">
               <Tooltip>
                 <TooltipTrigger>
-                  <span className="text-xs text-gray-400 mt-1 flex-shrink-0 min-w-[50px]">
+                  <span className="text-xs text-muted-foreground mt-1 flex-shrink-0 min-w-[50px]">
                     {transcript.audio_start_time !== undefined
                       ? formatRecordingTime(transcript.audio_start_time)
                       : transcript.timestamp}
@@ -295,7 +295,7 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
                 </TooltipTrigger>
                 <TooltipContent>
                   {transcript.duration !== undefined && (
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-muted-foreground">
                       {transcript.duration.toFixed(1)}s
                       {transcript.confidence !== undefined && (
                         <ConfidenceIndicator
@@ -315,12 +315,12 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
                 />
                 {isStreaming ? (
                   // Streaming transcript - show in bubble (full width)
-                  <div className="bg-gray-100 border border-gray-200 rounded-lg px-3 py-2">
+                  <div className="bg-muted/40 border border-border rounded-lg px-3 py-2">
                     <div className="relative">
-                      <p className="text-base text-gray-800 leading-relaxed" style={{ visibility: 'hidden' }}>
+                      <p className="text-base text-foreground leading-relaxed" style={{ visibility: 'hidden' }}>
                         {sizerText}
                       </p>
-                      <p className="text-base text-gray-800 leading-relaxed absolute top-0 left-0">
+                      <p className="text-base text-foreground leading-relaxed absolute top-0 left-0">
                         {displayText}
                       </p>
                     </div>
@@ -328,10 +328,10 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
                 ) : (
                   // Regular transcript - simple text
                   <div className="relative">
-                    <p className="text-base text-gray-800 leading-relaxed" style={{ visibility: 'hidden' }}>
+                    <p className="text-base text-foreground leading-relaxed" style={{ visibility: 'hidden' }}>
                       {sizerText}
                     </p>
-                    <p className="text-base text-gray-800 leading-relaxed absolute top-0 left-0">
+                    <p className="text-base text-foreground leading-relaxed absolute top-0 left-0">
                       {displayText}
                     </p>
                   </div>
@@ -348,9 +348,9 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="flex items-center gap-2 mt-4 text-gray-500"
+          className="flex items-center gap-2 mt-4 text-muted-foreground"
         >
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+          <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
           <span className="text-sm">Listening...</span>
         </motion.div>
       )}
@@ -360,17 +360,17 @@ export const TranscriptView: React.FC<TranscriptViewProps> = ({ transcripts, isR
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="text-center text-gray-500 mt-8"
+          className="text-center text-muted-foreground mt-8"
         >
           {isRecording ? (
             <>
               <div className="flex items-center justify-center mb-3">
-                <div className={`w-3 h-3 rounded-full ${isPaused ? 'bg-orange-500' : 'bg-blue-500 animate-pulse'}`}></div>
+                <div className={`w-3 h-3 rounded-full ${isPaused ? 'bg-impulso-ocean' : 'bg-primary animate-pulse'}`}></div>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {isPaused ? 'Recording paused' : 'Listening for speech...'}
               </p>
-              <p className="text-xs mt-1 text-gray-400">
+              <p className="text-xs mt-1 text-muted-foreground">
                 {isPaused
                   ? 'Click resume to continue recording'
                   : 'Speak to see live transcription'}

@@ -157,11 +157,11 @@ export function TranscriptRecovery({
                       </div>
                       {meeting.folderPath ? (
                         <span title={t('recovery.audio_available')}>
-                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                          <CheckCircle2 className="w-4 h-4 text-impulso-ocean flex-shrink-0" />
                         </span>
                       ) : (
                         <span title={t('recovery.no_audio')}>
-                          <AlertCircle className="w-4 h-4 text-yellow-500 flex-shrink-0" />
+                          <AlertCircle className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                         </span>
                       )}
                     </div>
@@ -189,12 +189,12 @@ export function TranscriptRecovery({
                         {selectedMeeting.transcriptCount} {selectedMeeting.transcriptCount !== 1 ? t('recovery.transcripts_count') : t('recovery.transcript_count')}
                       </span>
                       {selectedMeeting.folderPath ? (
-                        <span className="flex items-center gap-1 text-green-600">
+                        <span className="flex items-center gap-1 text-impulso-ocean">
                           <CheckCircle2 className="w-4 h-4" />
                           {t('recovery.audio_available')}
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 text-yellow-600">
+                        <span className="flex items-center gap-1 text-muted-foreground">
                           <AlertCircle className="w-4 h-4" />
                           {t('recovery.no_audio')}
                         </span>

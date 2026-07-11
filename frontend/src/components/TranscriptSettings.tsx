@@ -98,7 +98,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
             <div>
                 <div className="space-y-4 pb-6">
                     <div>
-                        <Label className="block text-sm font-medium text-gray-700 mb-1">
+                        <Label className="block text-sm font-medium text-foreground mb-1">
                             {t('settings.transcript_model')}
                         </Label>
                         <div className="flex space-x-2 mx-1">
@@ -112,7 +112,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                     }
                                 }}
                             >
-                                <SelectTrigger className="focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                <SelectTrigger className="focus:ring-1 focus:ring-primary focus:border-primary">
                                     <SelectValue placeholder={t('settings.select_provider')} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -129,7 +129,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                         setTranscriptModelConfig({ ...transcriptModelConfig, provider: uiProvider, model });
                                     }}
                                 >
-                                    <SelectTrigger className="focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    <SelectTrigger className="focus:ring-1 focus:ring-primary focus:border-primary">
                                         <SelectValue placeholder={t('settings.select_model')} />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -164,13 +164,13 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
 
                     {requiresApiKey && (
                         <div>
-                            <Label className="block text-sm font-medium text-gray-700 mb-1">
+                            <Label className="block text-sm font-medium text-foreground mb-1">
                                 {t('settings.api_key')}
                             </Label>
                             <div className="relative mx-1">
                                 <Input
                                     type={showApiKey ? "text" : "password"}
-                                    className={`pr-24 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 ${isApiKeyLocked ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+                                    className={`pr-24 focus:ring-1 focus:ring-primary focus:border-primary ${isApiKeyLocked ? 'bg-muted cursor-not-allowed' : ''}`}
                                     value={apiKey || ''}
                                     onChange={(e) => setApiKey(e.target.value)}
                                     disabled={isApiKeyLocked}
@@ -180,7 +180,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                 {isApiKeyLocked && (
                                     <div
                                         onClick={handleInputClick}
-                                        className="absolute inset-0 flex items-center justify-center bg-gray-100 bg-opacity-50 rounded-md cursor-not-allowed"
+                                        className="absolute inset-0 flex items-center justify-center bg-muted bg-opacity-50 rounded-md cursor-not-allowed"
                                     />
                                 )}
                                 <div className="absolute inset-y-0 right-0 pr-1 flex items-center">
@@ -189,7 +189,7 @@ export function TranscriptSettings({ transcriptModelConfig, setTranscriptModelCo
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setIsApiKeyLocked(!isApiKeyLocked)}
-                                        className={`transition-colors duration-200 ${isLockButtonVibrating ? 'animate-vibrate text-red-500' : ''}`}
+                                        className={`transition-colors duration-200 ${isLockButtonVibrating ? 'animate-vibrate text-destructive' : ''}`}
                                         title={isApiKeyLocked ? t('settings.unlock_to_edit') : t('settings.lock_to_prevent')}
                                     >
                                         {isApiKeyLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
