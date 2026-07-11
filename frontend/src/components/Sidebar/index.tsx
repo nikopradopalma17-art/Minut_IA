@@ -78,12 +78,11 @@ const Sidebar: React.FC = () => {
     model: 'parakeet-tdt-0.6b-v3-int8',
   });
   const [settingsSaveSuccess, setSettingsSaveSuccess] = useState<boolean | null>(null);
+  // Minutas, Compromisos e Historial se ocultan del menú (su contenido se ve dentro
+  // de cada reunión); las páginas/rutas se conservan intactas y siguen accesibles.
   const navItems = [
     { id: 'inicio', href: '/inicio', label: t('nav.home'), icon: Home },
     { id: 'reuniones', href: '/reuniones', label: t('nav.meetings'), icon: NotebookPen },
-    { id: 'minutas', href: '/minutas', label: t('nav.minutes'), icon: File },
-    { id: 'compromisos', href: '/compromisos', label: t('nav.commitments'), icon: StickyNote },
-    { id: 'historial', href: '/historial', label: t('nav.history'), icon: Calendar },
     { id: 'configuracion', href: '/settings', label: t('nav.settings'), icon: Settings },
   ] as const;
 
@@ -479,9 +478,6 @@ const Sidebar: React.FC = () => {
             const isActive =
               (item.id === 'inicio' && isDashboardPage) ||
               (item.id === 'reuniones' && isMeetingsPage) ||
-              (item.id === 'minutas' && isMinutesPage) ||
-              (item.id === 'compromisos' && isCommitmentsPage) ||
-              (item.id === 'historial' && isHistoryPage) ||
               (item.id === 'configuracion' && isSettingsPage);
 
             return (
@@ -725,9 +721,6 @@ const Sidebar: React.FC = () => {
               const isActive =
                 (item.id === 'inicio' && pathname === '/inicio') ||
                 (item.id === 'reuniones' && (pathname === '/reuniones' || pathname?.startsWith('/meeting-details'))) ||
-                (item.id === 'minutas' && pathname === '/minutas') ||
-                (item.id === 'compromisos' && pathname === '/compromisos') ||
-                (item.id === 'historial' && pathname === '/historial') ||
                 (item.id === 'configuracion' && pathname === '/settings');
 
               return (

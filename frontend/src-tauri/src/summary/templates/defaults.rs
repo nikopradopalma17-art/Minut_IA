@@ -66,6 +66,20 @@ mod tests {
     }
 
     #[test]
+    fn builtin_template_ids_keep_their_visible_names() {
+        for (id, expected_name) in [
+            ("reunion_diaria", "Reunión diaria"),
+            ("minuta_corporativa", "Minuta Corporativa"),
+            ("reunion_cliente", "Reunión con cliente"),
+        ] {
+            let content = get_builtin_template(id).expect("supported built-in template");
+            let template = serde_json::from_str::<crate::summary::templates::Template>(content)
+                .expect("valid built-in template JSON");
+            assert_eq!(template.name, expected_name, "unexpected visible name for {id}");
+        }
+    }
+
+    #[test]
     fn builtins_are_exactly_the_three_supported_templates() {
         let ids = list_builtin_template_ids();
         assert_eq!(

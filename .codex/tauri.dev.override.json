@@ -1,0 +1,5 @@
+{
+  "build": {
+    "beforeDevCommand": "powershell -NoProfile -Command exit 0"
+  }
+}

@@ -258,6 +258,7 @@ export const es = {
   "common.loading": "Cargando...",
   "common.back": "Atrás",
   "common.copy": "Copiar",
+  "common.save": "Guardar",
   "common.saving": "Guardando...",
 
   // Dialogs (additional)
@@ -315,6 +316,7 @@ export const es = {
   "summary.full_summary": "Resumen completo",
   "summary.stop": "Detener",
   "summary.stop_generation_title": "Detener la generación del resumen",
+  "summary.generate": "Generar Resumen",
   "summary.regenerate": "Regenerar Resumen",
   "summary.generate_tooltip": "Generar resumen con IA",
   "summary.regenerate_tooltip": "Regenerar resumen con IA",

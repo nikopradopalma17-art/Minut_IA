@@ -262,6 +262,7 @@ export const en: Record<keyof typeof es, string> = {
   "common.loading": "Loading...",
   "common.back": "Back",
   "common.copy": "Copy",
+  "common.save": "Save",
   "common.saving": "Saving...",
 
   // Dialogs (additional)
@@ -319,6 +320,7 @@ export const en: Record<keyof typeof es, string> = {
   "summary.full_summary": "Full Summary",
   "summary.stop": "Stop",
   "summary.stop_generation_title": "Stop summary generation",
+  "summary.generate": "Generate Summary",
   "summary.regenerate": "Regenerate Summary",
   "summary.generate_tooltip": "Generate AI Summary",
   "summary.regenerate_tooltip": "Regenerate AI Summary",
