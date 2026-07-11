@@ -462,6 +462,7 @@ export const es = {
   "transcript_view.open_folder_title": "Abrir carpeta de grabación",
   "transcript_view.enhance": "Mejorar",
   "transcript_view.enhance_title": "Retranscribe para mejorar el audio grabado",
+  "transcript_view.language": "Idioma",
 
   // Retranscribe dialog
   "retranscribe.title": "Retranscribir reunión",

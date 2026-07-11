@@ -466,6 +466,7 @@ export const en: Record<keyof typeof es, string> = {
   "transcript_view.open_folder_title": "Open Recording Folder",
   "transcript_view.enhance": "Enhance",
   "transcript_view.enhance_title": "Retranscribe to enhance your recorded audio",
+  "transcript_view.language": "Language",
 
   // Retranscribe dialog
   "retranscribe.title": "Retranscribe meeting",
