@@ -565,6 +565,18 @@ export const en: Record<keyof typeof es, string> = {
   // About
   "about.title": "About MinutIA",
   "about.tagline": "Corporate assistant for minutes, agreements, and meeting follow-up.",
+  "about.mission_title": "Mission",
+  // <!-- EDITAR --> Draft pending user review.
+  "about.mission_body": "Draft: MinutIA aims to turn workplace conversations into clear transcripts, minutes, and commitments while prioritizing local processing and control over information.",
+  "about.vision_title": "Vision",
+  // <!-- EDITAR --> Draft pending user review.
+  "about.vision_body": "Draft: evolve into an increasingly useful meeting assistant for organizing knowledge, following up on agreements, and supporting teams in their daily work.",
+  "about.author_title": "Nikolas Prado",
+  // <!-- EDITAR --> Replace with the author's approved biography.
+  "about.author_body": "Text to be defined by Nikolas Prado: a short personal introduction, experience, and motivation for creating MinutIA.",
+  "about.impulso_title": "Impulso IA",
+  // <!-- EDITAR --> Replace with the brand's approved description.
+  "about.impulso_body": "Text to be defined: the official description of Impulso IA, its purpose, and its relationship with MinutIA.",
   "about.contact_toast": "External contact is not configured yet.",
   "about.diff_title": "What makes MinutIA different",
   "about.privacy_title": "Privacy-first",
@@ -600,8 +612,8 @@ export const en: Record<keyof typeof es, string> = {
   // Templates
   "templates.menu": "Template",
   "templates.select_title": "Select summary template",
-  "templates.manage": "Manage templates",
-  "templates.manager_title": "Template manager",
+  "templates.manage": "Customize template",
+  "templates.manager_title": "Customize templates",
   "templates.manager_description": "Create, edit, duplicate, and delete custom summary templates.",
   "templates.available_title": "Available templates",
   "templates.new": "New template",
@@ -622,7 +634,7 @@ export const en: Record<keyof typeof es, string> = {
   "templates.template_id_placeholder": "custom_meeting_template",
   "templates.template_id_hint": "This identifier becomes the file name for the custom template.",
   "templates.name": "Name",
-  "templates.name_placeholder": "Daily meeting",
+  "templates.name_placeholder": "Standard meeting",
   "templates.description": "Description",
   "templates.description_placeholder": "Brief explanation of when to use this template.",
   "templates.system_prompt": "System prompt",
@@ -710,4 +722,3 @@ export const en: Record<keyof typeof es, string> = {
   // Brand
   "brand.developed_by": "Developed by Nikolas Prado - Impulso IA"
 };
-

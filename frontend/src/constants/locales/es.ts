@@ -561,6 +561,18 @@ export const es = {
   // About
   "about.title": "Acerca de MinutIA",
   "about.tagline": "Asistente corporativo para actas, acuerdos y seguimiento de reuniones.",
+  "about.mission_title": "Misión",
+  // <!-- EDITAR --> Borrador pendiente de revisión del usuario.
+  "about.mission_body": "Borrador: MinutIA busca convertir conversaciones de trabajo en transcripciones, minutas y compromisos claros, priorizando el procesamiento local y el control de la información.",
+  "about.vision_title": "Visión",
+  // <!-- EDITAR --> Borrador pendiente de revisión del usuario.
+  "about.vision_body": "Borrador: evolucionar hacia un asistente de reuniones cada vez más útil para organizar conocimiento, dar seguimiento a acuerdos y apoyar el trabajo cotidiano de los equipos.",
+  "about.author_title": "Nikolas Prado",
+  // <!-- EDITAR --> Sustituir con la biografía oficial del autor.
+  "about.author_body": "Texto por definir por Nikolas Prado: breve presentación personal, experiencia y motivación para crear MinutIA.",
+  "about.impulso_title": "Impulso IA",
+  // <!-- EDITAR --> Sustituir con la descripción oficial de la marca.
+  "about.impulso_body": "Texto por definir: descripción oficial de Impulso IA, su propósito y su relación con MinutIA.",
   "about.contact_toast": "Contacto externo no configurado todavía.",
   "about.diff_title": "Qué hace diferente a MinutIA",
   "about.privacy_title": "Privacidad primero",
@@ -596,8 +608,8 @@ export const es = {
   // Templates
   "templates.menu": "Plantilla",
   "templates.select_title": "Seleccionar plantilla de resumen",
-  "templates.manage": "Gestionar plantillas",
-  "templates.manager_title": "Gestor de plantillas",
+  "templates.manage": "Personalizar plantilla",
+  "templates.manager_title": "Personalizar plantillas",
   "templates.manager_description": "Crea, edita, duplica y elimina plantillas personalizadas de resumen.",
   "templates.available_title": "Plantillas disponibles",
   "templates.new": "Nueva plantilla",
@@ -618,7 +630,7 @@ export const es = {
   "templates.template_id_placeholder": "plantilla_reunion_personalizada",
   "templates.template_id_hint": "Este identificador se convierte en el nombre del archivo de la plantilla personalizada.",
   "templates.name": "Nombre",
-  "templates.name_placeholder": "Reunión diaria",
+  "templates.name_placeholder": "Reunión estándar",
   "templates.description": "Descripción",
   "templates.description_placeholder": "Breve explicación de cuándo usar esta plantilla.",
   "templates.system_prompt": "Prompt del sistema",
@@ -706,4 +718,3 @@ export const es = {
   // Brand
   "brand.developed_by": "Desarrollado por Nikolas Prado - Impulso IA"
 };
-

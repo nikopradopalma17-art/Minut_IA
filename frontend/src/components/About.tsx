@@ -1,82 +1,93 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState } from 'react';
 import { getVersion } from '@tauri-apps/api/app';
 import Image from 'next/image';
 import { useTranslation } from '@/contexts/TranslationContext';
 
 export function About() {
-    const { t } = useTranslation();
-    const [currentVersion, setCurrentVersion] = useState<string>('0.4.0');
+  const { t } = useTranslation();
+  const [currentVersion, setCurrentVersion] = useState<string>('0.4.0');
 
-    useEffect(() => {
-        getVersion().then(setCurrentVersion).catch(console.error);
-    }, []);
+  useEffect(() => {
+    getVersion().then(setCurrentVersion).catch(console.error);
+  }, []);
 
-    return (
-        <div className="p-4 space-y-4 h-[80vh] overflow-y-auto">
-            <div className="text-center">
-                <div className="mb-3">
-                    <Image
-                        src={`/icon_128x128.png?v=${encodeURIComponent(currentVersion)}`}
-                        alt="MinutIA Logo"
-                        width={64}
-                        height={64}
-                        className="mx-auto"
-                    />
-                </div>
-                <span className="text-sm text-gray-500"> v{currentVersion}</span>
-                <p className="text-medium text-gray-600 mt-1">
-                    {t('about.tagline')}
-                </p>
-            </div>
-
-            <div className="space-y-3">
-                <h2 className="text-base font-semibold text-gray-800">{t('about.diff_title')}</h2>
-                <div className="grid grid-cols-2 gap-2">
-                    <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.privacy_title')}</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.privacy_desc')}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.any_model_title')}</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.any_model_desc')}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.cost_title')}</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.cost_desc')}</p>
-                    </div>
-                    <div className="bg-gray-50 rounded p-3 hover:bg-gray-100 transition-colors">
-                        <h3 className="font-bold text-sm text-gray-900 mb-1">{t('about.everywhere_title')}</h3>
-                        <p className="text-xs text-gray-600 leading-relaxed">{t('about.everywhere_desc')}</p>
-                    </div>
-                </div>
-            </div>
-
-            <div className="text-center space-y-2">
-                <h3 className="text-medium font-semibold text-gray-800">{t('about.customize_title')}</h3>
-                <p className="text-s text-gray-600">
-                    {t('about.customize_body')}
-                </p>
-                <p className="text-xs text-gray-500">
-                    {t('about.customize_hint')}
-                </p>
-            </div>
-
-            <div className="pt-4 border-t border-border/60 text-center space-y-3">
-                <div className="flex items-center justify-center gap-2">
-                    <Image
-                        src="/brand/impulso-logo.svg"
-                        alt="Impulso IA Logo"
-                        width={20}
-                        height={20}
-                    />
-                    <p className="text-xs text-muted-foreground font-semibold">
-                        {t('brand.developed_by')}
-                    </p>
-                </div>
-                <p className="text-[10px] text-muted-foreground/50">
-                    {t('about.local_edition')}
-                </p>
-            </div>
+  return (
+    <div className="h-[min(80vh,720px)] space-y-6 overflow-y-auto px-1 pr-2 text-foreground">
+      <header className="flex items-center gap-4 border-b border-border/70 pb-5">
+        <Image
+          src={`/icon_128x128.png?v=${encodeURIComponent(currentVersion)}`}
+          alt="MinutIA Logo"
+          width={64}
+          height={64}
+          className="shrink-0"
+          priority
+        />
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <h1 className="font-heading text-xl font-semibold text-impulso-navy">
+              {t('about.title')}
+            </h1>
+            <span className="text-xs text-muted-foreground">v{currentVersion}</span>
+          </div>
+          <p className="mt-1 max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
+            {t('about.tagline')}
+          </p>
         </div>
-    )
+      </header>
+
+      <section className="rounded-xl bg-impulso-obsidian p-5 text-white">
+        <h2 className="font-heading text-base font-semibold">{t('about.mission_title')}</h2>
+        <p className="mt-2 max-w-[65ch] text-sm leading-relaxed text-white/80">
+          {t('about.mission_body')}
+        </p>
+      </section>
+
+      <section>
+        <h2 className="font-heading text-base font-semibold text-impulso-navy">
+          {t('about.vision_title')}
+        </h2>
+        <p className="mt-2 max-w-[65ch] text-sm leading-relaxed text-muted-foreground">
+          {t('about.vision_body')}
+        </p>
+      </section>
+
+      <div className="grid gap-5 border-t border-border/70 pt-5 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+        <section>
+          <h2 className="font-heading text-base font-semibold text-impulso-navy">
+            {t('about.author_title')}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {t('about.author_body')}
+          </p>
+        </section>
+
+        <section className="rounded-xl bg-secondary/70 p-4">
+          <div className="flex items-start gap-3">
+            <Image
+              src="/brand/impulso-logo.svg"
+              alt="Impulso IA Logo"
+              width={48}
+              height={48}
+              className="shrink-0"
+            />
+            <div className="min-w-0">
+              <h2 className="font-heading text-base font-semibold text-impulso-navy">
+                {t('about.impulso_title')}
+              </h2>
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t('about.impulso_body')}
+              </p>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer className="space-y-2 border-t border-border/70 pt-5 text-center">
+        <p className="text-xs font-semibold text-muted-foreground">
+          {t('brand.developed_by')}
+        </p>
+        <p className="text-[10px] text-muted-foreground/70">{t('about.local_edition')}</p>
+      </footer>
+    </div>
+  );
 }
