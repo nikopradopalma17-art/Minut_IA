@@ -43,6 +43,11 @@ const nextConfig = {
         'prosemirror-gapcursor': resolveFromTiptapPm('prosemirror-gapcursor'),
         'prosemirror-dropcursor': resolveFromTiptapPm('prosemirror-dropcursor'),
       };
+
+      // Give the Tauri webview's first cold on-demand compile (this app has
+      // 1900+ modules) more room before webpack gives up on a chunk request
+      // and throws ChunkLoadError. Default is 120000ms.
+      config.output.chunkLoadTimeout = 300000;
     }
     return config;
   },
