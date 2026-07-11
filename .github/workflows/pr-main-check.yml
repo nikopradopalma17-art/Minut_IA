@@ -1,9 +1,12 @@
 name: "Validation Check"
 
-# This workflow runs basic validation checks without building
-# Use this to verify version and configuration before a release
+# This workflow runs basic validation checks on PRs and can be run manually
+# Use this to verify tests, TypeScript compiler, and Rust tests before merging to main
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 concurrency:
@@ -25,30 +28,42 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Version: $VERSION"
 
-      - name: Check current branch
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 8
+          run_install: false
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: frontend
+
+      - name: Run frontend tests
+        run: pnpm test
+        working-directory: frontend
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+        working-directory: frontend
+
+      - name: Install system dependencies (Ubuntu)
         run: |
-          CURRENT_BRANCH="${{ github.ref_name }}"
-          echo "Current branch: $CURRENT_BRANCH"
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev
 
-          if [[ "$CURRENT_BRANCH" == "main" ]]; then
-            echo "On main branch - ready for release"
-          elif [[ "$CURRENT_BRANCH" == "devtest" ]]; then
-            echo "On devtest branch - ready for testing"
-          else
-            echo "On feature branch: $CURRENT_BRANCH"
-          fi
+      - name: Setup Rust toolchain
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          cache: true
 
-      - name: Validate version format
-        run: |
-          VERSION="${{ steps.get-version.outputs.version }}"
-
-          # Check if version matches semantic versioning pattern
-          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Version format is valid: $VERSION"
-          else
-            echo "Warning: Version '$VERSION' may not be in standard semver format"
-            echo "Expected format: X.Y.Z (e.g., 1.0.0)"
-          fi
+      - name: Run cargo test
+        run: cargo test
+        working-directory: frontend/src-tauri
 
       - name: Generate validation summary
         run: |
@@ -58,8 +73,9 @@ jobs:
           echo "**Branch:** ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
           echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "### Verification Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "1. Run **Build and Test - DevTest** for unsigned builds" >> $GITHUB_STEP_SUMMARY
-          echo "2. Run **Build and Test** for signed builds on all platforms" >> $GITHUB_STEP_SUMMARY
-          echo "3. Run **Release** to create a production release" >> $GITHUB_STEP_SUMMARY
+          echo "- Frontend tests: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- TypeScript compilation check: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+          echo "- Cargo tests: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+
