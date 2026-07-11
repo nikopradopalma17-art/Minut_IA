@@ -485,10 +485,10 @@ const Sidebar: React.FC = () => {
                 <TooltipTrigger asChild>
                   <button
                     onClick={() => navigateTo(item.href)}
-                    className={`p-2 rounded-lg transition-colors duration-150 ${isActive ? 'bg-gray-100' : 'hover:bg-gray-100'
+                    className={`p-2 rounded-lg transition-colors duration-150 ${isActive ? 'bg-muted text-primary' : 'hover:bg-muted text-muted-foreground'
                       }`}
                   >
-                    <Icon className="w-5 h-5 text-gray-600" />
+                    <Icon className="w-5 h-5" />
                   </button>
                 </TooltipTrigger>
                 <TooltipContent side="right">
@@ -727,10 +727,10 @@ const Sidebar: React.FC = () => {
                 <button
                   key={item.id}
                   onClick={() => navigateTo(item.href)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-gray-700 hover:bg-gray-100'
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${isActive ? 'bg-primary/10 text-primary' : 'text-foreground/80 hover:bg-muted'
                     }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-gray-500'}`} />
+                  <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-muted-foreground/80'}`} />
                   <span>{item.label}</span>
                 </button>
               );
@@ -746,8 +746,8 @@ const Sidebar: React.FC = () => {
                 {filteredSidebarItems.filter(item => item.type === 'folder').map(item => (
                   <div key={item.id}>
                     <div className="flex items-center transition-all duration-150 p-3 text-lg font-semibold h-10 mx-3 mt-3 rounded-lg">
-                      <NotebookPen className="w-4 h-4 mr-2 text-gray-600" />
-                      <span className="text-gray-700">{t("nav.meetings")}</span>
+                      <NotebookPen className="w-4 h-4 mr-2 text-muted-foreground" />
+                      <span className="text-foreground/80">{t("nav.meetings")}</span>
                       {searchQuery && item.id === 'meetings' && isSearching && (
                         <span className="ml-2 text-xs text-primary/70 animate-pulse">{t("nav.searching")}</span>
                       )}
@@ -797,16 +797,23 @@ const Sidebar: React.FC = () => {
             {betaFeatures.importAndRetranscribe && (
               <button
                 onClick={() => openImportDialog()}
-                className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-gray-700 bg-primary/15 hover:bg-primary/25 rounded-lg transition-colors shadow-sm"
+                className="w-full flex items-center justify-center px-3 py-2 mt-1 text-sm font-medium text-foreground bg-primary/15 hover:bg-primary/25 rounded-lg transition-colors shadow-sm"
               >
                 <Upload className="w-4 h-4 mr-2" />
                 <span>{t("nav.import_audio")}</span>
               </button>
             )}
             <Info isCollapsed={isCollapsed} />
-            <div className="w-full flex items-center justify-center px-3 py-1 text-xs text-gray-400">
-              v0.4.0
-            </div>
+            {!isCollapsed ? (
+              <div className="w-full text-center px-3 py-1 text-[10px] text-muted-foreground/60 border-t border-border/40 pt-2 mt-2">
+                {t('brand.developed_by')}
+                <div className="mt-1 text-[9px] text-muted-foreground/40">v0.4.0</div>
+              </div>
+            ) : (
+              <div className="w-full flex items-center justify-center px-3 py-1 text-[10px] text-muted-foreground/40 border-t border-border/40 pt-2 mt-2">
+                v0.4.0
+              </div>
+            )}
           </div>
         )}
       </div>

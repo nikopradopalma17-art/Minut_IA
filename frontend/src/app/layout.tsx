@@ -1,7 +1,7 @@
 'use client'
 
 import './globals.css'
-import { Source_Sans_3 } from 'next/font/google'
+import { Inter, Jost } from 'next/font/google'
 import Sidebar from '@/components/Sidebar'
 import { SidebarProvider } from '@/components/Sidebar/SidebarProvider'
 import MainContent from '@/components/MainContent'
@@ -28,11 +28,16 @@ import { TranslationProvider } from '@/contexts/TranslationContext'
 import { SearchCommand } from '@/components/SearchCommand'
 
 
-const sourceSans3 = Source_Sans_3({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-source-sans-3',
+  variable: '--font-inter',
 })
+
+const jost = Jost({
+  subsets: ['latin'],
+  variable: '--font-jost',
+})
+
 
 // Module-level component — stable reference across RootLayout re-renders.
 // Defined here (not inside RootLayout) so React never sees a new function type
@@ -233,7 +238,7 @@ export default function RootLayout({
 
   return (
     <html lang="es">
-      <body className={`${sourceSans3.variable} font-sans antialiased`}>
+      <body className={`${inter.variable} ${jost.variable} font-sans antialiased`}>
         <AnalyticsProvider>
           <TranslationProvider>
             <RecordingStateProvider>

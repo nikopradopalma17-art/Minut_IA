@@ -10,14 +10,22 @@ module.exports = {
   	extend: {
   		fontFamily: {
   			sans: [
-  				'var(--font-source-sans-3)'
+  				'var(--font-inter)',
+  				'sans-serif'
+  			],
+  			heading: [
+  				'var(--font-jost)',
+  				'sans-serif'
   			]
   		},
   		colors: {
-  			brand: {
-  				azul: '#003e7e',
-  				amarillo: '#fdb813',
-  				teal: '#00b8b9'
+  			impulso: {
+  				navy: 'hsl(var(--impulso-navy))',
+  				ocean: 'hsl(var(--impulso-ocean))',
+  				baltic: 'hsl(var(--impulso-baltic))',
+  				obsidian: 'hsl(var(--impulso-obsidian))',
+  				amber: 'hsl(var(--impulso-amber))',
+  				teal: 'hsl(var(--impulso-teal))'
   			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
@@ -61,6 +69,14 @@ module.exports = {
   				'5': 'hsl(var(--chart-5))'
   			}
   		},
+  		fontSize: {
+  			'display': ['32px', { lineHeight: '1.2', fontWeight: '700' }],
+  			'h1': ['24px', { lineHeight: '1.3', fontWeight: '600' }],
+  			'h2': ['18px', { lineHeight: '1.4', fontWeight: '500' }],
+  			'body': ['16px', { lineHeight: '1.6', fontWeight: '400' }],
+  			'small': ['14px', { lineHeight: '1.5', fontWeight: '400' }],
+  			'caption': ['12px', { lineHeight: '1.4', fontWeight: '400' }],
+  		},
   		borderRadius: {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
@@ -90,5 +106,8 @@ module.exports = {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+  	require("tailwindcss-animate"),
+  	require("@tailwindcss/typography")
+  ],
 }

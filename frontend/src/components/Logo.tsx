@@ -27,7 +27,7 @@ const Logo = React.forwardRef<HTMLButtonElement, LogoProps>(({ isCollapsed }, re
         </DialogTrigger>
       ) : (
         <DialogTrigger asChild>
-          <span className="text-lg text-center border rounded-full bg-brand-azul/10 border-brand-azul/20 font-semibold text-brand-azul mb-2 block items-center cursor-pointer hover:opacity-80 transition-opacity">
+          <span className="text-lg text-center border rounded-full bg-impulso-navy/10 border-impulso-navy/20 font-semibold text-impulso-navy mb-2 block items-center cursor-pointer hover:opacity-80 transition-opacity">
             <span>MinutIA</span>
           </span>
         </DialogTrigger>
