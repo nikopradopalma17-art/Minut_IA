@@ -26,6 +26,7 @@ import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 import { TranslationProvider } from '@/contexts/TranslationContext'
 import { SearchCommand } from '@/components/SearchCommand'
+import { UpdateCheckProvider } from '@/components/UpdateCheckProvider'
 
 
 const inter = Inter({
@@ -244,39 +245,40 @@ export default function RootLayout({
             <RecordingStateProvider>
               <TranscriptProvider>
                 <ConfigProvider>
-                  <OllamaDownloadProvider>
-                    <OnboardingProvider>
-                      <SidebarProvider>
-                        <TooltipProvider>
-                          <RecordingPostProcessingProvider>
-                            <ImportDialogProvider onOpen={handleOpenImportDialog}>
-                              {/* Download progress toast provider - listens for background downloads */}
-                              <DownloadProgressToastProvider />
+                  <UpdateCheckProvider>
+                    <OllamaDownloadProvider>
+                      <OnboardingProvider>
+                        <SidebarProvider>
+                          <TooltipProvider>
+                            <RecordingPostProcessingProvider>
+                              <ImportDialogProvider onOpen={handleOpenImportDialog}>
+                                {/* Download progress toast provider - listens for background downloads */}
+                                <DownloadProgressToastProvider />
 
-                              {/* Show onboarding or main app */}
-                              {showOnboarding ? (
-                                <OnboardingFlow onComplete={handleOnboardingComplete} />
-                              ) : (
-                                <div className="flex">
-                                  <Sidebar />
-                                  <MainContent>{children}</MainContent>
-                                </div>
-                              )}
-                              {/* Import audio overlay and dialog */}
-                              <ImportDropOverlay visible={showDropOverlay} />
-                              <ConditionalImportDialog
-                                showImportDialog={showImportDialog}
-                                handleImportDialogClose={handleImportDialogClose}
-                                importFilePath={importFilePath}
-                              />
-                            </ImportDialogProvider>
-                            <SearchCommand />
-                          </RecordingPostProcessingProvider>
-                        </TooltipProvider>
-                      </SidebarProvider>
-                    </OnboardingProvider>
-
-                  </OllamaDownloadProvider>
+                                {/* Show onboarding or main app */}
+                                {showOnboarding ? (
+                                  <OnboardingFlow onComplete={handleOnboardingComplete} />
+                                ) : (
+                                  <div className="flex">
+                                    <Sidebar />
+                                    <MainContent>{children}</MainContent>
+                                  </div>
+                                )}
+                                {/* Import audio overlay and dialog */}
+                                <ImportDropOverlay visible={showDropOverlay} />
+                                <ConditionalImportDialog
+                                  showImportDialog={showImportDialog}
+                                  handleImportDialogClose={handleImportDialogClose}
+                                  importFilePath={importFilePath}
+                                />
+                              </ImportDialogProvider>
+                              <SearchCommand />
+                            </RecordingPostProcessingProvider>
+                          </TooltipProvider>
+                        </SidebarProvider>
+                      </OnboardingProvider>
+                    </OllamaDownloadProvider>
+                  </UpdateCheckProvider>
                 </ConfigProvider>
               </TranscriptProvider>
             </RecordingStateProvider>

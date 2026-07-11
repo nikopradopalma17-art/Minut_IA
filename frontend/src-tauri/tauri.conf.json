@@ -65,6 +65,7 @@
                         "notification:allow-is-permission-granted",
                         "dialog:default",
                         "process:default",
+                        "updater:default",
                         {
                             "identifier": "fs:scope",
                             "allow": [
@@ -88,7 +89,7 @@
             "app",
             "dmg"
         ],
-        "createUpdaterArtifacts": false,
+        "createUpdaterArtifacts": true,
         "icon": [
             "icons/icon.png",
             "icons/app_icon.icns",
@@ -106,9 +107,14 @@
             "signingIdentity": "-",
             "hardenedRuntime": true
         },
-        "windows": {
-            "signCommand": "powershell -ExecutionPolicy Bypass -File scripts/sign-windows.ps1 -FilePath %1"
-        }
+        "windows": {}
     },
-    "plugins": {}
+    "plugins": {
+        "updater": {
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzNzVCOTMxMzVCN0FFQ0UKUldUT3JyYzFNYmwxZzZaM2s3bWRmYUVBRXZXaHQ5UEt5U0EveFdXMUFsaXJhMUwzSTlnQTJBclYK",
+            "endpoints": [
+                "https://github.com/nikopradopalma17-art/Minut_IA/releases/latest/download/latest.json"
+            ]
+        }
+    }
 }
