@@ -111,7 +111,7 @@ export function TranscriptButtonGroup({
           <Button
             size="sm"
             variant="outline"
-            className="border-blue-200 xl:px-4"
+            className="xl:px-4"
             onClick={() => {
               Analytics.trackButtonClick('identify_speakers', 'meeting_details');
               void handleDiarizeMeeting();

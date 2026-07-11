@@ -107,7 +107,7 @@ export function SummaryUpdaterButtonGroup({
       <Button
         variant="outline"
         size="sm"
-        className={`${isDirty ? 'bg-green-200' : ""}`}
+        className={`${isDirty ? 'bg-primary/10 border-primary/30 text-primary' : ""}`}
         title={isSaving ? t('common.saving') : t('summary.save_changes_title')}
         onClick={() => {
           Analytics.trackButtonClick('save_changes', 'meeting_details');

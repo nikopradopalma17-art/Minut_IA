@@ -76,11 +76,11 @@ export function TranscriptPanel({
 
   return (
     <div
-      className="hidden md:flex min-w-0 border-r border-gray-200 bg-white flex-col relative shrink-0"
+      className="hidden md:flex min-w-0 border-r border-border bg-card flex-col relative shrink-0"
       style={{ width: widthPercent !== undefined ? `${widthPercent}%` : undefined }}
     >
       {/* Title area */}
-      <div className="p-4 border-b border-gray-200">
+      <div className="p-4 border-b border-border">
         <TranscriptButtonGroup
           transcriptCount={usePagination ? (totalCount ?? convertedSegments.length) : (transcripts?.length || 0)}
           onCopyTranscript={onCopyTranscript}
@@ -114,18 +114,18 @@ export function TranscriptPanel({
 
       {/* Custom prompt input at bottom of transcript section */}
       {!isRecording && convertedSegments.length > 0 && (
-        <div className="p-1 border-t border-gray-200">
+        <div className="p-1 border-t border-border">
           <div className="px-3 pt-2 pb-1">
-            <div className="text-xs font-semibold text-gray-700">
+            <div className="text-xs font-semibold text-foreground">
               {t('meeting_details.transcript_context_title')}
             </div>
-            <div className="text-[11px] leading-4 text-gray-500 mt-0.5">
+            <div className="text-[11px] leading-4 text-muted-foreground mt-0.5">
               {t('meeting_details.transcript_context_help')}
             </div>
           </div>
           <textarea
             placeholder={t('meeting_details.transcript_context_placeholder')}
-            className="w-full px-3 py-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-white shadow-sm min-h-[88px] resize-y"
+            className="w-full px-3 py-2 border border-border rounded-md text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary bg-card shadow-sm min-h-[88px] resize-y"
             value={customPrompt}
             onChange={(e) => onPromptChange(e.target.value)}
           />
