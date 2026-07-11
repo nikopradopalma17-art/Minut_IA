@@ -271,6 +271,7 @@ export const es = {
   "meeting_details.transcript_context_placeholder": "Añade contexto para el resumen con IA. Por ejemplo: personas involucradas, descripción de la reunión, objetivo, etc...",
   "meeting_details.transcript_context_help": "Se guarda por reunión y se usa tanto para Generar como para Regenerar.",
   "meeting_details.generating_summary": "Generando resumen con IA...",
+  "meeting_details.resize_panels": "Redimensionar paneles",
 
   // Search command palette
   "search.title": "Buscar en MinutIA",

@@ -275,6 +275,7 @@ export const en: Record<keyof typeof es, string> = {
   "meeting_details.transcript_context_placeholder": "Add context for AI summary. For example people involved, meeting overview, objective etc...",
   "meeting_details.transcript_context_help": "Saved per meeting and used for both Generate and Regenerate.",
   "meeting_details.generating_summary": "Generating AI Summary...",
+  "meeting_details.resize_panels": "Resize panels",
 
   // Search command palette
   "search.title": "Search MinutIA",

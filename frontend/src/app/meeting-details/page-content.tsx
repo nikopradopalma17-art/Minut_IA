@@ -55,6 +55,11 @@ export default function PageContent({
     transcriptsCount: meeting.transcripts?.length
   });
 
+  const MIN_TRANSCRIPT_WIDTH_PERCENT = 20;
+  const MAX_TRANSCRIPT_WIDTH_PERCENT = 60;
+  const DEFAULT_TRANSCRIPT_WIDTH_PERCENT = 35;
+  const TRANSCRIPT_WIDTH_STORAGE_KEY = 'meetingDetailsTranscriptWidthPercent';
+
   // State
   const [customPrompt, setCustomPrompt] = useState<string>('');
   const [isRecording] = useState(false);
@@ -62,6 +67,54 @@ export default function PageContent({
   const [templatesDialogOpen, setTemplatesDialogOpen] = useState(false);
   const summaryContextLoadedRef = useRef(false);
   const lastSavedSummaryContextRef = useRef<string>('');
+
+  // Resizable transcript/summary panel split
+  const [transcriptWidthPercent, setTranscriptWidthPercent] = useState<number>(DEFAULT_TRANSCRIPT_WIDTH_PERCENT);
+  const [isResizingPanels, setIsResizingPanels] = useState(false);
+  const panelsContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem(TRANSCRIPT_WIDTH_STORAGE_KEY);
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!Number.isNaN(parsed) && parsed >= MIN_TRANSCRIPT_WIDTH_PERCENT && parsed <= MAX_TRANSCRIPT_WIDTH_PERCENT) {
+        setTranscriptWidthPercent(parsed);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isResizingPanels) return;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!panelsContainerRef.current) return;
+      const rect = panelsContainerRef.current.getBoundingClientRect();
+      const percent = ((e.clientX - rect.left) / rect.width) * 100;
+      const clamped = Math.min(MAX_TRANSCRIPT_WIDTH_PERCENT, Math.max(MIN_TRANSCRIPT_WIDTH_PERCENT, percent));
+      setTranscriptWidthPercent(clamped);
+    };
+    const handleMouseUp = () => {
+      setIsResizingPanels(false);
+    };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingPanels]);
+
+  useEffect(() => {
+    localStorage.setItem(TRANSCRIPT_WIDTH_STORAGE_KEY, String(transcriptWidthPercent));
+  }, [transcriptWidthPercent]);
+
+  const handleResizeHandleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingPanels(true);
+  };
 
   // Ref to store the modal open function from SummaryGeneratorButtonGroup
   const openModelSettingsRef = useRef<(() => void) | null>(null);
@@ -235,8 +288,9 @@ export default function PageContent({
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className="flex flex-col h-screen bg-gray-50"
     >
-      <div className="flex flex-1 overflow-hidden">
+      <div ref={panelsContainerRef} className="flex flex-1 overflow-hidden">
         <TranscriptPanel
+          widthPercent={transcriptWidthPercent}
           transcripts={meetingData.transcripts}
           customPrompt={customPrompt}
           onPromptChange={setCustomPrompt}
@@ -256,6 +310,13 @@ export default function PageContent({
           meetingId={meeting.id}
           meetingFolderPath={meeting.folder_path}
           onRefetchTranscripts={onRefetchTranscripts}
+        />
+        <div
+          onMouseDown={handleResizeHandleMouseDown}
+          role="separator"
+          aria-orientation="vertical"
+          aria-label={t('meeting_details.resize_panels')}
+          className="hidden md:block w-1 shrink-0 cursor-col-resize bg-border transition-colors hover:bg-primary/40 active:bg-primary/60"
         />
         <SummaryPanel
           meeting={meeting}

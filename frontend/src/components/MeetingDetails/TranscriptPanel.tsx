@@ -30,6 +30,9 @@ interface TranscriptPanelProps {
   meetingId?: string;
   meetingFolderPath?: string | null;
   onRefetchTranscripts?: () => Promise<void>;
+
+  // Resizable panel width (percentage)
+  widthPercent?: number;
 }
 
 export function TranscriptPanel({
@@ -50,6 +53,7 @@ export function TranscriptPanel({
   meetingId,
   meetingFolderPath,
   onRefetchTranscripts,
+  widthPercent,
 }: TranscriptPanelProps) {
   const { names: speakerNames, rename: renameSpeaker } = useSpeakerNames(meetingId);
   const { t } = useTranslation();
@@ -71,7 +75,10 @@ export function TranscriptPanel({
   }, [transcripts, usePagination, segments]);
 
   return (
-    <div className="hidden md:flex md:w-1/3 lg:w-2/5 min-w-0 border-r border-gray-200 bg-white flex-col relative shrink-0">
+    <div
+      className="hidden md:flex min-w-0 border-r border-gray-200 bg-white flex-col relative shrink-0"
+      style={{ width: widthPercent !== undefined ? `${widthPercent}%` : undefined }}
+    >
       {/* Title area */}
       <div className="p-4 border-b border-gray-200">
         <TranscriptButtonGroup
