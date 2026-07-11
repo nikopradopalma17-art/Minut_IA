@@ -15,8 +15,6 @@ const sectionKeys = [
   'mission_body',
   'vision_title',
   'vision_body',
-  'author_title',
-  'author_body',
   'impulso_title',
   'impulso_body',
 ];
@@ -29,8 +27,15 @@ test('About renders every approved localized section', () => {
   }
 });
 
-test('About keeps the Impulso placeholder wiring and marks draft copy for editing', () => {
+test('About keeps the Impulso logo wiring and has no lingering draft markers', () => {
   assert.match(aboutSource, /src="\/brand\/impulso-logo\.svg"/);
-  assert.match(esSource, /<!-- EDITAR -->/);
-  assert.match(enSource, /<!-- EDITAR -->/);
+  assert.doesNotMatch(esSource, /<!-- EDITAR -->/);
+  assert.doesNotMatch(enSource, /<!-- EDITAR -->/);
+});
+
+test('About no longer renders a standalone author section', () => {
+  assert.doesNotMatch(aboutSource, /about\.author_title/);
+  assert.doesNotMatch(aboutSource, /about\.author_body/);
+  assert.doesNotMatch(esSource, /"about\.author_title"/);
+  assert.doesNotMatch(enSource, /"about\.author_title"/);
 });

@@ -563,14 +563,9 @@ export const es = {
   "about.title": "Acerca de MinutIA",
   "about.tagline": "Asistente corporativo para actas, acuerdos y seguimiento de reuniones.",
   "about.mission_title": "Misión",
-  // <!-- EDITAR --> Borrador pendiente de revisión del usuario.
-  "about.mission_body": "Borrador: MinutIA busca convertir conversaciones de trabajo en transcripciones, minutas y compromisos claros, priorizando el procesamiento local y el control de la información.",
+  "about.mission_body": "MinutIA busca convertir conversaciones de trabajo en transcripciones, minutas y compromisos claros, priorizando el procesamiento local y el control de la información.",
   "about.vision_title": "Visión",
-  // <!-- EDITAR --> Borrador pendiente de revisión del usuario.
-  "about.vision_body": "Borrador: evolucionar hacia un asistente de reuniones cada vez más útil para organizar conocimiento, dar seguimiento a acuerdos y apoyar el trabajo cotidiano de los equipos.",
-  "about.author_title": "Nikolas Prado",
-  // <!-- EDITAR --> Sustituir con la biografía oficial del autor.
-  "about.author_body": "Texto por definir por Nikolas Prado: breve presentación personal, experiencia y motivación para crear MinutIA.",
+  "about.vision_body": "Evolucionar hacia un asistente de reuniones cada vez más útil para organizar conocimiento, dar seguimiento a acuerdos y apoyar el trabajo cotidiano de los equipos.",
   "about.impulso_title": "Impulso IA",
   "about.impulso_body": "Somos Impulso IA, creada por Nikolas Prado. Nace para transformar la forma de trabajar mediante inteligencia artificial, optimización de procesos y soluciones digitales ágiles.",
   "about.contact_toast": "Contacto externo no configurado todavía.",

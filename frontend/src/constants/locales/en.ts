@@ -567,14 +567,9 @@ export const en: Record<keyof typeof es, string> = {
   "about.title": "About MinutIA",
   "about.tagline": "Corporate assistant for minutes, agreements, and meeting follow-up.",
   "about.mission_title": "Mission",
-  // <!-- EDITAR --> Draft pending user review.
-  "about.mission_body": "Draft: MinutIA aims to turn workplace conversations into clear transcripts, minutes, and commitments while prioritizing local processing and control over information.",
+  "about.mission_body": "MinutIA aims to turn workplace conversations into clear transcripts, minutes, and commitments while prioritizing local processing and control over information.",
   "about.vision_title": "Vision",
-  // <!-- EDITAR --> Draft pending user review.
-  "about.vision_body": "Draft: evolve into an increasingly useful meeting assistant for organizing knowledge, following up on agreements, and supporting teams in their daily work.",
-  "about.author_title": "Nikolas Prado",
-  // <!-- EDITAR --> Replace with the author's approved biography.
-  "about.author_body": "Text to be defined by Nikolas Prado: a short personal introduction, experience, and motivation for creating MinutIA.",
+  "about.vision_body": "Evolve into an increasingly useful meeting assistant for organizing knowledge, following up on agreements, and supporting teams in their daily work.",
   "about.impulso_title": "Impulso IA",
   "about.impulso_body": "We are Impulso IA, created by Nikolas Prado. It exists to transform the way people work through artificial intelligence, process optimization, and agile digital solutions.",
   "about.contact_toast": "External contact is not configured yet.",

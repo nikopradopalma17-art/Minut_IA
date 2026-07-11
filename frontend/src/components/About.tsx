@@ -51,16 +51,7 @@ export function About() {
         </p>
       </section>
 
-      <div className="grid gap-5 border-t border-border/70 pt-5 sm:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-        <section>
-          <h2 className="font-heading text-base font-semibold text-impulso-navy">
-            {t('about.author_title')}
-          </h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {t('about.author_body')}
-          </p>
-        </section>
-
+      <div className="border-t border-border/70 pt-5">
         <section className="rounded-xl bg-secondary/70 p-4">
           <div className="flex items-start gap-3">
             <Image
