@@ -276,7 +276,7 @@ export function RetranscribeDialog({
             {isProcessing ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
-                Retranscribing...
+                {t('retranscribe.processing')}
               </>
             ) : error ? (
               <>

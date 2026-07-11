@@ -286,8 +286,8 @@ export function useRecordingStop(
               );
             } catch (error) {
               console.warn('Failed to detect summary language for new meeting:', error);
-              toast.warning('Could not detect summary language', {
-                description: 'The meeting was saved, but Auto could not detect the summary language.',
+              toast.warning(t('summary.detect_language_failed'), {
+                description: t('summary.detect_language_failed_desc'),
               });
             }
           }

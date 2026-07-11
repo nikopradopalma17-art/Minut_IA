@@ -647,5 +647,66 @@ export const en: Record<keyof typeof es, string> = {
   "templates.readonly_note": "Built-in templates cannot be edited directly. Use Duplicate to create a custom copy.",
   "templates.duplicate": "Duplicate",
   "templates.delete": "Delete",
-  "templates.save": "Save template"
+  "templates.save": "Save template",
+
+  // Transcript recovery
+  "recovery.title": "Recover Interrupted Meetings",
+  "recovery.description": "We found meetings that were interrupted. Select a meeting to preview and recover it.",
+  "recovery.interrupted_meetings": "Interrupted Meetings",
+  "recovery.preview": "Preview",
+  "recovery.loading_preview": "Loading preview...",
+  "recovery.showing_segments": "Showing first {n} transcript segments (of {total} total)",
+  "recovery.more_transcripts": "... and {n} more transcripts",
+  "recovery.no_transcripts": "No transcripts to preview",
+  "recovery.select_meeting": "Select a meeting to preview",
+  "recovery.audio_available": "Audio available",
+  "recovery.no_audio": "No audio",
+  "recovery.started": "Started",
+  "recovery.transcripts_count": "transcripts",
+  "recovery.transcript_count": "transcript",
+  "recovery.cancel": "Cancel",
+  "recovery.delete": "Delete",
+  "recovery.deleting": "Deleting...",
+  "recovery.recover": "Recover",
+  "recovery.recovering": "Recovering...",
+  "recovery.confirm_delete": "Are you sure you want to delete this meeting? This cannot be undone.",
+  "recovery.failed": "Failed to recover meeting. Please try again.",
+  "recovery.delete_failed": "Failed to delete meeting. Please try again.",
+
+  // Import audio
+  "import.title": "Import Audio File",
+  "import.importing_title": "Importing Audio...",
+  "import.failed_title": "Import Failed",
+  "import.complete_title": "Import Complete",
+  "import.drop_overlay": "Drop audio file to import",
+  "import.processing": "Processing audio...",
+  "import.select_file": "Select Audio File",
+  "import.select_different": "Choose Different File",
+  "import.meeting_title": "Meeting Title",
+  "import.meeting_title_placeholder": "Enter meeting title",
+  "import.advanced_options": "Advanced Options",
+  "import.language": "Language",
+  "import.language_placeholder": "Select language",
+  "import.model": "Model",
+  "import.model_placeholder": "Select model",
+  "import.parakeet_language_note": "Language selection isn't supported for Parakeet. It always uses automatic detection.",
+  "import.select_file_desc": "MP4, WAV, MP3, FLAC, OGG, MKV, WebM, WMA",
+  "import.validating": "Validating...",
+  "import.import_button": "Import",
+  "import.cancel": "Cancel",
+  "import.cancelled": "Import cancelled",
+  "import.error_occurred": "An error occurred during import",
+  "import.import_desc": "Import an audio file to create a new meeting with transcripts",
+  "import.complete_segments": "Import complete! {n} segments created.",
+  "import.failed_desc": "Failed to import",
+  "import.try_again": "Try Again",
+  "import.close": "Close",
+
+  // Status overlays
+  "status.finalizing": "Finalizing transcription...",
+  "status.saving": "Saving transcript...",
+
+  // Brand
+  "brand.developed_by": "Developed by Nikolas Prado - Impulso IA"
 };
+

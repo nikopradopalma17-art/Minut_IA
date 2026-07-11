@@ -643,5 +643,66 @@ export const es = {
   "templates.readonly_note": "Las plantillas integradas no se pueden editar directamente. Usa Duplicar para crear una copia personalizada.",
   "templates.duplicate": "Duplicar",
   "templates.delete": "Eliminar",
-  "templates.save": "Guardar plantilla"
+  "templates.save": "Guardar plantilla",
+
+  // Transcript recovery
+  "recovery.title": "Recuperar reuniones interrumpidas",
+  "recovery.description": "Se encontraron reuniones que fueron interrumpidas. Selecciona una reunión para previsualizarla y recuperarla.",
+  "recovery.interrupted_meetings": "Reuniones interrumpidas",
+  "recovery.preview": "Previsualización",
+  "recovery.loading_preview": "Cargando previsualización...",
+  "recovery.showing_segments": "Mostrando los primeros {n} segmentos de transcripción (de {total} en total)",
+  "recovery.more_transcripts": "... y {n} transcripciones más",
+  "recovery.no_transcripts": "No hay transcripciones para previsualizar",
+  "recovery.select_meeting": "Selecciona una reunión para previsualizarla",
+  "recovery.audio_available": "Audio disponible",
+  "recovery.no_audio": "Sin audio",
+  "recovery.started": "Iniciada",
+  "recovery.transcripts_count": "transcripciones",
+  "recovery.transcript_count": "transcripción",
+  "recovery.cancel": "Cancelar",
+  "recovery.delete": "Eliminar",
+  "recovery.deleting": "Eliminando...",
+  "recovery.recover": "Recuperar",
+  "recovery.recovering": "Recuperando...",
+  "recovery.confirm_delete": "¿Estás seguro de que quieres eliminar esta reunión? Esta acción no se puede deshacer.",
+  "recovery.failed": "No se pudo recuperar la reunión. Inténtalo de nuevo.",
+  "recovery.delete_failed": "No se pudo eliminar la reunión. Inténtalo de nuevo.",
+
+  // Import audio
+  "import.title": "Importar archivo de audio",
+  "import.importing_title": "Importando audio...",
+  "import.failed_title": "Importación fallida",
+  "import.complete_title": "Importación completada",
+  "import.drop_overlay": "Suelta el archivo de audio para importarlo",
+  "import.processing": "Procesando audio...",
+  "import.select_file": "Seleccionar archivo de audio",
+  "import.select_different": "Elegir archivo diferente",
+  "import.meeting_title": "Título de la reunión",
+  "import.meeting_title_placeholder": "Ingresa el título de la reunión",
+  "import.advanced_options": "Opciones avanzadas",
+  "import.language": "Idioma",
+  "import.language_placeholder": "Seleccionar idioma",
+  "import.model": "Modelo",
+  "import.model_placeholder": "Seleccionar modelo",
+  "import.parakeet_language_note": "La selección de idioma no está disponible para Parakeet. Siempre usa detección automática.",
+  "import.select_file_desc": "MP4, WAV, MP3, FLAC, OGG, MKV, WebM, WMA",
+  "import.validating": "Validando...",
+  "import.import_button": "Importar",
+  "import.cancel": "Cancelar",
+  "import.cancelled": "Importación cancelada",
+  "import.error_occurred": "Ocurrió un error durante la importación",
+  "import.import_desc": "Importa un archivo de audio para crear una nueva reunión con transcripciones",
+  "import.complete_segments": "¡Importación completada! Se crearon {n} segmentos.",
+  "import.failed_desc": "No se pudo importar",
+  "import.try_again": "Intentar otra vez",
+  "import.close": "Cerrar",
+
+  // Status overlays
+  "status.finalizing": "Finalizando transcripción...",
+  "status.saving": "Guardando transcripción...",
+
+  // Brand
+  "brand.developed_by": "Desarrollado por Nikolas Prado - Impulso IA"
 };
+

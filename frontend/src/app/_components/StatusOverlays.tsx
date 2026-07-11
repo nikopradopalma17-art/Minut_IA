@@ -1,5 +1,8 @@
+import { useTranslation } from '@/contexts/TranslationContext';
+
 interface StatusOverlaysProps {
   // Status flags
+
   isProcessing: boolean;      // Processing transcription after recording stops
   isSaving: boolean;          // Saving transcript to database
 
@@ -42,19 +45,20 @@ export function StatusOverlays({
   isSaving,
   sidebarCollapsed
 }: StatusOverlaysProps) {
+  const { t } = useTranslation();
   return (
     <>
       {/* Processing status overlay - shown after recording stops while finalizing transcription */}
       <StatusOverlay
         show={isProcessing}
-        message="Finalizing transcription..."
+        message={t('status.finalizing')}
         sidebarCollapsed={sidebarCollapsed}
       />
 
       {/* Saving status overlay - shown while saving transcript to database */}
       <StatusOverlay
         show={isSaving}
-        message="Saving transcript..."
+        message={t('status.saving')}
         sidebarCollapsed={sidebarCollapsed}
       />
     </>
