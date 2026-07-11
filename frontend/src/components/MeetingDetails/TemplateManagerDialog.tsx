@@ -293,7 +293,7 @@ export function TemplateManagerDialog({
                 {t('templates.loading')}
               </div>
             ) : loadError ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
                 {loadError}
               </div>
             ) : (
@@ -449,7 +449,7 @@ export function TemplateManagerDialog({
                 </div>
 
                 {mode === 'existing' && !activeTemplate?.is_custom && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                  <div className="rounded-lg border border-impulso-ocean/30 bg-impulso-ocean/10 p-3 text-sm text-impulso-ocean">
                     {t('templates.readonly_note')}
                   </div>
                 )}
