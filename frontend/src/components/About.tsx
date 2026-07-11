@@ -61,8 +61,19 @@ export function About() {
                 </p>
             </div>
 
-            <div className="pt-2 border-t border-gray-200 text-center">
-                <p className="text-xs text-gray-400">
+            <div className="pt-4 border-t border-border/60 text-center space-y-3">
+                <div className="flex items-center justify-center gap-2">
+                    <Image
+                        src="/brand/impulso-logo.svg"
+                        alt="Impulso IA Logo"
+                        width={20}
+                        height={20}
+                    />
+                    <p className="text-xs text-muted-foreground font-semibold">
+                        {t('brand.developed_by')}
+                    </p>
+                </div>
+                <p className="text-[10px] text-muted-foreground/50">
                     {t('about.local_edition')}
                 </p>
             </div>
