@@ -65,7 +65,7 @@ function renderSnippet(snippet: string) {
     return (
       <span
         key={`${index}-${part}`}
-        className={bold ? 'rounded bg-amber-100 px-0.5 font-semibold text-slate-900' : undefined}
+        className={bold ? 'rounded bg-impulso-ocean/10 px-0.5 font-semibold text-foreground' : undefined}
       >
         {part}
       </span>
@@ -84,10 +84,10 @@ function MeetingResult({
     <CommandItem value={`${item.title} ${item.id}`} onSelect={() => onOpen(item.id, item.title)}>
       <div className="flex w-full items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
-          <p className="truncate font-medium text-slate-900">{item.title}</p>
-          <p className="text-xs text-slate-500">{item.id}</p>
+          <p className="truncate font-medium text-foreground">{item.title}</p>
+          <p className="text-xs text-muted-foreground">{item.id}</p>
         </div>
-        <span className="text-xs text-slate-400">{formatDate(item.createdAt)}</span>
+        <span className="text-xs text-muted-foreground">{formatDate(item.createdAt)}</span>
       </div>
     </CommandItem>
   );
@@ -112,8 +112,8 @@ function ContentResult({
         {icon}
       </div>
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate font-medium text-slate-900">{item.meetingTitle}</p>
-        <p className="line-clamp-2 text-xs leading-5 text-slate-600">{renderSnippet(item.snippet)}</p>
+        <p className="truncate font-medium text-foreground">{item.meetingTitle}</p>
+        <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">{renderSnippet(item.snippet)}</p>
       </div>
     </CommandItem>
   );
@@ -132,12 +132,12 @@ function CommitmentResult({
       onSelect={() => onOpen(item.id)}
       className="items-start"
     >
-      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+      <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-impulso-ocean/10 text-impulso-ocean">
         <Sparkles size={14} />
       </div>
       <div className="min-w-0 flex-1 space-y-1">
-        <p className="truncate font-medium text-slate-900">{item.description}</p>
-        <p className="text-xs text-slate-500">
+        <p className="truncate font-medium text-foreground">{item.description}</p>
+        <p className="text-xs text-muted-foreground">
           {item.meeting_title}
           {item.responsible ? ` · ${item.responsible}` : ''}
           {item.due_date ? ` · ${item.due_date}` : ''}
@@ -282,12 +282,12 @@ export function SearchCommand() {
                 <CommandSeparator />
                 <CommandGroup heading={t('search.group_future')}>
                   <CommandItem disabled className="items-center text-muted-foreground">
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <CalendarClock size={14} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{t('search.ask_ai')}</p>
-                      <p className="text-xs text-slate-500">{t('search.ask_ai_desc')}</p>
+                      <p className="text-xs text-muted-foreground">{t('search.ask_ai_desc')}</p>
                     </div>
                   </CommandItem>
                 </CommandGroup>
@@ -350,12 +350,12 @@ export function SearchCommand() {
                 <CommandSeparator />
                 <CommandGroup heading={t('search.group_future')}>
                   <CommandItem disabled className="items-center text-muted-foreground">
-                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                    <div className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                       <CalendarClock size={14} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-medium">{t('search.ask_ai')}</p>
-                      <p className="text-xs text-slate-500">{t('search.ask_ai_desc')}</p>
+                      <p className="text-xs text-muted-foreground">{t('search.ask_ai_desc')}</p>
                     </div>
                   </CommandItem>
                 </CommandGroup>

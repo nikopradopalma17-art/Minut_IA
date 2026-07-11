@@ -26,7 +26,7 @@ export function EmptyStateSummary({ onGenerate, hasModel, isGenerating = false }
       transition={{ duration: 0.3, ease: 'easeOut' }}
       className="flex flex-col items-center justify-center h-full p-8 text-center"
     >
-      <FileQuestion className="w-16 h-16 text-gray-300 mb-4" />
+      <FileQuestion className="w-16 h-16 text-muted-foreground/40 mb-4" />
       <h3 className="text-lg font-semibold text-foreground mb-2">
         {t('summary.empty_title')}
       </h3>
@@ -57,7 +57,7 @@ export function EmptyStateSummary({ onGenerate, hasModel, isGenerating = false }
       </TooltipProvider>
 
       {!hasModel && (
-        <p className="text-xs text-amber-600 mt-3">
+        <p className="text-xs text-impulso-ocean mt-3">
           {t('summary.select_model_first')}
         </p>
       )}
