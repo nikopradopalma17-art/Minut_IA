@@ -20,12 +20,10 @@ module.exports = {
   		},
   		colors: {
   			impulso: {
-  				navy: 'hsl(var(--impulso-navy))',
-  				ocean: 'hsl(var(--impulso-ocean))',
   				baltic: 'hsl(var(--impulso-baltic))',
-  				obsidian: 'hsl(var(--impulso-obsidian))',
-  				amber: 'hsl(var(--impulso-amber))',
-  				teal: 'hsl(var(--impulso-teal))'
+  				ocean: 'hsl(var(--impulso-ocean))',
+  				navy: 'hsl(var(--impulso-navy))',
+  				obsidian: 'hsl(var(--impulso-obsidian))'
   			},
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
@@ -40,7 +38,6 @@ module.exports = {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
   			},
-  			tertiary: '#64748b',
   			card: {
   				DEFAULT: 'hsl(var(--card))',
   				foreground: 'hsl(var(--card-foreground))'
@@ -78,6 +75,7 @@ module.exports = {
   			'caption': ['12px', { lineHeight: '1.4', fontWeight: '400' }],
   		},
   		borderRadius: {
+  			xl: 'calc(var(--radius) + 8px)',
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'

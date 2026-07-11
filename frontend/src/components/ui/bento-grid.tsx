@@ -41,7 +41,7 @@ const BentoCard = React.forwardRef<HTMLDivElement, BentoCardProps>(
       <div
         ref={ref}
         className={cn(
-          "rounded-xl border bg-card text-card-foreground shadow-sm flex flex-col p-6 transition-all duration-200 hover:shadow-md hover:border-impulso-ocean/40",
+          "rounded-2xl border bg-card text-card-foreground shadow-sm flex flex-col p-6 transition-all duration-200 hover:shadow-md hover:border-impulso-ocean/40",
           colSpanClasses[colSpan] || "md:col-span-1",
           rowSpanClasses[rowSpan] || "md:row-span-1",
           className

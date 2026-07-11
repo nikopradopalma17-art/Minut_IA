@@ -77,76 +77,74 @@
 }
 
 @layer base {
-  /* MinutIA brand palette:
-     azul #003e7e = hsl(211 100% 25%), amarillo #fdb813 = hsl(43 98% 53%),
-     teal #00b8b9 = hsl(180 100% 36%) */
+  /* MinutIA / Impulso brand palette (design.md — hex es la fuente de verdad):
+     Baltic Blue #447794 = hsl(202 37% 42%)  — primario / CTA / acciones
+     Ocean Teal #2D5B75 = hsl(202 44% 32%)  — secundario / estados activos / info
+     Navy Ink  #123249 = hsl(205 60% 18%)  — texto / navegación / superficies oscuras
+     Obsidian  #061222 = hsl(214 70% 8%)   — fondos premium / footer / fondo dark */
   :root {
-    --impulso-navy: 211 100% 25%;
-    --impulso-ocean: 211 80% 42%;
-    --impulso-baltic: 211 60% 92%;
-    --impulso-obsidian: 211 45% 8%;
-    --impulso-amber: 43 98% 53%;
-    --impulso-teal: 181 100% 36%;
+    --impulso-baltic: 202 37% 42%;
+    --impulso-ocean: 202 44% 32%;
+    --impulso-navy: 205 60% 18%;
+    --impulso-obsidian: 214 70% 8%;
 
     --background: 0 0% 100%;
-    --foreground: 211 60% 12%;
+    --foreground: 205 60% 18%;
     --card: 0 0% 100%;
-    --card-foreground: 211 60% 12%;
+    --card-foreground: 205 60% 18%;
     --popover: 0 0% 100%;
-    --popover-foreground: 211 60% 12%;
-    --primary: var(--impulso-navy);
-    --primary-foreground: 0 0% 98%;
-    --secondary: 211 40% 96%;
-    --secondary-foreground: var(--impulso-navy);
-    --muted: 211 40% 96%;
-    --muted-foreground: 211 15% 45%;
-    --accent: var(--impulso-amber);
-    --accent-foreground: 211 100% 18%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 211 25% 90%;
-    --input: 211 25% 90%;
-    --ring: var(--impulso-navy);
+    --popover-foreground: 205 60% 18%;
+    --primary: var(--impulso-baltic);
+    --primary-foreground: 0 0% 100%;
+    --secondary: 202 30% 94%;
+    --secondary-foreground: var(--impulso-ocean);
+    --muted: 205 25% 95%;
+    --muted-foreground: 205 20% 38%;
+    --accent: 202 35% 90%;
+    --accent-foreground: var(--impulso-navy);
+    --destructive: 0 70% 42%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 205 25% 88%;
+    --input: 205 25% 88%;
+    --ring: var(--impulso-baltic);
     --radius: 0.5rem;
-    --chart-1: var(--impulso-navy);
-    --chart-2: var(--impulso-teal);
-    --chart-3: var(--impulso-amber);
-    --chart-4: 211 60% 55%;
-    --chart-5: 180 50% 55%;
+    --chart-1: var(--impulso-baltic);
+    --chart-2: var(--impulso-ocean);
+    --chart-3: var(--impulso-navy);
+    --chart-4: 202 40% 60%;
+    --chart-5: 205 30% 50%;
   }
 
   .dark {
-    --impulso-navy: 211 75% 55%;
-    --impulso-ocean: 211 80% 62%;
-    --impulso-baltic: 211 35% 16%;
-    --impulso-obsidian: 211 45% 8%;
-    --impulso-amber: 43 98% 53%;
-    --impulso-teal: 181 100% 46%;
+    --impulso-baltic: 202 48% 58%;
+    --impulso-ocean: 202 42% 48%;
+    --impulso-navy: 205 45% 30%;
+    --impulso-obsidian: 214 70% 8%;
 
     --background: var(--impulso-obsidian);
-    --foreground: 210 30% 96%;
-    --card: 211 45% 10%;
-    --card-foreground: 210 30% 96%;
-    --popover: 211 45% 10%;
-    --popover-foreground: 210 30% 96%;
-    --primary: var(--impulso-navy);
-    --primary-foreground: 211 100% 12%;
-    --secondary: 211 35% 16%;
-    --secondary-foreground: 210 30% 96%;
-    --muted: 211 35% 16%;
-    --muted-foreground: 211 15% 65%;
-    --accent: var(--impulso-amber);
-    --accent-foreground: 211 100% 12%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 211 35% 18%;
-    --input: 211 35% 18%;
-    --ring: var(--impulso-navy);
-    --chart-1: var(--impulso-navy);
-    --chart-2: var(--impulso-teal);
-    --chart-3: var(--impulso-amber);
-    --chart-4: 211 50% 70%;
-    --chart-5: 180 45% 60%;
+    --foreground: 205 25% 96%;
+    --card: 214 45% 12%;
+    --card-foreground: 205 25% 96%;
+    --popover: 214 45% 12%;
+    --popover-foreground: 205 25% 96%;
+    --primary: var(--impulso-baltic);
+    --primary-foreground: 214 70% 8%;
+    --secondary: 214 35% 18%;
+    --secondary-foreground: 205 25% 96%;
+    --muted: 214 30% 18%;
+    --muted-foreground: 205 20% 68%;
+    --accent: 214 40% 22%;
+    --accent-foreground: 205 25% 96%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 30% 20%;
+    --input: 214 30% 20%;
+    --ring: var(--impulso-baltic);
+    --chart-1: var(--impulso-baltic);
+    --chart-2: var(--impulso-ocean);
+    --chart-3: 202 40% 70%;
+    --chart-4: 205 35% 55%;
+    --chart-5: 202 30% 45%;
   }
 }
 

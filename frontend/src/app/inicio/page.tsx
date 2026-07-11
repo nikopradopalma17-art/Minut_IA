@@ -164,7 +164,7 @@ export default function InicioPage() {
           </BentoCard>
 
           {/* Metric: Summaries Count */}
-          <BentoCard colSpan={1} className="hover:border-impulso-teal/30">
+          <BentoCard colSpan={1} className="hover:border-impulso-ocean/30">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">{t('dashboard.metrics.summaries')}</p>
@@ -172,14 +172,14 @@ export default function InicioPage() {
                   {isLoading ? '—' : String(stats?.summaries_count ?? 0)}
                 </p>
               </div>
-              <div className="rounded-2xl p-3 bg-impulso-teal/10 text-impulso-teal">
+              <div className="rounded-2xl p-3 bg-impulso-ocean/10 text-impulso-ocean">
                 <FileText className="h-5 w-5" />
               </div>
             </div>
           </BentoCard>
 
           {/* Metric: Commitments Count */}
-          <BentoCard colSpan={1} className="hover:border-impulso-amber/30">
+          <BentoCard colSpan={1} className="hover:border-impulso-baltic/30">
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">{t('dashboard.metrics.commitments')}</p>
@@ -187,7 +187,7 @@ export default function InicioPage() {
                   {isLoading ? '—' : String(stats?.pending_commitments ?? 0)}
                 </p>
               </div>
-              <div className="rounded-2xl p-3 bg-impulso-amber/10 text-impulso-amber">
+              <div className="rounded-2xl p-3 bg-impulso-baltic/10 text-impulso-baltic">
                 <Sparkles className="h-5 w-5" />
               </div>
             </div>
