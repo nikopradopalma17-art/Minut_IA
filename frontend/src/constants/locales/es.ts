@@ -710,6 +710,27 @@ export const es = {
   "status.finalizing": "Finalizando transcripción...",
   "status.saving": "Guardando transcripción...",
 
+  // Settings modals (grabación)
+  "settings_modal.preferences_title": "Preferencias",
+  "settings_modal.ai_model_config": "Configuración del modelo de IA",
+  "settings_modal.summarization_model_label": "Modelo de resumen",
+  "settings_modal.ollama_models_heading": "Modelos de Ollama disponibles",
+  "settings_modal.model_size_label": "Tamaño",
+  "settings_modal.model_modified_label": "Modificado",
+  "settings_modal.done": "Listo",
+  "settings_modal.cancel": "Cancelar",
+  "settings_modal.dismiss": "Descartar",
+  "settings_modal.device_settings_title": "Ajustes de dispositivos de audio",
+  "settings_modal.devices_selected_toast": "Dispositivos seleccionados",
+  "settings_modal.devices_selected_desc": "Micrófono: {mic}, Audio del sistema: {system}",
+  "settings_modal.language_settings_title": "Ajustes de idioma",
+  "settings_modal.speech_setup_required_title": "Configuración de reconocimiento de voz requerida",
+  "settings_modal.transcription_model_settings_title": "Ajustes del modelo de transcripción",
+  "settings_modal.confidence_toggle_label": "Mostrar indicadores de confianza",
+  "settings_modal.confidence_toggle_desc": "Muestra puntos de color con la calidad de confianza de la transcripción",
+  "settings_modal.recording_stopped_title": "Grabación detenida",
+  "settings_modal.perf_warning_title": "Advertencia de rendimiento de transcripción",
+
   // Brand
   "brand.developed_by": "Desarrollado por Nikolas Prado - Impulso IA"
 };

@@ -714,6 +714,27 @@ export const en: Record<keyof typeof es, string> = {
   "status.finalizing": "Finalizing transcription...",
   "status.saving": "Saving transcript...",
 
+  // Settings modals (recording)
+  "settings_modal.preferences_title": "Preferences",
+  "settings_modal.ai_model_config": "AI Model Configuration",
+  "settings_modal.summarization_model_label": "Summarization Model",
+  "settings_modal.ollama_models_heading": "Available Ollama Models",
+  "settings_modal.model_size_label": "Size",
+  "settings_modal.model_modified_label": "Modified",
+  "settings_modal.done": "Done",
+  "settings_modal.cancel": "Cancel",
+  "settings_modal.dismiss": "Dismiss",
+  "settings_modal.device_settings_title": "Audio Device Settings",
+  "settings_modal.devices_selected_toast": "Devices selected",
+  "settings_modal.devices_selected_desc": "Microphone: {mic}, System Audio: {system}",
+  "settings_modal.language_settings_title": "Language Settings",
+  "settings_modal.speech_setup_required_title": "Speech Recognition Setup Required",
+  "settings_modal.transcription_model_settings_title": "Transcription Model Settings",
+  "settings_modal.confidence_toggle_label": "Show Confidence Indicators",
+  "settings_modal.confidence_toggle_desc": "Display colored dots showing transcription confidence quality",
+  "settings_modal.recording_stopped_title": "Recording Stopped",
+  "settings_modal.perf_warning_title": "Transcription Performance Warning",
+
   // Brand
   "brand.developed_by": "Developed by Nikolas Prado - Impulso IA"
 };
