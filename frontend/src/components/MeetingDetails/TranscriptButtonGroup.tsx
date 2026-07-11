@@ -60,8 +60,9 @@ export function TranscriptButtonGroup({
   }, [meetingId, meetingFolderPath, isDiarizing, onRefetchTranscripts, t]);
 
   return (
-    <div className="flex items-center justify-center w-full gap-2">
-      <ButtonGroup>
+    <div className="flex flex-wrap items-center justify-center w-full gap-2">
+      <div className="max-w-full overflow-x-auto">
+        <ButtonGroup>
         <Button
           variant="outline"
           size="sm"
@@ -122,7 +123,8 @@ export function TranscriptButtonGroup({
             <span className="hidden lg:inline">{t('speakers.identify')}</span>
           </Button>
         )}
-      </ButtonGroup>
+        </ButtonGroup>
+      </div>
 
       {betaFeatures.importAndRetranscribe && meetingId && meetingFolderPath && (
         <RetranscribeDialog
