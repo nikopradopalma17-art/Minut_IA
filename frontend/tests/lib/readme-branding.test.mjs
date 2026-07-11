@@ -10,7 +10,7 @@ const readmeSource = readFileSync(path.join(repoRoot, 'README.md'), 'utf8');
 
 test('README presents MinutIA as an Impulso product in Spanish', () => {
   assert.match(readmeSource, /#\s*MinutIA|<h1>[\s\S]*MinutIA/i);
-  assert.match(readmeSource, /producto de Impulso/i);
+  assert.match(readmeSource, /Un producto de Nikolas Prado \/ Impulso IA/i);
   assert.match(readmeSource, /Descargar MinutIA para Windows/i);
   assert.match(readmeSource, /Instalaci[oó]n/i);
 });
@@ -26,8 +26,15 @@ test('README no longer contains inherited Meetily product marketing', () => {
 test('README points downloads at the MinutIA repo and explains SmartScreen', () => {
   assert.match(
     readmeSource,
-    /https:\/\/github\.com\/nikopradopalma17-art\/Minut_IA\/releases\/latest/
+    /https:\/\/github\.com\/nikopradopalma17-art\/Minut_IA\/releases/
   );
   assert.match(readmeSource, /SmartScreen/i);
   assert.match(readmeSource, /Windows/i);
+});
+
+test('README removes inherited badges, MIT references, and secondary links', () => {
+  assert.doesNotMatch(readmeSource, /img\.shields\.io/i);
+  assert.doesNotMatch(readmeSource, /Licencia MIT/i);
+  assert.doesNotMatch(readmeSource, /Ver releases/i);
+  assert.doesNotMatch(readmeSource, /Documentación técnica/i);
 });

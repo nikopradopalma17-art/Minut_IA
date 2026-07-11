@@ -1,7 +1,7 @@
 <div align="center">
   <img src="frontend/public/brand/minutia.svg" alt="MinutIA" width="96" />
   <h1>MinutIA</h1>
-  <p><strong>Un producto de Impulso IA</strong></p>
+  <p><strong>Un producto de Nikolas Prado / Impulso IA</strong></p>
   <p>
     Convierte reuniones en transcripciones, minutas y acuerdos claros con inteligencia artificial.
   </p>
@@ -9,17 +9,7 @@
     Diseñado para equipos y profesionales que necesitan ordenar conversaciones, acelerar el seguimiento y trabajar con más claridad.
   </p>
   <p>
-    <a href="https://github.com/nikopradopalma17-art/Minut_IA/releases/latest"><strong>Descargar MinutIA para Windows</strong></a>
-    ·
-    <a href="https://github.com/nikopradopalma17-art/Minut_IA/releases">Ver releases</a>
-    ·
-    <a href="docs/BUILDING.md">Documentación técnica</a>
-  </p>
-  <p>
-    <img src="https://img.shields.io/github/v/tag/nikopradopalma17-art/Minut_IA?include_prereleases&color=447794" alt="Última versión" />
-    <img src="https://img.shields.io/github/downloads/nikopradopalma17-art/Minut_IA/total?color=2D5B75" alt="Descargas" />
-    <img src="https://img.shields.io/badge/Windows-Disponible-123249" alt="Windows disponible" />
-    <img src="https://img.shields.io/badge/Licencia-MIT-061222" alt="Licencia MIT" />
+    <a href="https://github.com/nikopradopalma17-art/Minut_IA/releases"><strong>Descargar MinutIA para Windows</strong></a>
   </p>
 </div>
 
@@ -48,7 +38,7 @@ Te ayuda a grabar reuniones, transcribir contenido, generar minutas y organizar 
 
 ### Windows
 
-1. Ve a [Releases](https://github.com/nikopradopalma17-art/Minut_IA/releases/latest).
+1. Ve a la página de [releases de MinutIA](https://github.com/nikopradopalma17-art/Minut_IA/releases).
 2. Descarga el instalador más reciente para Windows.
 3. Ejecuta el instalador.
 4. Si Windows SmartScreen muestra la advertencia de editor desconocido, haz clic en `Más información` y luego en `Ejecutar de todas formas`.
@@ -56,25 +46,11 @@ Te ayuda a grabar reuniones, transcribir contenido, generar minutas y organizar 
 
 ### macOS
 
-El soporte de empaquetado también existe en el proyecto. Puedes revisar las versiones disponibles desde [Releases](https://github.com/nikopradopalma17-art/Minut_IA/releases).
+El soporte de empaquetado también existe en el proyecto. Puedes revisar las versiones publicadas desde la misma página de [releases](https://github.com/nikopradopalma17-art/Minut_IA/releases).
 
 ### Linux
 
 Para Linux, la ruta recomendada sigue siendo compilar desde código fuente. Las instrucciones están en [docs/BUILDING.md](docs/BUILDING.md) y [docs/building_in_linux.md](docs/building_in_linux.md).
-
-## Vista del producto
-
-### Inicio y panel principal
-
-![Inicio de MinutIA](docs/home.png)
-
-### Generación de minutas
-
-![Resumen de reunión](docs/summary.png)
-
-### Configuración y control del entorno
-
-![Configuración de MinutIA](docs/settings.png)
 
 ## Enfoque del producto
 
@@ -106,16 +82,12 @@ pnpm run tauri:dev
 
 Guías útiles:
 
-- [docs/BUILDING.md](docs/BUILDING.md)
-- [docs/building_in_linux.md](docs/building_in_linux.md)
-- [docs/architecture.md](docs/architecture.md)
+- [Guía de compilación](docs/BUILDING.md)
+- [Compilación en Linux](docs/building_in_linux.md)
+- [Arquitectura](docs/architecture.md)
 
 ## Impulso IA
 
 MinutIA es un producto de **Impulso IA**, orientado a transformar la forma de trabajar mediante inteligencia artificial, optimización de procesos y soluciones digitales ágiles.
 
 Si necesitas adaptar MinutIA a un flujo interno o a un contexto organizacional específico, este repositorio puede servir como base técnica del producto.
-
-## Licencia
-
-[MIT](LICENSE.md)

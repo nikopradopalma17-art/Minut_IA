@@ -68,6 +68,6 @@ test('local updater secrets stay ignored and developer docs/scripts point to the
   );
   assert.match(
     readmeSource,
-    /https:\/\/github\.com\/nikopradopalma17-art\/Minut_IA\/releases\/latest/
+    /https:\/\/github\.com\/nikopradopalma17-art\/Minut_IA\/releases/
   );
 });
