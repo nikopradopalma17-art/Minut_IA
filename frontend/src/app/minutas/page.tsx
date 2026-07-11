@@ -97,21 +97,21 @@ export default function MinutasPage() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: 'easeOut' }}
-      className="min-h-screen bg-[linear-gradient(180deg,_#f8fafc_0%,_#ffffff_100%)]"
+      className="min-h-screen bg-background"
     >
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 lg:px-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
                 {t('minutes.summary_ready')}
               </div>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
                   {t('minutes.title')}
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   {t('minutes.subtitle')}
                 </p>
               </div>
@@ -121,13 +121,13 @@ export default function MinutasPage() {
               <Button
                 variant="outline"
                 onClick={() => router.push('/reuniones')}
-                className="h-11 rounded-full border-slate-300 bg-white px-5 text-slate-700 hover:bg-slate-50"
+                className="h-11 px-5"
               >
                 {t('dashboard.view_all')}
               </Button>
               <Button
                 onClick={() => router.push('/')}
-                className="h-11 rounded-full bg-blue-700 px-5 text-white hover:bg-blue-800"
+                className="h-11 px-5"
               >
                 {t('dashboard.primary_cta')}
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -139,11 +139,11 @@ export default function MinutasPage() {
         <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-3">
             {isLoading ? (
-              <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-500 shadow-sm">
+              <div className="rounded-2xl border border-border bg-card p-8 text-sm text-muted-foreground shadow-sm">
                 {t('settings.loading')}
               </div>
             ) : rows.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-sm text-slate-500 shadow-sm">
+              <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-sm text-muted-foreground shadow-sm">
                 {t('minutes.empty')}
               </div>
             ) : (
@@ -151,22 +151,22 @@ export default function MinutasPage() {
                 <button
                   key={row.id}
                   onClick={() => router.push(`/meeting-details?id=${row.id}`)}
-                  className="flex w-full items-center justify-between rounded-3xl border border-slate-200 bg-white px-5 py-4 text-left shadow-sm transition-colors hover:border-emerald-200 hover:bg-emerald-50/50"
+                  className="flex w-full items-center justify-between rounded-2xl border border-border bg-card px-5 py-4 text-left shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/50"
                 >
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
-                      <FileText className="h-4 w-4 text-emerald-600" />
-                      <p className="text-base font-medium text-slate-900">{row.title}</p>
+                      <FileText className="h-4 w-4 text-primary" />
+                      <p className="text-base font-medium text-foreground">{row.title}</p>
                     </div>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-muted-foreground">
                       {row.createdAt ? formatDate(row.createdAt) : row.id}
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                    <span className="rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                       {t('minutes.summary_ready')}
                     </span>
-                    <ArrowRight className="h-4 w-4 text-slate-400" />
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
                   </div>
                 </button>
               ))
@@ -174,27 +174,27 @@ export default function MinutasPage() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">{t('dashboard.metrics.summaries')}</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm font-medium text-muted-foreground">{t('dashboard.metrics.summaries')}</p>
+              <p className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground">
                 {rows.length}
               </p>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {t('minutes.subtitle')}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-6">
-              <div className="flex items-center gap-2 text-emerald-800">
+            <div className="rounded-2xl border border-border bg-secondary p-6">
+              <div className="flex items-center gap-2 text-secondary-foreground">
                 <CheckCircle2 className="h-4 w-4" />
                 <p className="text-sm font-medium">{t('minutes.summary_ready')}</p>
               </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {t('meetings.subtitle')}
               </p>
               <Button
                 onClick={() => router.push('/reuniones')}
-                className="mt-4 h-11 w-full rounded-full bg-slate-900 text-white hover:bg-slate-800"
+                className="mt-4 h-11 w-full"
               >
                 {t('dashboard.view_all')}
               </Button>

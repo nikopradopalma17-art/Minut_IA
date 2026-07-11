@@ -237,13 +237,13 @@ function CompromisosContent() {
   const getStatusTone = (status: CommitmentStatus | string) => {
     switch (status) {
       case 'pending':
-        return 'border-amber-200 bg-amber-50 text-amber-700';
+        return 'border-border bg-muted text-muted-foreground';
       case 'in_progress':
-        return 'border-blue-200 bg-blue-50 text-blue-700';
+        return 'border-impulso-ocean/30 bg-impulso-ocean/10 text-impulso-ocean';
       case 'completed':
-        return 'border-emerald-200 bg-emerald-50 text-emerald-700';
+        return 'border-primary/30 bg-primary/10 text-primary';
       default:
-        return 'border-slate-200 bg-slate-50 text-slate-700';
+        return 'border-border bg-muted text-muted-foreground';
     }
   };
 
@@ -293,25 +293,25 @@ function CompromisosContent() {
       label: t('dashboard.metrics.commitments'),
       value: overview.open,
       icon: CircleDot,
-      tone: 'bg-amber-50 text-amber-700',
+      tone: 'bg-primary/10 text-primary',
     },
     {
       label: t('commitments.overdue'),
       value: overview.overdue,
       icon: Clock3,
-      tone: 'bg-blue-50 text-blue-700',
+      tone: 'bg-destructive/10 text-destructive',
     },
     {
       label: t('commitments.in_progress'),
       value: overview.inProgress,
       icon: CalendarClock,
-      tone: 'bg-sky-50 text-sky-700',
+      tone: 'bg-impulso-ocean/10 text-impulso-ocean',
     },
     {
       label: t('commitments.completed'),
       value: overview.completed,
       icon: CheckSquare2,
-      tone: 'bg-emerald-50 text-emerald-700',
+      tone: 'bg-impulso-navy/10 text-impulso-navy',
     },
   ];
 
@@ -320,21 +320,21 @@ function CompromisosContent() {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: 'easeOut' }}
-      className="min-h-screen bg-[linear-gradient(180deg,_#f8fafc_0%,_#ffffff_100%)]"
+      className="min-h-screen bg-background"
     >
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 lg:px-8">
-        <section className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">
+              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
                 <CheckSquare2 className="h-3.5 w-3.5" />
                 {t('nav.commitments')}
               </div>
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
+                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
                   {t('commitments.title')}
                 </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
                   {t('commitments.subtitle')}
                 </p>
               </div>
@@ -344,14 +344,14 @@ function CompromisosContent() {
               <Button
                 variant="outline"
                 onClick={loadCommitments}
-                className="h-11 rounded-full border-slate-300 bg-white px-5 text-slate-700 hover:bg-slate-50"
+                className="h-11 px-5"
               >
                 <RefreshCw className="mr-2 h-4 w-4" />
                 {t('commitments.refresh')}
               </Button>
               <Button
                 onClick={() => router.push('/minutas')}
-                className="h-11 rounded-full bg-blue-700 px-5 text-white hover:bg-blue-800"
+                className="h-11 px-5"
               >
                 {t('minutes.open_details')}
                 <ArrowRight className="ml-2 h-4 w-4" />
@@ -365,12 +365,12 @@ function CompromisosContent() {
               return (
                 <div
                   key={card.label}
-                  className="rounded-3xl border border-slate-200 bg-slate-50/70 p-5"
+                  className="rounded-2xl border border-border bg-muted/40 p-5"
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div className="space-y-2">
-                      <p className="text-sm font-medium text-slate-500">{card.label}</p>
-                      <p className="text-3xl font-semibold tracking-tight text-slate-900">
+                      <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
+                      <p className="font-heading text-3xl font-semibold tracking-tight text-foreground">
                         {isLoading ? '-' : card.value}
                       </p>
                     </div>
@@ -386,41 +386,41 @@ function CompromisosContent() {
 
         <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
           <div className="space-y-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
               <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <label className="text-xs font-medium text-muted-foreground">
                     {t('commitments.search')}
                   </label>
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder={t('commitments.table_commitment')}
-                      className="h-11 rounded-2xl border-slate-200 bg-slate-50 pl-10 shadow-none focus-visible:ring-blue-500"
+                      className="h-11 rounded-lg bg-muted/40 pl-10 shadow-none"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <label className="text-xs font-medium text-muted-foreground">
                     {t('commitments.responsible_filter')}
                   </label>
                   <Input
                     value={responsibleFilter}
                     onChange={(event) => setResponsibleFilter(event.target.value)}
                     placeholder={t('commitments.owner')}
-                    className="h-11 rounded-2xl border-slate-200 bg-slate-50 shadow-none focus-visible:ring-blue-500"
+                    className="h-11 rounded-lg bg-muted/40 shadow-none"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <label className="text-xs font-medium text-muted-foreground">
                     {t('commitments.all_statuses')}
                   </label>
                   <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-                    <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-slate-50 shadow-none focus:ring-blue-500">
+                    <SelectTrigger className="h-11 rounded-lg bg-muted/40 shadow-none">
                       <SelectValue placeholder={t('commitments.all_statuses')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -433,11 +433,11 @@ function CompromisosContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                  <label className="text-xs font-medium text-muted-foreground">
                     {t('commitments.due_filter')}
                   </label>
                   <Select value={dueFilter} onValueChange={(value) => setDueFilter(value as DueFilter)}>
-                    <SelectTrigger className="h-11 rounded-2xl border-slate-200 bg-slate-50 shadow-none focus:ring-blue-500">
+                    <SelectTrigger className="h-11 rounded-lg bg-muted/40 shadow-none">
                       <SelectValue placeholder={t('commitments.due_filter')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -453,76 +453,76 @@ function CompromisosContent() {
             </div>
 
             {error ? (
-              <div className="rounded-3xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">
+              <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-5 text-sm text-destructive">
                 {error}
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
               {isLoading ? (
-                <div className="p-8 text-sm text-slate-500">{t('dashboard.subtitle')}</div>
+                <div className="p-8 text-sm text-muted-foreground">{t('dashboard.subtitle')}</div>
               ) : filteredCommitments.length === 0 ? (
                 <div className="p-8">
-                  <div className="flex items-center gap-3 text-slate-900">
-                    <CircleDot className="h-5 w-5 text-amber-600" />
-                    <h2 className="text-lg font-semibold">
+                  <div className="flex items-center gap-3 text-foreground">
+                    <CircleDot className="h-5 w-5 text-primary" />
+                    <h2 className="font-heading text-lg font-semibold">
                       {commitments.length === 0 ? t('commitments.empty') : t('commitments.no_results')}
                     </h2>
                   </div>
-                  <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-600">
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
                     {t('commitments.source_meeting_desc')}
                   </p>
                   <Button
                     onClick={() => router.push('/minutas')}
-                    className="mt-6 h-11 rounded-full bg-slate-900 px-5 text-white hover:bg-slate-800"
+                    className="mt-6 h-11 px-5"
                   >
                     {t('minutes.open_details')}
                   </Button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-slate-200">
-                    <thead className="bg-slate-50">
+                  <table className="min-w-full divide-y divide-border">
+                    <thead className="bg-muted/50">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t('commitments.table_commitment')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t('commitments.table_meeting')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t('commitments.table_responsible')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t('commitments.table_due_date')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t('commitments.table_status')}
                         </th>
-                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                           {t('commitments.table_actions')}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white">
+                    <tbody className="divide-y divide-border bg-card">
                       {filteredCommitments.map((commitment) => (
                         <tr
                           key={commitment.id}
                           id={`commitment-${commitment.id}`}
                           className={`transition-colors ${
                             commitment.id === highlightedCommitmentId
-                              ? 'bg-amber-50/80'
+                              ? 'bg-primary/10'
                               : commitment.status === 'completed'
-                                ? 'bg-slate-50/40'
+                                ? 'bg-muted/40'
                                 : ''
                           }`}
                         >
                           <td className="px-6 py-5 align-top">
                             <div className="max-w-xl space-y-2">
-                              <p className="text-sm font-medium leading-6 text-slate-900">
+                              <p className="text-sm font-medium leading-6 text-foreground">
                                 {commitment.description}
                               </p>
-                              <p className="text-xs text-slate-500">
+                              <p className="text-xs text-muted-foreground">
                                 {t('commitments.updated')}: {formatDateTime(commitment.updated_at) || '—'}
                               </p>
                             </div>
@@ -530,21 +530,21 @@ function CompromisosContent() {
                           <td className="px-6 py-5 align-top">
                             <button
                               onClick={() => openMeeting(commitment.meeting_id, commitment.meeting_title)}
-                              className="text-left text-sm font-medium text-blue-700 transition-colors hover:text-blue-800"
+                              className="text-left text-sm font-medium text-primary transition-colors hover:text-primary/80"
                             >
                               {commitment.meeting_title}
                             </button>
-                            <p className="mt-1 text-xs text-slate-500">{commitment.meeting_id}</p>
+                            <p className="mt-1 text-xs text-muted-foreground">{commitment.meeting_id}</p>
                           </td>
                           <td className="px-6 py-5 align-top">
-                            <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm text-slate-700">
+                            <span className="inline-flex rounded-full border border-border bg-muted/40 px-3 py-1 text-sm text-foreground">
                               {commitment.responsible || t('commitments.unassigned')}
                             </span>
                           </td>
                           <td className="px-6 py-5 align-top">
                             <div className="space-y-1">
-                              <p className="text-sm text-slate-700">{getDueLabel(commitment)}</p>
-                              <p className="text-xs text-slate-500">{commitment.due_date || '—'}</p>
+                              <p className="text-sm text-foreground">{getDueLabel(commitment)}</p>
+                              <p className="text-xs text-muted-foreground">{commitment.due_date || '—'}</p>
                             </div>
                           </td>
                           <td className="px-6 py-5 align-top">
@@ -561,7 +561,7 @@ function CompromisosContent() {
                                 }}
                                 disabled={updatingId === commitment.id}
                               >
-                                <SelectTrigger className="h-9 rounded-xl border-slate-200 bg-slate-50 shadow-none">
+                                <SelectTrigger className="h-9 rounded-lg bg-muted/40 shadow-none">
                                   <SelectValue placeholder={t('commitments.change_status')} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -576,7 +576,7 @@ function CompromisosContent() {
                             <Button
                               variant="outline"
                               onClick={() => openMeeting(commitment.meeting_id, commitment.meeting_title)}
-                              className="h-10 rounded-full border-slate-300 bg-white px-4 text-slate-700 hover:bg-slate-50"
+                              className="h-10 px-4"
                             >
                               {t('commitments.open_meeting')}
                               <ArrowRight className="ml-2 h-4 w-4" />
@@ -592,40 +592,40 @@ function CompromisosContent() {
           </div>
 
           <aside className="space-y-4">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">{t('dashboard.metrics.commitments')}</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm font-medium text-muted-foreground">{t('dashboard.metrics.commitments')}</p>
+              <p className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground">
                 {isLoading ? '-' : overview.open}
               </p>
-              <p className="mt-2 text-sm text-slate-600">{t('dashboard.subtitle')}</p>
+              <p className="mt-2 text-sm text-muted-foreground">{t('dashboard.subtitle')}</p>
             </div>
 
-            <div className="rounded-3xl border border-amber-100 bg-amber-50/70 p-6">
-              <p className="text-sm font-medium text-amber-800">
+            <div className="rounded-2xl border border-border bg-secondary p-6">
+              <p className="text-sm font-medium text-secondary-foreground">
                 {t('commitments.source_meeting')}
               </p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
                 {t('commitments.source_meeting_desc')}
               </p>
             </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <p className="text-sm font-medium text-slate-500">{t('commitments.filters')}</p>
-              <div className="mt-4 space-y-3 text-sm text-slate-600">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
+              <p className="text-sm font-medium text-muted-foreground">{t('commitments.filters')}</p>
+              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
                 <p>
-                  <span className="font-medium text-slate-900">{t('commitments.pending')}:</span>{' '}
+                  <span className="font-medium text-foreground">{t('commitments.pending')}:</span>{' '}
                   {overview.pending}
                 </p>
                 <p>
-                  <span className="font-medium text-slate-900">{t('commitments.in_progress')}:</span>{' '}
+                  <span className="font-medium text-foreground">{t('commitments.in_progress')}:</span>{' '}
                   {overview.inProgress}
                 </p>
                 <p>
-                  <span className="font-medium text-slate-900">{t('commitments.completed')}:</span>{' '}
+                  <span className="font-medium text-foreground">{t('commitments.completed')}:</span>{' '}
                   {overview.completed}
                 </p>
                 <p>
-                  <span className="font-medium text-slate-900">{t('commitments.overdue')}:</span>{' '}
+                  <span className="font-medium text-foreground">{t('commitments.overdue')}:</span>{' '}
                   {overview.overdue}
                 </p>
               </div>
@@ -641,8 +641,8 @@ export default function CompromisosPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-slate-50">
-          <RefreshCw className="h-6 w-6 animate-spin text-blue-700" />
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
         </div>
       }
     >
