@@ -397,31 +397,31 @@ export function DownloadProgressStep() {
     modelSize: string,
     sizeUnit = 'MB'
   ) => (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div className="bg-card rounded-2xl border border-border p-5">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
             {icon}
           </div>
           <div>
-            <h3 className="font-medium text-gray-900">{title}</h3>
-            <p className="text-sm text-gray-500">{modelSize}</p>
+            <h3 className="font-medium text-foreground">{title}</h3>
+            <p className="text-sm text-muted-foreground">{modelSize}</p>
           </div>
         </div>
         <div>
           {state.status === 'waiting' && (
-            <span className="text-sm text-gray-500">{t('onboarding.download.waiting')}</span>
+            <span className="text-sm text-muted-foreground">{t('onboarding.download.waiting')}</span>
           )}
           {state.status === 'downloading' && (
-            <Loader2 className="w-5 h-5 text-gray-700 animate-spin" />
+            <Loader2 className="w-5 h-5 text-primary animate-spin" />
           )}
           {state.status === 'completed' && (
-            <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="w-4 h-4 text-green-600" />
+            <div className="w-6 h-6 rounded-full bg-impulso-ocean/10 flex items-center justify-center">
+              <Check className="w-4 h-4 text-impulso-ocean" />
             </div>
           )}
           {state.status === 'error' && (
-            <span className={`text-sm ${kind === 'summary' ? 'text-amber-600' : 'text-red-500'}`}>
+            <span className={`text-sm ${kind === 'summary' ? 'text-impulso-ocean' : 'text-destructive'}`}>
               {kind === 'summary'
                 ? t('onboarding.download.optional')
                 : t('onboarding.download.failed')}
@@ -433,23 +433,23 @@ export function DownloadProgressStep() {
       {/* Progress Bar */}
       {(state.status === 'downloading' || state.status === 'completed') && (
         <div className="space-y-2">
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-gray-700 to-gray-900 rounded-full transition-all duration-300"
+              className="h-full bg-primary rounded-full transition-all duration-300"
               style={{ width: `${state.progress}%` }}
             />
           </div>
           <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-600">
+            <span className="text-muted-foreground">
               {state.downloadedMb.toFixed(1)} {sizeUnit} / {state.totalMb.toFixed(1)} {sizeUnit}
             </span>
             <div className="flex items-center gap-2">
               {state.speedMbps > 0 && (
-                <span className="text-gray-500">
+                <span className="text-muted-foreground">
                   {state.speedMbps.toFixed(1)} {sizeUnit}/s
                 </span>
               )}
-              <span className="font-semibold text-gray-900">
+              <span className="font-semibold text-foreground">
                 {Math.round(state.progress)}%
               </span>
             </div>
@@ -458,13 +458,13 @@ export function DownloadProgressStep() {
       )}
 
       {state.status === 'error' && state.error && (
-        <div className={`mt-2 p-3 rounded-md border ${kind === 'summary' ? 'bg-amber-50 border-amber-200' : 'bg-red-50 border-red-200'}`}>
-          <p className={`text-sm font-medium ${kind === 'summary' ? 'text-amber-700' : 'text-red-600'}`}>
+        <div className={`mt-2 p-3 rounded-md border ${kind === 'summary' ? 'bg-impulso-ocean/5 border-impulso-ocean/30' : 'bg-destructive/5 border-destructive/30'}`}>
+          <p className={`text-sm font-medium ${kind === 'summary' ? 'text-impulso-ocean' : 'text-destructive'}`}>
             {kind === 'summary'
               ? t('onboarding.download.optional_title')
               : t('onboarding.download.error_title')}
           </p>
-          <p className={`text-xs mt-1 ${kind === 'summary' ? 'text-amber-700' : 'text-red-500'}`}>
+          <p className={`text-xs mt-1 ${kind === 'summary' ? 'text-impulso-ocean' : 'text-destructive'}`}>
             {kind === 'summary'
               ? t('onboarding.download.optional_desc')
               : state.error}
@@ -473,7 +473,7 @@ export function DownloadProgressStep() {
             <button
               onClick={kind === 'transcription' ? handleRetryDownload : handleRetrySummaryDownload}
               className={`mt-3 w-full h-9 px-4 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${
-                kind === 'summary' ? 'bg-amber-700 hover:bg-amber-800' : 'bg-gray-900 hover:bg-gray-800'
+                kind === 'summary' ? 'bg-impulso-ocean hover:bg-impulso-ocean/90' : 'bg-destructive hover:bg-destructive/90'
               }`}
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -501,7 +501,7 @@ export function DownloadProgressStep() {
           {renderDownloadCard(
             'transcription',
             t('onboarding.download.transcription'),
-            <Mic className="w-5 h-5 text-gray-600" />,
+            <Mic className="w-5 h-5 text-muted-foreground" />,
             parakeetState,
             '~670 MB'
           )}
@@ -509,7 +509,7 @@ export function DownloadProgressStep() {
           {renderDownloadCard(
             'summary',
             t('onboarding.download.summary'),
-            <Sparkles className="w-5 h-5 text-gray-600" />,
+            <Sparkles className="w-5 h-5 text-muted-foreground" />,
             summaryState,
             getSummaryModelSizeLabel(selectedSummaryModel || recommendedSummaryModel),
             'MiB'
@@ -524,13 +524,13 @@ export function DownloadProgressStep() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="w-full max-w-lg bg-gray-100 rounded-lg p-4 text-sm text-gray-800"
+              className="w-full max-w-lg bg-muted rounded-2xl p-4 text-sm text-foreground"
             >
               <div className="flex items-start gap-3">
-                <Download className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
+                <Download className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
                 <div>
                   <p className="font-medium">{t('onboarding.download.continue_while')}</p>
-                  <p className="text-gray-700 mt-1">{t('onboarding.download.continue_while_desc')}</p>
+                  <p className="text-muted-foreground mt-1">{t('onboarding.download.continue_while_desc')}</p>
                 </div>
               </div>
             </motion.div>
@@ -542,7 +542,7 @@ export function DownloadProgressStep() {
           <Button
             onClick={handleContinue}
             disabled={!parakeetDownloaded || isCompleting}
-            className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-11"
           >
             {(isCompleting || !parakeetDownloaded) ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
