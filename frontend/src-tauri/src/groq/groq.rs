@@ -70,14 +70,15 @@ fn is_chat_model(model_id: &str) -> bool {
 /// Vector of available models, or fallback models on error
 #[command]
 pub async fn get_groq_models(api_key: Option<String>) -> Result<Vec<GroqModel>, String> {
-    // Return fallback if no API key provided
     let api_key = match api_key {
         Some(key) if !key.trim().is_empty() => key.trim().to_string(),
-        _ => {
-            log::info!("No Groq API key provided, returning fallback models");
-            return Ok(get_fallback_models());
-        }
+        _ => return Ok(get_fallback_models()),
     };
+    Ok(fetch_groq_models(api_key).await.unwrap_or_else(|_| get_fallback_models()))
+}
+
+/// Dynamic-only discovery for server-side catalog callers.
+pub async fn fetch_groq_models(api_key: String) -> Result<Vec<GroqModel>, String> {
 
     // Check cache first
     {
@@ -102,27 +103,17 @@ pub async fn get_groq_models(api_key: Option<String>) -> Result<Vec<GroqModel>, 
         .await
     {
         Ok(resp) => resp,
-        Err(e) => {
-            log::warn!("Failed to fetch Groq models: {}. Using fallback.", e);
-            return Ok(get_fallback_models());
-        }
+        Err(e) => return Err(format!("Failed to fetch Groq models: {}", e)),
     };
 
     if !response.status().is_success() {
         let status = response.status();
-        log::warn!(
-            "Groq API returned status {}. Using fallback models.",
-            status
-        );
-        return Ok(get_fallback_models());
+        return Err(format!("Groq API returned status {}", status));
     }
 
     let api_response: GroqApiResponse = match response.json().await {
         Ok(data) => data,
-        Err(e) => {
-            log::warn!("Failed to parse Groq response: {}. Using fallback.", e);
-            return Ok(get_fallback_models());
-        }
+        Err(e) => return Err(format!("Failed to parse Groq response: {}", e)),
     };
 
     // Filter to only chat models and map to our struct
@@ -138,8 +129,7 @@ pub async fn get_groq_models(api_key: Option<String>) -> Result<Vec<GroqModel>, 
 
     // If no models returned, use fallback
     if models.is_empty() {
-        log::warn!("No chat models returned from Groq API. Using fallback.");
-        return Ok(get_fallback_models());
+        return Err("No chat models returned from Groq API".to_string());
     }
 
     log::info!("Fetched {} Groq models from API", models.len());

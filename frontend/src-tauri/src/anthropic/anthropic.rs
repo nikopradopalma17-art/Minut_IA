@@ -72,14 +72,15 @@ fn is_chat_model(model_id: &str) -> bool {
 /// Vector of available models, or fallback models on error
 #[command]
 pub async fn get_anthropic_models(api_key: Option<String>) -> Result<Vec<AnthropicModel>, String> {
-    // Return fallback if no API key provided
     let api_key = match api_key {
         Some(key) if !key.trim().is_empty() => key.trim().to_string(),
-        _ => {
-            log::info!("No Anthropic API key provided, returning fallback models");
-            return Ok(get_fallback_models());
-        }
+        _ => return Ok(get_fallback_models()),
     };
+    Ok(fetch_anthropic_models(api_key).await.unwrap_or_else(|_| get_fallback_models()))
+}
+
+/// Dynamic-only discovery for server-side catalog callers.
+pub async fn fetch_anthropic_models(api_key: String) -> Result<Vec<AnthropicModel>, String> {
 
     // Check cache first
     {
@@ -108,27 +109,17 @@ pub async fn get_anthropic_models(api_key: Option<String>) -> Result<Vec<Anthrop
         .await
     {
         Ok(resp) => resp,
-        Err(e) => {
-            log::warn!("Failed to fetch Anthropic models: {}. Using fallback.", e);
-            return Ok(get_fallback_models());
-        }
+        Err(e) => return Err(format!("Failed to fetch Anthropic models: {}", e)),
     };
 
     if !response.status().is_success() {
         let status = response.status();
-        log::warn!(
-            "Anthropic API returned status {}. Using fallback models.",
-            status
-        );
-        return Ok(get_fallback_models());
+        return Err(format!("Anthropic API returned status {}", status));
     }
 
     let api_response: AnthropicApiResponse = match response.json().await {
         Ok(data) => data,
-        Err(e) => {
-            log::warn!("Failed to parse Anthropic response: {}. Using fallback.", e);
-            return Ok(get_fallback_models());
-        }
+        Err(e) => return Err(format!("Failed to parse Anthropic response: {}", e)),
     };
 
     // Filter to only chat models and map to our struct
@@ -144,8 +135,7 @@ pub async fn get_anthropic_models(api_key: Option<String>) -> Result<Vec<Anthrop
 
     // If no models returned, use fallback
     if models.is_empty() {
-        log::warn!("No chat models returned from Anthropic API. Using fallback.");
-        return Ok(get_fallback_models());
+        return Err("No chat models returned from Anthropic API".to_string());
     }
 
     log::info!("Fetched {} Anthropic models from API", models.len());

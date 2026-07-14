@@ -2,9 +2,7 @@
 
 import './globals.css'
 import { Inter, Jost } from 'next/font/google'
-import Sidebar from '@/components/Sidebar'
 import { SidebarProvider } from '@/components/Sidebar/SidebarProvider'
-import MainContent from '@/components/MainContent'
 import AnalyticsProvider from '@/components/AnalyticsProvider'
 import { Toaster, toast } from 'sonner'
 import "sonner/dist/styles.css"
@@ -238,7 +236,10 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="es">
+    // MinutIA ships a single, committed dark brand identity. Forcing the `dark`
+    // token set keeps modals, dialogs, onboarding and legacy routes consistent
+    // with the dark SPA surfaces instead of rendering light-on-dark.
+    <html lang="es" className="dark">
       <body className={`${inter.variable} ${jost.variable} font-sans antialiased`}>
         <AnalyticsProvider>
           <TranslationProvider>
@@ -259,9 +260,8 @@ export default function RootLayout({
                                 {showOnboarding ? (
                                   <OnboardingFlow onComplete={handleOnboardingComplete} />
                                 ) : (
-                                  <div className="flex">
-                                    <Sidebar />
-                                    <MainContent>{children}</MainContent>
+                                  <div className="flex-1 w-full min-h-dvh h-dvh overflow-x-hidden overflow-y-hidden flex flex-col">
+                                    {children}
                                   </div>
                                 )}
                                 {/* Import audio overlay and dialog */}

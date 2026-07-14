@@ -52,6 +52,8 @@ pub mod openrouter;
 pub mod parakeet_engine;
 pub mod state;
 pub mod summary;
+pub mod chat;
+pub mod system_info;
 pub mod tray;
 pub mod utils;
 pub mod whisper_engine;
@@ -647,12 +649,13 @@ pub fn run() {
             api::api_search_transcripts,
             api::api_get_model_config,
             api::api_save_model_config,
-            api::api_get_api_key,
+            api::summary_list_models,
+            api::api_save_api_key,
+            api::api_get_api_key_status,
             // api::api_get_auto_generate_setting,
             // api::api_save_auto_generate_setting,
             api::api_get_transcript_config,
             api::api_save_transcript_config,
-            api::api_get_transcript_api_key,
             api::api_delete_meeting,
             api::api_get_meeting,
             api::api_get_meeting_metadata,
@@ -702,6 +705,10 @@ pub fn run() {
             audio::recording_preferences::get_current_audio_backend,
             audio::recording_preferences::set_audio_backend,
             audio::recording_preferences::get_audio_backend_info,
+            // System info commands
+            system_info::get_system_memory_info,
+            // Chat commands
+            chat::api_ask_transcript,
             // Language preference commands
             set_language_preference,
             // Notification system commands

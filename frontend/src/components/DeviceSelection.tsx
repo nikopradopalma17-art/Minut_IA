@@ -7,6 +7,7 @@ import { AudioBackendSelector } from './AudioBackendSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import Analytics from '@/lib/analytics';
+import { useTranslation } from '@/contexts/TranslationContext';
 
 export interface AudioDevice {
   name: string;
@@ -38,6 +39,7 @@ interface DeviceSelectionProps {
 }
 
 export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = false }: DeviceSelectionProps) {
+  const { t } = useTranslation();
   const [devices, setDevices] = useState<AudioDevice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -59,7 +61,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
       console.log('Fetched audio devices:', result);
     } catch (err) {
       console.error('Failed to fetch audio devices:', err);
-      setError('Failed to load audio devices. Please check your system audio settings.');
+      setError(t('settings.audio_devices_load_failed'));
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -176,7 +178,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
       // Only monitor input devices for now (microphones)
       const deviceNames = inputDevices.map(device => device.name);
       if (deviceNames.length === 0) {
-        setError('No microphone devices found to monitor');
+        setError(t('settings.no_microphone_to_monitor'));
         return;
       }
 
@@ -186,7 +188,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
       console.log('Started audio level monitoring for input devices:', deviceNames);
     } catch (err) {
       console.error('Failed to start audio level monitoring:', err);
-      setError('Failed to start audio level monitoring');
+      setError(t('settings.audio_monitor_start_failed'));
     }
   };
 
@@ -226,7 +228,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-medium text-foreground">Audio Devices</h4>
+        <h4 className="text-sm font-medium text-foreground">{t('settings.audio_devices')}</h4>
         <div className="flex items-center space-x-2">
           {/* TODO: Monitoring */}
           {/* <button */}
@@ -244,6 +246,8 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
           <button
             onClick={handleRefresh}
             disabled={refreshing || disabled}
+            aria-label={t('settings.refresh_devices')}
+            title={t('settings.refresh_devices')}
             className="h-8 w-8 p-0 inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
           >
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
@@ -263,7 +267,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
           <div className="flex items-center gap-2">
             <Mic className="h-4 w-4 text-muted-foreground" />
             <Label htmlFor="mic-selection" className="text-sm font-medium text-foreground">
-              Microphone
+              {t('settings.microphone')}
             </Label>
           </div>
           <Select
@@ -272,10 +276,10 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
             disabled={disabled}
           >
             <SelectTrigger id="mic-selection" className="w-full">
-              <SelectValue placeholder="Select Microphone" />
+              <SelectValue placeholder={t('settings.select_microphone')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Default Microphone</SelectItem>
+              <SelectItem value="default">{t('settings.default_microphone')}</SelectItem>
               {inputDevices.map((device) => (
                 <SelectItem
                   key={device.name}
@@ -287,13 +291,13 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
             </SelectContent>
           </Select>
           {inputDevices.length === 0 && (
-            <p className="text-xs text-muted-foreground">No microphone devices found</p>
+            <p className="text-xs text-muted-foreground">{t('settings.no_microphone_devices')}</p>
           )}
 
           {/* Audio Level Meters for Input Devices */}
           {showLevels && inputDevices.length > 0 && (
             <div className="space-y-2 pt-2 border-t border-border">
-              <p className="text-xs text-muted-foreground font-medium">Microphone Levels:</p>
+              <p className="text-xs text-muted-foreground font-medium">{t('settings.microphone_levels')}</p>
               {inputDevices.map((device) => {
                 const levelData = audioLevels.get(device.name);
                 return (
@@ -331,7 +335,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
           <div className="flex items-center gap-2">
             <Speaker className="h-4 w-4 text-muted-foreground" />
             <Label htmlFor="system-selection" className="text-sm font-medium text-foreground">
-              System Audio
+              {t('settings.system_audio')}
             </Label>
           </div>
 
@@ -341,10 +345,10 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
             disabled={disabled}
           >
             <SelectTrigger id="system-selection" className="w-full">
-              <SelectValue placeholder="Select System Audio" />
+              <SelectValue placeholder={t('settings.select_system_audio')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Default System Audio</SelectItem>
+              <SelectItem value="default">{t('settings.default_system_audio')}</SelectItem>
               {outputDevices.map((device) => (
                 <SelectItem
                   key={device.name}
@@ -357,7 +361,7 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
           </Select>
 
           {outputDevices.length === 0 && (
-            <p className="text-xs text-muted-foreground">No system audio devices found</p>
+            <p className="text-xs text-muted-foreground">{t('settings.no_system_audio_devices')}</p>
           )}
 
           {/* Backend Selection - available on all platforms */}
@@ -371,13 +375,13 @@ export function DeviceSelection({ selectedDevices, onDeviceChange, disabled = fa
 
       {/* Info text */}
       <div className="text-xs text-muted-foreground space-y-1">
-        <p>• <strong>Microphone:</strong> Records your voice and ambient sound</p>
-        <p>• <strong>System Audio:</strong> Records computer audio (music, calls, etc.)</p>
+        <p>• <strong>{t('settings.microphone')}:</strong> {t('settings.microphone_info')}</p>
+        <p>• <strong>{t('settings.system_audio')}:</strong> {t('settings.system_audio_info')}</p>
         {isMonitoring && (
-          <p>• <strong>Mic Levels:</strong> Green = good, Yellow = loud, Red = too loud</p>
+          <p>• <strong>{t('settings.microphone_levels')}:</strong> {t('settings.microphone_levels_info')}</p>
         )}
         {!isMonitoring && inputDevices.length > 0 && (
-          <p>• <strong>Tip:</strong> Click "Test Mic" to check if your microphone is working</p>
+          <p>• <strong>{t('settings.tip')}:</strong> {t('settings.microphone_test_tip')}</p>
         )}
       </div>
     </div>

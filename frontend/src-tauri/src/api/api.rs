@@ -69,6 +69,28 @@ impl From<CommitmentWithMeetingModel> for CommitmentItem {
     }
 }
 
+#[cfg(test)]
+mod summary_catalog_tests {
+    use super::{is_summary_catalog_provider, SummaryCatalogResponse};
+
+    #[test]
+    fn only_supported_cloud_summary_providers_are_accepted() {
+        for provider in ["openai", "claude", "groq", "openrouter"] {
+            assert!(is_summary_catalog_provider(provider));
+        }
+        for provider in ["builtin-ai", "ollama", "custom-openai", "whisper"] {
+            assert!(!is_summary_catalog_provider(provider));
+        }
+    }
+
+    #[test]
+    fn curated_response_never_claims_dynamic_discovery() {
+        let response = SummaryCatalogResponse::curated();
+        assert_eq!(response.source, "curated");
+        assert!(response.models.is_empty());
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchRequest {
     pub query: String,
@@ -91,6 +113,19 @@ pub struct ModelConfig {
     pub whisper_model: String,
     #[serde(rename = "apiKey")]
     pub api_key: Option<String>,
+    #[serde(rename = "ollamaEndpoint")]
+    pub ollama_endpoint: Option<String>,
+}
+
+/// Secret-free model configuration returned to the frontend.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ModelConfigStatus {
+    pub provider: String,
+    pub model: String,
+    #[serde(rename = "whisperModel")]
+    pub whisper_model: String,
+    #[serde(rename = "apiKeyConfigured")]
+    pub api_key_configured: bool,
     #[serde(rename = "ollamaEndpoint")]
     pub ollama_endpoint: Option<String>,
 }
@@ -118,6 +153,25 @@ pub struct TranscriptConfig {
     pub model: String,
     #[serde(rename = "apiKey")]
     pub api_key: Option<String>,
+}
+
+/// Secret-free custom OpenAI configuration returned to the frontend.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CustomOpenAIConfigStatus {
+    pub endpoint: String,
+    pub model: String,
+    #[serde(rename = "apiKeyConfigured")]
+    pub api_key_configured: bool,
+    #[serde(rename = "maxTokens")]
+    pub max_tokens: Option<i32>,
+    pub temperature: Option<f32>,
+    #[serde(rename = "topP")]
+    pub top_p: Option<f32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiKeyStatus {
+    pub configured: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -409,7 +463,7 @@ pub async fn api_get_model_config<R: Runtime>(
     _app: AppHandle<R>,
     state: tauri::State<'_, AppState>,
     _auth_token: Option<String>,
-) -> Result<Option<ModelConfig>, String> {
+) -> Result<Option<ModelConfigStatus>, String> {
     log_info!("api_get_model_config called (native)");
     let pool = state.db_manager.pool();
 
@@ -424,12 +478,12 @@ pub async fn api_get_model_config<R: Runtime>(
             );
             match SettingsRepository::get_api_key(pool, &config.provider).await {
                 Ok(api_key) => {
-                    log_info!("Successfully retrieved model config and API key.");
-                    Ok(Some(ModelConfig {
+                    log_info!("Successfully retrieved model config status.");
+                    Ok(Some(ModelConfigStatus {
                         provider: config.provider,
                         model: config.model,
                         whisper_model: config.whisper_model,
-                        api_key,
+                        api_key_configured: api_key.is_some_and(|key| !key.trim().is_empty()),
                         ollama_endpoint: config.ollama_endpoint,
                     }))
                 }
@@ -495,6 +549,7 @@ pub async fn api_save_model_config<R: Runtime>(
                 log_error!("❌ Failed to save API key: {}", e);
                 return Err(e.to_string());
             }
+            clear_summary_model_cache(&provider);
         }
     }
 
@@ -509,32 +564,6 @@ pub async fn api_save_model_config<R: Runtime>(
     Ok(
         serde_json::json!({ "status": "success", "message": "Model configuration saved successfully" }),
     )
-}
-
-#[tauri::command]
-pub async fn api_get_api_key<R: Runtime>(
-    _app: AppHandle<R>,
-    state: tauri::State<'_, AppState>,
-    provider: String,
-    _auth_token: Option<String>,
-) -> Result<String, String> {
-    log_info!(
-        "api_get_api_key called (native) for provider '{}'",
-        &provider
-    );
-    match SettingsRepository::get_api_key(&state.db_manager.pool(), &provider).await {
-        Ok(key) => {
-            log_info!(
-                "Successfully retrieved API key for provider '{}'.",
-                &provider
-            );
-            Ok(key.unwrap_or_default())
-        }
-        Err(e) => {
-            log_error!("Failed to get API key for provider '{}': {}", &provider, e);
-            Err(e.to_string())
-        }
-    }
 }
 
 #[tauri::command]
@@ -554,12 +583,12 @@ pub async fn api_get_transcript_config<R: Runtime>(
                 &config.model
             );
             match SettingsRepository::get_transcript_api_key(pool, &config.provider).await {
-                Ok(api_key) => {
-                    log_info!("Successfully retrieved transcript config and API key.");
+                Ok(_api_key) => {
+                    log_info!("Successfully retrieved transcript config.");
                     Ok(Some(TranscriptConfig {
                         provider: config.provider,
                         model: config.model,
-                        api_key,
+                        api_key: None,
                     }))
                 }
                 Err(e) => {
@@ -625,33 +654,117 @@ pub async fn api_save_transcript_config<R: Runtime>(
 }
 
 #[tauri::command]
-pub async fn api_get_transcript_api_key<R: Runtime>(
+pub async fn api_save_api_key<R: Runtime>(
     _app: AppHandle<R>,
     state: tauri::State<'_, AppState>,
     provider: String,
+    api_key: String,
     _auth_token: Option<String>,
-) -> Result<String, String> {
-    log_info!(
-        "api_get_transcript_api_key called (native) for provider '{}'",
-        &provider
-    );
-    match SettingsRepository::get_transcript_api_key(&state.db_manager.pool(), &provider).await {
-        Ok(key) => {
-            log_info!(
-                "Successfully retrieved transcript API key for provider '{}'.",
-                &provider
-            );
-            Ok(key.unwrap_or_default())
-        }
-        Err(e) => {
-            log_error!(
-                "Failed to get transcript API key for provider '{}': {}",
-                &provider,
-                e
-            );
-            Err(e.to_string())
-        }
+) -> Result<(), String> {
+    SettingsRepository::save_api_key(&state.db_manager.pool(), &provider, &api_key)
+        .await
+        .map_err(|e| e.to_string())?;
+    clear_summary_model_cache(&provider);
+    Ok(())
+}
+
+/// Reports only whether a stored cloud credential exists for a provider.
+#[tauri::command]
+pub async fn api_get_api_key_status<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    provider: String,
+) -> Result<ApiKeyStatus, String> {
+    let key = SettingsRepository::get_api_key(&state.db_manager.pool(), &provider)
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok(ApiKeyStatus {
+        configured: key.is_some_and(|value| !value.trim().is_empty()),
+    })
+}
+
+/// Lists summary-capable cloud models without exposing the stored provider credential.
+///
+/// This command uses dynamic-only provider discovery and labels a curated fallback on
+/// missing credentials, network errors, and empty provider responses.
+#[tauri::command]
+pub async fn summary_list_models<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    provider: String,
+) -> Result<SummaryCatalogResponse, String> {
+    if !is_summary_catalog_provider(&provider) {
+        return Err(format!("Unsupported summary catalog provider: {}", provider));
     }
+
+    let api_key = SettingsRepository::get_api_key(&state.db_manager.pool(), &provider)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    let Some(api_key) = api_key.filter(|key| !key.trim().is_empty()) else {
+        return Ok(SummaryCatalogResponse::curated());
+    };
+
+    let models: Result<Vec<SummaryCatalogModel>, String> = match provider.as_str() {
+        "openai" => crate::openai::openai::fetch_openai_models(api_key.clone())
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel { label: model.id.clone(), id: model.id }).collect()),
+        "claude" => crate::anthropic::anthropic::fetch_anthropic_models(api_key.clone())
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel {
+                label: model.display_name.unwrap_or_else(|| model.id.clone()),
+                id: model.id,
+            }).collect()),
+        "groq" => crate::groq::groq::fetch_groq_models(api_key.clone())
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel { label: model.id.clone(), id: model.id }).collect()),
+        "openrouter" => crate::openrouter::fetch_openrouter_models(api_key)
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel { label: model.name, id: model.id }).collect()),
+        _ => unreachable!("provider was validated above"),
+    };
+
+    // When the user has configured an API key, propagate real errors instead of
+    // silently falling back to curated models — the UI shows them a retry option.
+    // An empty dynamic list still degrades gracefully to curated.
+    match models {
+        Ok(models) if !models.is_empty() => Ok(SummaryCatalogResponse { models, source: "dynamic" }),
+        Ok(_) => Ok(SummaryCatalogResponse::curated()),
+        Err(error) => Err(format!("No se pudieron cargar los modelos de {}: {}", provider, error)),
+    }
+}
+
+/// A model identifier safe to expose to the frontend. Credentials never cross this boundary.
+#[derive(Debug, Serialize)]
+pub struct SummaryCatalogModel {
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SummaryCatalogResponse {
+    pub models: Vec<SummaryCatalogModel>,
+    pub source: &'static str,
+}
+
+impl SummaryCatalogResponse {
+    fn curated() -> Self {
+        Self { models: Vec::new(), source: "curated" }
+    }
+}
+
+fn clear_summary_model_cache(provider: &str) {
+    match provider {
+        "openai" => crate::openai::openai::clear_cache(),
+        "claude" => crate::anthropic::anthropic::clear_cache(),
+        "groq" => crate::groq::groq::clear_cache(),
+        "openrouter" => crate::openrouter::clear_cache(),
+        _ => {}
+    }
+}
+
+fn is_summary_catalog_provider(provider: &str) -> bool {
+    matches!(provider, "openai" | "claude" | "groq" | "openrouter")
 }
 
 #[tauri::command]
@@ -667,6 +780,7 @@ pub async fn api_delete_api_key<R: Runtime>(
     );
     match SettingsRepository::delete_api_key(&state.db_manager.pool(), &provider).await {
         Ok(_) => {
+            clear_summary_model_cache(&provider);
             log_info!("Successfully deleted API key for provider '{}'.", &provider);
             Ok(())
         }
@@ -1117,7 +1231,7 @@ pub async fn api_save_custom_openai_config<R: Runtime>(
 pub async fn api_get_custom_openai_config<R: Runtime>(
     _app: AppHandle<R>,
     state: tauri::State<'_, AppState>,
-) -> Result<Option<CustomOpenAIConfig>, String> {
+) -> Result<Option<CustomOpenAIConfigStatus>, String> {
     log_info!("api_get_custom_openai_config called");
 
     let pool = state.db_manager.pool();
@@ -1130,7 +1244,14 @@ pub async fn api_get_custom_openai_config<R: Runtime>(
             } else {
                 log_info!("No custom OpenAI config found");
             }
-            Ok(config)
+            Ok(config.map(|config| CustomOpenAIConfigStatus {
+                endpoint: config.endpoint,
+                model: config.model,
+                api_key_configured: config.api_key.is_some_and(|key| !key.trim().is_empty()),
+                max_tokens: config.max_tokens,
+                temperature: config.temperature,
+                top_p: config.top_p,
+            }))
         }
         Err(e) => {
             log_error!("❌ Failed to get custom OpenAI config: {}", e);

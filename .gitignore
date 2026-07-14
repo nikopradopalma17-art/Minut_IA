@@ -76,6 +76,9 @@ experiments/
 .cursor/
 target/
 
+# Stray Cargo target-dir variants (accidentally committed before, see 5cb6402d)
+**/target-*/
+
 frontend/src-tauri/binaries/
 frontend/.tauri/
 

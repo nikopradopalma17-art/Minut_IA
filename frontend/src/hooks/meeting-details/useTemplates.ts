@@ -36,7 +36,12 @@ export interface TemplatePayload {
 export function useTemplates() {
   const { t } = useTranslation();
   const [availableTemplates, setAvailableTemplates] = useState<TemplateInfo[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<string>('minuta_corporativa');
+  const [selectedTemplate, setSelectedTemplate] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('defaultTemplateId') || 'minuta_corporativa';
+    }
+    return 'minuta_corporativa';
+  });
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
 
   const refreshTemplates = useCallback(async () => {
@@ -44,6 +49,16 @@ export function useTemplates() {
     try {
       const templates = await invokeTauri('api_list_templates') as TemplateInfo[];
       setAvailableTemplates(templates);
+      setSelectedTemplate(currentTemplateId => {
+        if (templates.some(template => template.id === currentTemplateId)) {
+          return currentTemplateId;
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('defaultTemplateId', 'minuta_corporativa');
+        }
+        return 'minuta_corporativa';
+      });
     } catch (error) {
       console.error('Failed to fetch templates:', error);
       toast.error(t('templates.load_failed'));

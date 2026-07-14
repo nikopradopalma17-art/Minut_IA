@@ -1,0 +1,75 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e4]:
+    - navigation [ref=e5]:
+      - button "Acerca de MinutIA" [ref=e6] [cursor=pointer]:
+        - img "MinutIA" [ref=e7]
+        - generic [ref=e8]: MinutIA
+      - generic [ref=e9]:
+        - button "Inicio" [ref=e10] [cursor=pointer]
+        - button "Reuniones" [ref=e15] [cursor=pointer]
+        - button "Ajustes" [ref=e19] [cursor=pointer]
+    - main [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - heading "MinutIA" [level=1] [ref=e27]
+          - paragraph [ref=e28]: Tu mejor transcriptor privado y local
+        - button "Ver tutorial de nuevo" [ref=e29] [cursor=pointer]:
+          - generic [ref=e33]: Ver tutorial
+      - generic [ref=e34]:
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - heading "MÉTRICAS CLAVE" [level=3] [ref=e37]
+            - generic [ref=e38]:
+              - generic [ref=e44]:
+                - generic [ref=e45]: Reuniones Guardadas
+                - text: 0 sesiones
+              - generic [ref=e51]:
+                - generic [ref=e52]: Resúmenes de IA
+                - text: 0 generados
+              - generic [ref=e58]:
+                - generic [ref=e59]: Compromisos
+                - text: 0 pendientes
+          - generic [ref=e60]:
+            - heading "PROVEEDOR IA" [level=3] [ref=e61]
+            - generic [ref=e62]:
+              - generic [ref=e63]:
+                - generic [ref=e64]:
+                  - generic [ref=e65]: "Proveedor:"
+                  - text: Local (En tu máquina)
+                - button "Seleccionar" [ref=e66] [cursor=pointer]
+              - generic [ref=e68]:
+                - generic [ref=e69]:
+                  - generic [ref=e70]: "Ollama Local:"
+                  - text: Ollama Models
+                - button "Activo" [ref=e71] [cursor=pointer]
+              - generic [ref=e73]:
+                - generic [ref=e74]:
+                  - generic [ref=e75]: "Nube flexible:"
+                  - text: OpenRouter
+                - button "Por configurar" [ref=e76] [cursor=pointer]
+              - generic [ref=e78]:
+                - generic [ref=e79]:
+                  - generic [ref=e80]: "Nube Premium:"
+                  - text: Claude AI
+                - button "Por configurar" [ref=e81] [cursor=pointer]
+              - generic [ref=e83]:
+                - generic [ref=e84]:
+                  - generic [ref=e85]: "Nube:"
+                  - text: OpenAI / ChatGPT
+                - button "Por configurar" [ref=e86] [cursor=pointer]
+              - generic [ref=e88]:
+                - generic [ref=e89]:
+                  - generic [ref=e90]: "Nube rápida:"
+                  - text: Groq
+                - button "Por configurar" [ref=e91] [cursor=pointer]
+              - button "Personalizar IA" [ref=e93] [cursor=pointer]
+        - generic [ref=e95]:
+          - heading "EMPIEZA A GRABAR" [level=2] [ref=e97]
+          - button "Empezar a grabar" [ref=e98] [cursor=pointer]
+          - button "Importar audio" [ref=e104] [cursor=pointer]:
+            - paragraph [ref=e109]: Importar Audio
+        - generic [ref=e110]:
+          - textbox "Busca contenido de tus reuniones" [ref=e112]
+          - heading "ÚLTIMAS SESIONES" [level=3] [ref=e118]
+    - contentinfo [ref=e119]: Desarrollado por Nikolas Prado - Impulso IA
+  - region "Notifications alt+T"

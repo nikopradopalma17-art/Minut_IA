@@ -5,16 +5,28 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   ArrowRight,
-  CalendarClock,
   CheckSquare2,
   CircleDot,
   Clock3,
+  Edit2,
+  FileText,
+  Mic,
   RefreshCw,
   Search,
+  Trash2,
 } from 'lucide-react';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -24,6 +36,7 @@ import {
 } from '@/components/ui/select';
 import { useSidebar } from '@/components/Sidebar/SidebarProvider';
 import { useTranslation } from '@/contexts/TranslationContext';
+import HubTopNav from '@/components/HubTopNav';
 
 type CommitmentStatus = 'pending' | 'in_progress' | 'completed';
 type DueFilter = 'all' | 'overdue' | 'today' | 'week' | 'later';
@@ -38,6 +51,19 @@ interface CommitmentItem {
   status: CommitmentStatus | string;
   created_at: string;
   updated_at: string;
+}
+
+interface DashboardStats {
+  meetings_count: number;
+  summaries_count: number;
+  pending_commitments: number;
+}
+
+interface MeetingItem {
+  id: string;
+  title: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 function formatDateTime(value?: string | null) {
@@ -76,7 +102,7 @@ function CompromisosContent() {
   const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { setCurrentMeeting } = useSidebar();
+  const { setCurrentMeeting, currentMeeting } = useSidebar();
 
   const [commitments, setCommitments] = useState<CommitmentItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -87,6 +113,18 @@ function CompromisosContent() {
   const [dueFilter, setDueFilter] = useState<DueFilter>('all');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [highlightedCommitmentId, setHighlightedCommitmentId] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [meetings, setMeetings] = useState<MeetingItem[]>([]);
+  const [meetingQuery, setMeetingQuery] = useState('');
+  const [isHubLoading, setIsHubLoading] = useState(true);
+
+  // Edit/delete meeting modals (mirrors the sidebar pattern so both surfaces
+  // reuse the same backend commands: api_save_meeting_title / api_delete_meeting).
+  const [editModalState, setEditModalState] = useState<{ isOpen: boolean; meetingId: string | null; currentTitle: string }>({ isOpen: false, meetingId: null, currentTitle: '' });
+  const [editingTitle, setEditingTitle] = useState('');
+  const [deleteModalState, setDeleteModalState] = useState<{ isOpen: boolean; meetingId: string | null; title: string }>({ isOpen: false, meetingId: null, title: '' });
+  const [isSavingMeeting, setIsSavingMeeting] = useState(false);
+  const [isDeletingMeeting, setIsDeletingMeeting] = useState(false);
 
   const isMountedRef = useRef(true);
 
@@ -123,6 +161,28 @@ function CompromisosContent() {
 
   useEffect(() => {
     void loadCommitments();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadHubData = async () => {
+      try {
+        const [statsResult, meetingsResult] = await Promise.all([
+          invoke<DashboardStats>('api_get_dashboard_stats'),
+          invoke<MeetingItem[]>('api_get_meetings'),
+        ]);
+        if (!cancelled) {
+          setStats(statsResult);
+          setMeetings(meetingsResult);
+        }
+      } catch (hubError) {
+        console.error('Failed to load meetings hub:', hubError);
+      } finally {
+        if (!cancelled) setIsHubLoading(false);
+      }
+    };
+    void loadHubData();
+    return () => { cancelled = true; };
   }, []);
 
   const highlightId = searchParams.get('highlight');
@@ -221,6 +281,13 @@ function CompromisosContent() {
     return { open, pending, inProgress, completed, overdue };
   }, [commitments, today]);
 
+  const filteredMeetings = useMemo(() => {
+    const normalized = meetingQuery.trim().toLowerCase();
+    return [...meetings]
+      .sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime())
+      .filter((meeting) => !normalized || meeting.title.toLowerCase().includes(normalized));
+  }, [meetingQuery, meetings]);
+
   const getStatusLabel = (status: CommitmentStatus | string) => {
     switch (status) {
       case 'pending':
@@ -237,13 +304,13 @@ function CompromisosContent() {
   const getStatusTone = (status: CommitmentStatus | string) => {
     switch (status) {
       case 'pending':
-        return 'border-border bg-muted text-muted-foreground';
+        return 'border-[#1a2d42] bg-[#061222] text-[#7a9ab5]';
       case 'in_progress':
         return 'border-impulso-ocean/30 bg-impulso-ocean/10 text-impulso-ocean';
       case 'completed':
-        return 'border-primary/30 bg-primary/10 text-primary';
+        return 'border-[#447794]/30 bg-[#447794]/10 text-[#447794]';
       default:
-        return 'border-border bg-muted text-muted-foreground';
+        return 'border-[#1a2d42] bg-[#061222] text-[#7a9ab5]';
     }
   };
 
@@ -285,142 +352,183 @@ function CompromisosContent() {
 
   const openMeeting = (meetingId: string, meetingTitle: string) => {
     setCurrentMeeting({ id: meetingId, title: meetingTitle });
-    router.push(`/meeting-details?id=${meetingId}`);
+    router.push(`/?meeting=${meetingId}`);
   };
 
-  const summaryCards = [
-    {
-      label: t('dashboard.metrics.commitments'),
-      value: overview.open,
-      icon: CircleDot,
-      tone: 'bg-primary/10 text-primary',
-    },
-    {
-      label: t('commitments.overdue'),
-      value: overview.overdue,
-      icon: Clock3,
-      tone: 'bg-destructive/10 text-destructive',
-    },
-    {
-      label: t('commitments.in_progress'),
-      value: overview.inProgress,
-      icon: CalendarClock,
-      tone: 'bg-impulso-ocean/10 text-impulso-ocean',
-    },
-    {
-      label: t('commitments.completed'),
-      value: overview.completed,
-      icon: CheckSquare2,
-      tone: 'bg-impulso-navy/10 text-impulso-navy',
-    },
-  ];
+  // ── Edit meeting handlers ──
+  const handleEditStart = (meetingId: string, currentTitle: string) => {
+    setEditModalState({ isOpen: true, meetingId, currentTitle });
+    setEditingTitle(currentTitle);
+  };
+
+  const handleEditConfirm = async () => {
+    const newTitle = editingTitle.trim();
+    const meetingId = editModalState.meetingId;
+    if (!meetingId) return;
+    if (!newTitle) {
+      toast.error('El nombre no puede estar vacío.');
+      return;
+    }
+    if (newTitle === editModalState.currentTitle) {
+      setEditModalState({ isOpen: false, meetingId: null, currentTitle: '' });
+      setEditingTitle('');
+      return;
+    }
+    setIsSavingMeeting(true);
+    try {
+      await invoke('api_save_meeting_title', { meetingId, title: newTitle });
+      setMeetings((prev) => prev.map((m) => (m.id === meetingId ? { ...m, title: newTitle } : m)));
+      if (currentMeeting?.id === meetingId) {
+        setCurrentMeeting({ id: meetingId, title: newTitle });
+      }
+      toast.success('Nombre de reunión actualizado.');
+    } catch (editError) {
+      console.error('Failed to update meeting title:', editError);
+      toast.error('No se pudo actualizar el nombre.', {
+        description: editError instanceof Error ? editError.message : String(editError),
+      });
+    } finally {
+      setIsSavingMeeting(false);
+      setEditModalState({ isOpen: false, meetingId: null, currentTitle: '' });
+      setEditingTitle('');
+    }
+  };
+
+  const handleEditCancel = () => {
+    setEditModalState({ isOpen: false, meetingId: null, currentTitle: '' });
+    setEditingTitle('');
+  };
+
+  // ── Delete meeting handlers ──
+  const handleDeleteStart = (meetingId: string, title: string) => {
+    setDeleteModalState({ isOpen: true, meetingId, title });
+  };
+
+  const handleDeleteConfirm = async () => {
+    const meetingId = deleteModalState.meetingId;
+    if (!meetingId) return;
+    setIsDeletingMeeting(true);
+    try {
+      await invoke('api_delete_meeting', { meetingId });
+      setMeetings((prev) => prev.filter((m) => m.id !== meetingId));
+      if (currentMeeting?.id === meetingId) {
+        setCurrentMeeting({ id: 'intro-call', title: '+ Nueva llamada' });
+        router.push('/');
+      }
+      toast.success('Reunión eliminada.');
+    } catch (deleteError) {
+      console.error('Failed to delete meeting:', deleteError);
+      toast.error('No se pudo eliminar la reunión.', {
+        description: deleteError instanceof Error ? deleteError.message : String(deleteError),
+      });
+    } finally {
+      setIsDeletingMeeting(false);
+      setDeleteModalState({ isOpen: false, meetingId: null, title: '' });
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setDeleteModalState({ isOpen: false, meetingId: null, title: '' });
+  };
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: 'easeOut' }}
-      className="min-h-screen bg-background"
+      className="bg-grid-subtle h-dvh font-sans flex flex-col overflow-hidden"
+      style={{ background: 'radial-gradient(circle at center, #0a1628 0%, #061222 100%)', color: '#e2e8f0' }}
     >
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 py-8 lg:px-8">
-        <section className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <div className="space-y-3">
-              <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-                <CheckSquare2 className="h-3.5 w-3.5" />
-                {t('nav.commitments')}
-              </div>
-              <div>
-                <h1 className="font-heading text-3xl font-semibold tracking-tight text-foreground">
-                  {t('commitments.title')}
-                </h1>
-                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-                  {t('commitments.subtitle')}
-                </p>
+      <HubTopNav active="reuniones" />
+      <div className="mx-auto flex w-full max-w-[1600px] flex-1 min-h-0 flex-col gap-8 px-4 py-6 sm:px-6 xl:px-8 overflow-y-auto">
+        <header>
+          <h1 className="font-heading text-4xl font-bold tracking-tight text-white">Reuniones</h1>
+          <p className="mt-2 text-sm" style={{ color: '#7a9ab5' }}>Consulta tus reuniones y da seguimiento a sus compromisos.</p>
+        </header>
+
+        <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4" aria-label="Resumen de reuniones">
+          {[
+            { label: 'Reuniones guardadas', value: stats?.meetings_count ?? meetings.length, icon: Mic },
+            { label: 'Resúmenes IA', value: stats?.summaries_count ?? 0, icon: FileText },
+            { label: 'Compromisos pendientes', value: stats?.pending_commitments ?? overview.open, icon: CheckSquare2 },
+            { label: 'Vencidos', value: overview.overdue, icon: Clock3 },
+          ].map(({ label, value, icon: Icon }) => (
+            <div key={label} className="rounded-3xl p-6" style={{ background: '#0d1f33', border: '1px solid #1a2d42' }}>
+              <div className="flex items-center justify-between gap-4">
+                <div><p className="text-xs font-bold uppercase tracking-wider" style={{ color: '#7a9ab5' }}>{label}</p><p className="mt-2 text-3xl font-bold text-white">{isHubLoading ? '—' : value}</p></div>
+                <Icon className="h-5 w-5" style={{ color: '#447794' }} />
               </div>
             </div>
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={loadCommitments}
-                className="h-11 px-5"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                {t('commitments.refresh')}
-              </Button>
-              <Button
-                onClick={() => router.push('/minutas')}
-                className="h-11 px-5"
-              >
-                {t('minutes.open_details')}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            {summaryCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.label}
-                  className="rounded-2xl border border-border bg-muted/40 p-5"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">{card.label}</p>
-                      <p className="font-heading text-3xl font-semibold tracking-tight text-foreground">
-                        {isLoading ? '-' : card.value}
-                      </p>
-                    </div>
-                    <div className={`rounded-2xl p-3 ${card.tone}`}>
-                      <Icon className="h-5 w-5" />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          ))}
         </section>
 
-        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+        <section className="rounded-3xl p-6" style={{ background: '#0d1f33', border: '1px solid #1a2d42' }}>
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+            <div><h2 className="font-heading text-xl font-bold text-white">Tus reuniones</h2><p className="text-xs" style={{ color: '#5a7a94' }}>{meetings.length} guardadas</p></div>
+            <div className="relative w-full max-w-sm"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: '#5a7a94' }} /><Input value={meetingQuery} onChange={(event) => setMeetingQuery(event.target.value)} placeholder="Buscar por título" className="h-11 rounded-2xl pl-10 text-white" style={{ background: '#061222', borderColor: '#1a2d42' }} /></div>
+          </div>
+          {filteredMeetings.length === 0 ? <p className="py-8 text-center text-sm" style={{ color: '#5a7a94' }}>{isHubLoading ? 'Cargando reuniones…' : 'No se encontraron reuniones.'}</p> : (
+            <div className="grid gap-3 md:grid-cols-2 2xl:grid-cols-3">{filteredMeetings.map((meeting) => (
+              <div key={meeting.id} className="group relative rounded-2xl transition-colors hover:border-[#447794]" style={{ background: '#0a1628', border: '1px solid #1a2d42' }}>
+                <button type="button" onClick={() => openMeeting(meeting.id, meeting.title)} className="block w-full p-4 text-left">
+                  <span className="block font-semibold text-white truncate">{meeting.title}</span>
+                  <span className="mt-1 block text-xs" style={{ color: '#5a7a94' }}>{formatDateTime(meeting.created_at) || meeting.id}</span>
+                </button>
+                <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <button type="button" aria-label={`Editar ${meeting.title}`} onClick={() => handleEditStart(meeting.id, meeting.title)} className="p-2 rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-colors hover:bg-white/5" style={{ background: '#061222', borderColor: '#1a2d42', color: '#447794' }}>
+                    <Edit2 className="w-3.5 h-3.5" />
+                  </button>
+                  <button type="button" aria-label={`Eliminar ${meeting.title}`} onClick={() => handleDeleteStart(meeting.id, meeting.title)} className="p-2 rounded-lg border outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-colors hover:bg-red-500/10" style={{ background: '#061222', borderColor: '#1a2d42', color: '#e88' }}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            ))}</div>
+          )}
+        </section>
+
+        <div className="flex items-center justify-between gap-4">
+          <div><h2 className="font-heading text-2xl font-bold text-white">Compromisos</h2><p className="text-sm" style={{ color: '#7a9ab5' }}>{t('commitments.subtitle')}</p></div>
+          <Button variant="outline" onClick={loadCommitments} className="h-11 px-5" style={{ background: '#0d1f33', borderColor: '#1a2d42', color: '#e2e8f0' }}><RefreshCw className="mr-2 h-4 w-4" />{t('commitments.refresh')}</Button>
+        </div>
+
+        <section>
           <div className="space-y-4">
-            <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-              <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-3xl p-5" style={{ background: '#0d1f33', border: '1px solid #1a2d42' }}>
+              <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label className="text-xs font-medium text-[#7a9ab5]">
                     {t('commitments.search')}
                   </label>
                   <div className="relative">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#5a7a94]" />
                     <Input
                       value={query}
                       onChange={(event) => setQuery(event.target.value)}
                       placeholder={t('commitments.table_commitment')}
-                      className="h-11 rounded-lg bg-muted/40 pl-10 shadow-none"
+                      className="h-11 rounded-lg bg-[rgba(6,18,34,0.5)] pl-10 text-white shadow-none border-[#1a2d42]"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label className="text-xs font-medium text-[#7a9ab5]">
                     {t('commitments.responsible_filter')}
                   </label>
                   <Input
                     value={responsibleFilter}
                     onChange={(event) => setResponsibleFilter(event.target.value)}
                     placeholder={t('commitments.owner')}
-                    className="h-11 rounded-lg bg-muted/40 shadow-none"
+                    className="h-11 rounded-lg bg-[rgba(6,18,34,0.5)] text-white shadow-none border-[#1a2d42]"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label className="text-xs font-medium text-[#7a9ab5]">
                     {t('commitments.all_statuses')}
                   </label>
                   <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as any)}>
-                    <SelectTrigger className="h-11 rounded-lg bg-muted/40 shadow-none">
+                    <SelectTrigger className="h-11 rounded-lg shadow-none text-white" style={{ background: 'rgba(6,18,34,0.5)', borderColor: '#1a2d42' }}>
                       <SelectValue placeholder={t('commitments.all_statuses')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -433,11 +541,11 @@ function CompromisosContent() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">
+                  <label className="text-xs font-medium text-[#7a9ab5]">
                     {t('commitments.due_filter')}
                   </label>
                   <Select value={dueFilter} onValueChange={(value) => setDueFilter(value as DueFilter)}>
-                    <SelectTrigger className="h-11 rounded-lg bg-muted/40 shadow-none">
+                    <SelectTrigger className="h-11 rounded-lg shadow-none text-white" style={{ background: 'rgba(6,18,34,0.5)', borderColor: '#1a2d42' }}>
                       <SelectValue placeholder={t('commitments.due_filter')} />
                     </SelectTrigger>
                     <SelectContent>
@@ -458,71 +566,65 @@ function CompromisosContent() {
               </div>
             ) : null}
 
-            <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+            <div className="rounded-3xl" style={{ background: '#0d1f33', border: '1px solid #1a2d42' }}>
               {isLoading ? (
-                <div className="p-8 text-sm text-muted-foreground">{t('dashboard.subtitle')}</div>
+                <div className="p-8 text-sm text-[#7a9ab5]">{t('dashboard.subtitle')}</div>
               ) : filteredCommitments.length === 0 ? (
                 <div className="p-8">
-                  <div className="flex items-center gap-3 text-foreground">
-                    <CircleDot className="h-5 w-5 text-primary" />
+                  <div className="flex items-center gap-3 text-white">
+                    <CircleDot className="h-5 w-5 text-[#447794]" />
                     <h2 className="font-heading text-lg font-semibold">
                       {commitments.length === 0 ? t('commitments.empty') : t('commitments.no_results')}
                     </h2>
                   </div>
-                  <p className="mt-4 max-w-2xl text-sm leading-6 text-muted-foreground">
+                  <p className="mt-4 max-w-2xl text-sm leading-6 text-[#7a9ab5]">
                     {t('commitments.source_meeting_desc')}
                   </p>
-                  <Button
-                    onClick={() => router.push('/minutas')}
-                    className="mt-6 h-11 px-5"
-                  >
-                    {t('minutes.open_details')}
-                  </Button>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-border">
-                    <thead className="bg-muted/50">
+                  <table className="min-w-[900px] divide-y divide-[#1a2d42]">
+                    <thead className="bg-[rgba(6,18,34,0.5)]">
                       <tr>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#7a9ab5]">
                           {t('commitments.table_commitment')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#7a9ab5]">
                           {t('commitments.table_meeting')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#7a9ab5]">
                           {t('commitments.table_responsible')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#7a9ab5]">
                           {t('commitments.table_due_date')}
                         </th>
-                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wide text-[#7a9ab5]">
                           {t('commitments.table_status')}
                         </th>
-                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        <th className="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wide text-[#7a9ab5]">
                           {t('commitments.table_actions')}
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-border bg-card">
+                    <tbody className="divide-y divide-[#1a2d42] bg-[#0d1f33]">
                       {filteredCommitments.map((commitment) => (
                         <tr
                           key={commitment.id}
                           id={`commitment-${commitment.id}`}
                           className={`transition-colors ${
                             commitment.id === highlightedCommitmentId
-                              ? 'bg-primary/10'
+                                ? 'bg-[rgba(68,119,148,0.18)]'
                               : commitment.status === 'completed'
-                                ? 'bg-muted/40'
+                                ? 'bg-[rgba(6,18,34,0.5)]'
                                 : ''
                           }`}
                         >
                           <td className="px-6 py-5 align-top">
                             <div className="max-w-xl space-y-2">
-                              <p className="text-sm font-medium leading-6 text-foreground">
+                              <p className="text-sm font-medium leading-6 text-white">
                                 {commitment.description}
                               </p>
-                              <p className="text-xs text-muted-foreground">
+                              <p className="text-xs text-[#5a7a94]">
                                 {t('commitments.updated')}: {formatDateTime(commitment.updated_at) || '—'}
                               </p>
                             </div>
@@ -530,21 +632,21 @@ function CompromisosContent() {
                           <td className="px-6 py-5 align-top">
                             <button
                               onClick={() => openMeeting(commitment.meeting_id, commitment.meeting_title)}
-                              className="text-left text-sm font-medium text-primary transition-colors hover:text-primary/80"
+                              className="text-left text-sm font-medium text-[#447794] transition-colors hover:text-[#7a9ab5]"
                             >
                               {commitment.meeting_title}
                             </button>
-                            <p className="mt-1 text-xs text-muted-foreground">{commitment.meeting_id}</p>
+                            <p className="mt-1 text-xs text-[#5a7a94]">{commitment.meeting_id}</p>
                           </td>
                           <td className="px-6 py-5 align-top">
-                            <span className="inline-flex rounded-full border border-border bg-muted/40 px-3 py-1 text-sm text-foreground">
+                            <span className="inline-flex rounded-full border border-[#1a2d42] bg-[rgba(6,18,34,0.5)] px-3 py-1 text-sm text-white">
                               {commitment.responsible || t('commitments.unassigned')}
                             </span>
                           </td>
                           <td className="px-6 py-5 align-top">
                             <div className="space-y-1">
-                              <p className="text-sm text-foreground">{getDueLabel(commitment)}</p>
-                              <p className="text-xs text-muted-foreground">{commitment.due_date || '—'}</p>
+                              <p className="text-sm text-white">{getDueLabel(commitment)}</p>
+                              <p className="text-xs text-[#5a7a94]">{commitment.due_date || '—'}</p>
                             </div>
                           </td>
                           <td className="px-6 py-5 align-top">
@@ -561,7 +663,7 @@ function CompromisosContent() {
                                 }}
                                 disabled={updatingId === commitment.id}
                               >
-                                <SelectTrigger className="h-9 rounded-lg bg-muted/40 shadow-none">
+                                <SelectTrigger className="h-9 rounded-lg shadow-none text-white" style={{ background: 'rgba(6,18,34,0.5)', borderColor: '#1a2d42' }}>
                                   <SelectValue placeholder={t('commitments.change_status')} />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -591,48 +693,51 @@ function CompromisosContent() {
             </div>
           </div>
 
-          <aside className="space-y-4">
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">{t('dashboard.metrics.commitments')}</p>
-              <p className="mt-2 font-heading text-3xl font-semibold tracking-tight text-foreground">
-                {isLoading ? '-' : overview.open}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">{t('dashboard.subtitle')}</p>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-secondary p-6">
-              <p className="text-sm font-medium text-secondary-foreground">
-                {t('commitments.source_meeting')}
-              </p>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                {t('commitments.source_meeting_desc')}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-border bg-card p-6 shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground">{t('commitments.filters')}</p>
-              <div className="mt-4 space-y-3 text-sm text-muted-foreground">
-                <p>
-                  <span className="font-medium text-foreground">{t('commitments.pending')}:</span>{' '}
-                  {overview.pending}
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">{t('commitments.in_progress')}:</span>{' '}
-                  {overview.inProgress}
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">{t('commitments.completed')}:</span>{' '}
-                  {overview.completed}
-                </p>
-                <p>
-                  <span className="font-medium text-foreground">{t('commitments.overdue')}:</span>{' '}
-                  {overview.overdue}
-                </p>
-              </div>
-            </div>
-          </aside>
         </section>
       </div>
+
+      {/* Edit meeting title modal */}
+      <Dialog open={editModalState.isOpen} onOpenChange={(open) => { if (!open) handleEditCancel(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar nombre de la reunión</DialogTitle>
+            <DialogDescription>Cambia el título con el que aparece esta reunión en la lista.</DialogDescription>
+          </DialogHeader>
+          <Input
+            autoFocus
+            value={editingTitle}
+            onChange={(e) => setEditingTitle(e.target.value)}
+            placeholder="Nombre de la reunión"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleEditConfirm(); }}
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={handleEditCancel} disabled={isSavingMeeting}>Cancelar</Button>
+            <Button onClick={handleEditConfirm} disabled={isSavingMeeting || !editingTitle.trim()}>
+              {isSavingMeeting ? 'Guardando…' : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete meeting confirmation modal */}
+      <Dialog open={deleteModalState.isOpen} onOpenChange={(open) => { if (!open) handleDeleteCancel(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Eliminar reunión</DialogTitle>
+            <DialogDescription>
+              ¿Seguro que quieres eliminar «{deleteModalState.title}»? Esta acción no se puede deshacer y borrará transcripciones y resúmenes asociados.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleDeleteCancel} disabled={isDeletingMeeting}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleDeleteConfirm} disabled={isDeletingMeeting}>
+              {isDeletingMeeting ? 'Eliminando…' : 'Eliminar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <footer className="px-8 py-10 text-center text-[11px]" style={{ color: '#5a7a94' }}>{t('brand.developed_by')}</footer>
     </motion.div>
   );
 }
@@ -641,8 +746,8 @@ export default function CompromisosPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-background">
-          <RefreshCw className="h-6 w-6 animate-spin text-primary" />
+        <div className="flex min-h-dvh items-center justify-center bg-[#061222]">
+          <RefreshCw className="h-6 w-6 animate-spin text-[#447794]" />
         </div>
       }
     >

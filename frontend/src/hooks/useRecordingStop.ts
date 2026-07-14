@@ -39,9 +39,19 @@ interface UseRecordingStopReturn {
  * - Toast notifications for success/error
  * - Window exposure for Rust callbacks
  */
+interface UseRecordingStopOptions {
+  /**
+   * When provided, the just-saved meeting is surfaced through this callback
+   * instead of navigating to the legacy /meeting-details route. The SPA uses
+   * this to keep the user inside the new interface after a recording ends.
+   */
+  onMeetingSaved?: (meetingId: string, title: string) => void;
+}
+
 export function useRecordingStop(
   setIsRecording: (value: boolean) => void,
-  setIsRecordingDisabled: (value: boolean) => void
+  setIsRecordingDisabled: (value: boolean) => void,
+  options?: UseRecordingStopOptions
 ): UseRecordingStopReturn {
   const { t } = useTranslation();
   // USE global state instead
@@ -71,6 +81,13 @@ export function useRecordingStop(
   } = useSidebar();
 
   const router = useRouter();
+
+  // Keep the latest onMeetingSaved callback in a ref so the stable handleRecordingStop
+  // callback always calls the current version without needing it in its deps.
+  const onMeetingSavedRef = useRef(options?.onMeetingSaved);
+  useEffect(() => {
+    onMeetingSavedRef.current = options?.onMeetingSaved;
+  });
 
   // Guard to prevent duplicate/concurrent stop calls (e.g., from UI and tray simultaneously)
   const stopInProgressRef = useRef(false);
@@ -331,24 +348,38 @@ export function useRecordingStop(
           // Mark as completed
           setStatus(RecordingStatus.COMPLETED);
 
-          // Show success toast with navigation option
+          const savedTitle = savedMeetingName || meetingTitle || 'New Meeting';
+          const onMeetingSaved = onMeetingSavedRef.current;
+
+          // Show success toast with navigation option. When the SPA supplies an
+          // onMeetingSaved callback we surface the meeting in-app; otherwise we
+          // fall back to the legacy /meeting-details route.
           toast.success(t('toasts.recording_saved'), {
             description: t('toasts.recording_saved_desc').replace('{n}', String(freshTranscripts.length)),
             action: {
               label: t('toasts.view_meeting'),
               onClick: () => {
-                router.push(`/meeting-details?id=${meetingId}`);
+                if (onMeetingSaved) {
+                  onMeetingSaved(meetingId, savedTitle);
+                } else {
+                  router.push(`/meeting-details?id=${meetingId}`);
+                }
                 Analytics.trackButtonClick('view_meeting_from_toast', 'recording_complete');
               }
             },
             duration: 10000,
           });
 
-          // Auto-navigate after a short delay with source parameter
+          // Auto-surface the saved meeting after a short delay.
           setTimeout(() => {
-            router.push(`/meeting-details?id=${meetingId}&source=recording`);
-            clearTranscripts()
-            Analytics.trackPageView('meeting_details');
+            if (onMeetingSaved) {
+              clearTranscripts();
+              onMeetingSaved(meetingId, savedTitle);
+            } else {
+              router.push(`/meeting-details?id=${meetingId}&source=recording`);
+              clearTranscripts();
+              Analytics.trackPageView('meeting_details');
+            }
 
             // Reset to IDLE after navigation
             setStatus(RecordingStatus.IDLE);

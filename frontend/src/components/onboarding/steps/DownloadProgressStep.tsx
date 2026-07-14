@@ -9,6 +9,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getSummaryModelSizeLabel, getSummaryModelSizeMb } from '@/lib/onboarding-summary-model';
+import { getDownloadContinuation, resolveOnboardingPlatform, type OnboardingPlatform } from '@/lib/onboarding-platform';
 
 const PARAKEET_MODEL = 'parakeet-tdt-0.6b-v3-int8';
 
@@ -36,7 +37,7 @@ export function DownloadProgressStep() {
     completeOnboarding,
   } = useOnboarding();
 
-  const [isMac, setIsMac] = useState(false);
+  const [resolvedPlatform, setResolvedPlatform] = useState<OnboardingPlatform | null>(null);
 
   const [parakeetState, setParakeetState] = useState<DownloadState>({
     status: parakeetDownloaded ? 'completed' : 'waiting',
@@ -157,9 +158,9 @@ export function DownloadProgressStep() {
     const checkPlatform = async () => {
       try {
         const { platform } = await import('@tauri-apps/plugin-os');
-        setIsMac(platform() === 'macos');
+        setResolvedPlatform(resolveOnboardingPlatform(platform(), navigator.userAgent));
       } catch (e) {
-        setIsMac(navigator.userAgent.includes('Mac'));
+        setResolvedPlatform(resolveOnboardingPlatform(undefined, navigator.userAgent));
       }
     };
 
@@ -366,7 +367,9 @@ export function DownloadProgressStep() {
       });
     }
 
-    if (isMac) {
+    const continuation = getDownloadContinuation(resolvedPlatform);
+    if (continuation === 'wait') return;
+    if (continuation === 'permissions') {
       // macOS: Go to Permissions step (will complete after permissions granted)
       goNext();
     } else {
@@ -397,31 +400,34 @@ export function DownloadProgressStep() {
     modelSize: string,
     sizeUnit = 'MB'
   ) => (
-    <div className="bg-card rounded-2xl border border-border p-5">
+    <div className="rounded-3xl border p-5 glow-border-impulso"
+      style={{ background: '#0d1f33', borderColor: '#1a2d42' }}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center border"
+            style={{ background: 'rgba(68,119,148,0.15)', borderColor: 'rgba(68,119,148,0.35)', color: '#447794' }}>
             {icon}
           </div>
           <div>
-            <h3 className="font-medium text-foreground">{title}</h3>
-            <p className="text-sm text-muted-foreground">{modelSize}</p>
+            <h3 className="font-semibold text-white text-sm">{title}</h3>
+            <p className="text-xs" style={{ color: '#7a9ab5' }}>{modelSize}</p>
           </div>
         </div>
         <div>
           {state.status === 'waiting' && (
-            <span className="text-sm text-muted-foreground">{t('onboarding.download.waiting')}</span>
+            <span className="text-xs" style={{ color: '#5a7a94' }}>{t('onboarding.download.waiting')}</span>
           )}
           {state.status === 'downloading' && (
-            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+            <Loader2 className="w-5 h-5 animate-spin" style={{ color: '#447794' }} />
           )}
           {state.status === 'completed' && (
-            <div className="w-6 h-6 rounded-full bg-impulso-ocean/10 flex items-center justify-center">
-              <Check className="w-4 h-4 text-impulso-ocean" />
+            <div className="w-6 h-6 rounded-lg border flex items-center justify-center"
+              style={{ background: 'rgba(45,91,117,0.15)', borderColor: 'rgba(45,91,117,0.35)', color: '#2D5B75' }}>
+              <Check className="w-3.5 h-3.5" />
             </div>
           )}
           {state.status === 'error' && (
-            <span className={`text-sm ${kind === 'summary' ? 'text-impulso-ocean' : 'text-destructive'}`}>
+            <span className="text-xs font-semibold" style={{ color: kind === 'summary' ? '#2D5B75' : '#d97070' }}>
               {kind === 'summary'
                 ? t('onboarding.download.optional')
                 : t('onboarding.download.failed')}
@@ -433,23 +439,23 @@ export function DownloadProgressStep() {
       {/* Progress Bar */}
       {(state.status === 'downloading' || state.status === 'completed') && (
         <div className="space-y-2">
-          <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+          <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: '#061222' }}>
             <div
-              className="h-full bg-primary rounded-full transition-all duration-300"
-              style={{ width: `${state.progress}%` }}
+              className="h-full rounded-full transition-all duration-300"
+              style={{ width: `${state.progress}%`, background: '#447794' }}
             />
           </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">
+          <div className="flex items-center justify-between text-xs">
+            <span style={{ color: '#7a9ab5' }}>
               {state.downloadedMb.toFixed(1)} {sizeUnit} / {state.totalMb.toFixed(1)} {sizeUnit}
             </span>
             <div className="flex items-center gap-2">
               {state.speedMbps > 0 && (
-                <span className="text-muted-foreground">
+                <span style={{ color: '#7a9ab5' }}>
                   {state.speedMbps.toFixed(1)} {sizeUnit}/s
                 </span>
               )}
-              <span className="font-semibold text-foreground">
+              <span className="font-bold text-white">
                 {Math.round(state.progress)}%
               </span>
             </div>
@@ -458,13 +464,16 @@ export function DownloadProgressStep() {
       )}
 
       {state.status === 'error' && state.error && (
-        <div className={`mt-2 p-3 rounded-md border ${kind === 'summary' ? 'bg-impulso-ocean/5 border-impulso-ocean/30' : 'bg-destructive/5 border-destructive/30'}`}>
-          <p className={`text-sm font-medium ${kind === 'summary' ? 'text-impulso-ocean' : 'text-destructive'}`}>
+        <div className="mt-2 p-3 rounded-2xl border text-xs"
+          style={kind === 'summary'
+            ? { background: 'rgba(45,91,117,0.06)', borderColor: 'rgba(45,91,117,0.3)', color: '#7a9ab5' }
+            : { background: 'rgba(180,60,60,0.06)', borderColor: 'rgba(180,60,60,0.3)', color: '#d97070' }}>
+          <p className="font-bold">
             {kind === 'summary'
               ? t('onboarding.download.optional_title')
               : t('onboarding.download.error_title')}
           </p>
-          <p className={`text-xs mt-1 ${kind === 'summary' ? 'text-impulso-ocean' : 'text-destructive'}`}>
+          <p className="mt-1 opacity-90">
             {kind === 'summary'
               ? t('onboarding.download.optional_desc')
               : state.error}
@@ -472,11 +481,12 @@ export function DownloadProgressStep() {
           {(kind === 'transcription' || kind === 'summary') && (
             <button
               onClick={kind === 'transcription' ? handleRetryDownload : handleRetrySummaryDownload}
-              className={`mt-3 w-full h-9 px-4 text-white text-sm font-medium rounded-md transition-colors flex items-center justify-center gap-2 ${
-                kind === 'summary' ? 'bg-impulso-ocean hover:bg-impulso-ocean/90' : 'bg-destructive hover:bg-destructive/90'
-              }`}
+              className="mt-3 w-full h-9 px-4 text-xs font-bold rounded-xl transition-opacity flex items-center justify-center gap-2 text-white border"
+              style={kind === 'summary'
+                ? { background: '#2D5B75', borderColor: '#2d5b75' }
+                : { background: '#9e3f3f', borderColor: '#9e3f3f' }}
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                       d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
@@ -492,8 +502,8 @@ export function DownloadProgressStep() {
     <OnboardingContainer
       title={t('onboarding.download.title')}
       description={t('onboarding.download.description')}
-      step={3}
-      totalSteps={isMac ? 4 : 3}
+      step={4}
+      totalSteps={resolvedPlatform === 'macos' ? 5 : 4}
     >
       <div className="flex flex-col items-center space-y-6">
         {/* Download Cards */}
@@ -501,7 +511,7 @@ export function DownloadProgressStep() {
           {renderDownloadCard(
             'transcription',
             t('onboarding.download.transcription'),
-            <Mic className="w-5 h-5 text-muted-foreground" />,
+            <Mic className="w-5 h-5" />,
             parakeetState,
             '~670 MB'
           )}
@@ -509,7 +519,7 @@ export function DownloadProgressStep() {
           {renderDownloadCard(
             'summary',
             t('onboarding.download.summary'),
-            <Sparkles className="w-5 h-5 text-muted-foreground" />,
+            <Sparkles className="w-5 h-5" />,
             summaryState,
             getSummaryModelSizeLabel(selectedSummaryModel || recommendedSummaryModel),
             'MiB'
@@ -524,13 +534,14 @@ export function DownloadProgressStep() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
-              className="w-full max-w-lg bg-muted rounded-2xl p-4 text-sm text-foreground"
+              className="w-full max-w-lg rounded-3xl p-4 text-xs border"
+              style={{ background: '#0d1f33', borderColor: '#1a2d42' }}
             >
               <div className="flex items-start gap-3">
-                <Download className="w-5 h-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <Download className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#447794' }} />
                 <div>
-                  <p className="font-medium">{t('onboarding.download.continue_while')}</p>
-                  <p className="text-muted-foreground mt-1">{t('onboarding.download.continue_while_desc')}</p>
+                  <p className="font-bold text-white">{t('onboarding.download.continue_while')}</p>
+                  <p className="mt-1" style={{ color: '#7a9ab5' }}>{t('onboarding.download.continue_while_desc')}</p>
                 </div>
               </div>
             </motion.div>
@@ -538,11 +549,14 @@ export function DownloadProgressStep() {
         </AnimatePresence>
 
         {/* Continue Button */}
-        <div className="w-full max-w-xs">
+        <div className="w-full max-w-xs pt-2">
           <Button
             onClick={handleContinue}
-            disabled={!parakeetDownloaded || isCompleting}
-            className="w-full h-11"
+            disabled={!parakeetDownloaded || isCompleting || resolvedPlatform === null}
+            className="w-full h-11 font-bold rounded-2xl transition-all"
+            style={{ background: '#447794', color: '#061222' }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
           >
             {(isCompleting || !parakeetDownloaded) ? (
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />

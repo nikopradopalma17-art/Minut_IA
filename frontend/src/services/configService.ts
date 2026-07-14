@@ -13,10 +13,10 @@ export interface ModelConfig {
   model: string;
   whisperModel: string;
   /**
-   * @deprecated Use providerApiKeys from ConfigContext instead.
-   * This field may contain stale data when provider changes without saving.
+   * Transient value only: persisted credentials are never loaded into this field.
    */
   apiKey?: string | null;
+  apiKeyConfigured?: boolean;
   ollamaEndpoint?: string | null;
   // Custom OpenAI fields (only populated when provider is 'custom-openai')
   customOpenAIEndpoint?: string | null;
@@ -34,6 +34,10 @@ export interface CustomOpenAIConfig {
   maxTokens: number | null;
   temperature: number | null;
   topP: number | null;
+}
+
+export interface CustomOpenAIConfigStatus extends Omit<CustomOpenAIConfig, 'apiKey'> {
+  apiKeyConfigured: boolean;
 }
 
 export interface RecordingPreferences {
@@ -74,8 +78,8 @@ export class ConfigService {
    * Get custom OpenAI configuration
    * @returns Promise with CustomOpenAIConfig or null if not configured
    */
-  async getCustomOpenAIConfig(): Promise<CustomOpenAIConfig | null> {
-    return invoke<CustomOpenAIConfig | null>('api_get_custom_openai_config');
+  async getCustomOpenAIConfig(): Promise<CustomOpenAIConfigStatus | null> {
+    return invoke<CustomOpenAIConfigStatus | null>('api_get_custom_openai_config');
   }
 
   /**

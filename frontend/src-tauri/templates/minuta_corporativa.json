@@ -1,6 +1,7 @@
 {
   "name": "Minuta Corporativa",
   "description": "Plantilla corporativa en español para minutas ejecutivas con acuerdos y compromisos accionables.",
+  "system_prompt": "Genera la minuta en español. En la sección 'Compromisos' debes usar obligatoriamente una tabla markdown con el encabezado exacto: | Responsable | Compromiso | Fecha límite |. Cada fila debe tener tres columnas: persona responsable, descripción del compromiso y fecha límite (usa '-' si no hay fecha). No agregues texto fuera de la tabla en esa sección.",
   "sections": [
     {
       "title": "Resumen ejecutivo",

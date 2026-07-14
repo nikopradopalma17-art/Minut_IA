@@ -12,8 +12,11 @@ const TARGET_SECTION_TITLES: &[&str] = &[
     "action items",
     "commitments",
     "tasks",
+    "tareas",
+    "acciones",
     "next steps",
     "proximas acciones",
+    "acciones pendientes",
 ];
 
 fn fold_accents(value: &str) -> String {

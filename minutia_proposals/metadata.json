@@ -1,0 +1,6 @@
+{
+  "name": "MinutIA - Transcriptor y Resumidor de Reuniones Inteligente",
+  "description": "La herramienta líder para transcribir, resumir y organizar los compromisos de tus reuniones privadas y gratis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

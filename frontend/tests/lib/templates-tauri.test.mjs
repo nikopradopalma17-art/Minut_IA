@@ -52,7 +52,7 @@ test('template manager uses camelCase top-level ids and preserves nested Serde s
     react: {
       useCallback: (fn) => fn,
       useEffect: () => {},
-      useState: (initial) => [initial, () => {}],
+      useState: (initial) => [typeof initial === 'function' ? initial() : initial, () => {}],
     },
     '@tauri-apps/api/core': { invoke },
     sonner: { toast: { error: () => {}, success: () => {} } },

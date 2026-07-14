@@ -1,7 +1,6 @@
-import { ModelConfig } from "@/components/ModelSettingsModal";
-import { PreferenceSettings } from "@/components/PreferenceSettings";
 import { DeviceSelection } from "@/components/DeviceSelection";
 import { LanguageSelection } from "@/components/LanguageSelection";
+import { SettingsPanel } from "@/components/SettingsPanel";
 import { TranscriptSettings } from "@/components/TranscriptSettings";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -12,13 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { AlertCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -27,16 +19,6 @@ import { useRecordingState } from "@/contexts/RecordingStateContext";
 import { useTranslation } from "@/contexts/TranslationContext";
 
 type modalType = "modelSettings" | "deviceSettings" | "languageSettings" | "modelSelector" | "errorAlert" | "chunkDropWarning";
-
-const PROVIDER_OPTIONS: ModelConfig['provider'][] = ['builtin-ai', 'claude', 'groq', 'ollama', 'openrouter', 'openai'];
-const PROVIDER_LABELS: Record<string, string> = {
-  'builtin-ai': 'Built-in AI',
-  claude: 'Claude',
-  groq: 'Groq',
-  ollama: 'Ollama',
-  openrouter: 'OpenRouter',
-  openai: 'OpenAI',
-};
 
 /**
  * SettingsModals Component
@@ -69,11 +51,6 @@ export function SettingsModals({
 }: SettingsModalsProps) {
   // Contexts
   const {
-    modelConfig,
-    setModelConfig,
-    models,
-    modelOptions,
-    error,
     selectedDevices,
     setSelectedDevices,
     selectedLanguage,
@@ -95,83 +72,8 @@ export function SettingsModals({
           <DialogTitle className="font-heading">{t('settings_modal.preferences_title')}</DialogTitle>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          <PreferenceSettings />
-
-          <div className="border-t border-border pt-8">
-            <h4 className="font-heading text-lg font-semibold text-foreground mb-4">{t('settings_modal.ai_model_config')}</h4>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-foreground mb-1">
-                  {t('settings_modal.summarization_model_label')}
-                </label>
-                <div className="flex space-x-2">
-                  <Select
-                    value={modelConfig.provider}
-                    onValueChange={(value) => {
-                      const provider = value as ModelConfig['provider'];
-                      setModelConfig({
-                        ...modelConfig,
-                        provider,
-                        model: modelOptions[provider][0]
-                      });
-                    }}
-                  >
-                    <SelectTrigger className="w-44 shrink-0">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROVIDER_OPTIONS.map((provider) => (
-                        <SelectItem key={provider} value={provider}>
-                          {PROVIDER_LABELS[provider]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-
-                  <Select
-                    value={modelConfig.model}
-                    onValueChange={(model) => setModelConfig((prev: ModelConfig) => ({ ...prev, model }))}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modelOptions[modelConfig.provider].map((model: string) => (
-                        <SelectItem key={model} value={model}>
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              {modelConfig.provider === 'ollama' && (
-                <div>
-                  <h4 className="font-heading text-lg font-bold mb-4 text-foreground">{t('settings_modal.ollama_models_heading')}</h4>
-                  {error && (
-                    <div className="bg-destructive/10 border border-destructive/30 text-destructive px-4 py-3 rounded-md mb-4">
-                      {error}
-                    </div>
-                  )}
-                  <div className="grid gap-4 max-h-[400px] overflow-y-auto pr-2">
-                    {models.map((model) => (
-                      <div
-                        key={model.id}
-                        className={`p-4 rounded-lg border cursor-pointer transition-colors ${modelConfig.model === model.name ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'border-border bg-card hover:bg-muted/50'
-                          }`}
-                        onClick={() => setModelConfig((prev: ModelConfig) => ({ ...prev, model: model.name }))}
-                      >
-                        <h3 className="font-bold text-foreground">{model.name}</h3>
-                        <p className="text-sm text-muted-foreground">{t('settings_modal.model_size_label')}: {model.size}</p>
-                        <p className="text-sm text-muted-foreground">{t('settings_modal.model_modified_label')}: {model.modified}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+        <div className="flex-1 overflow-y-auto p-6">
+          <SettingsPanel />
         </div>
 
         <DialogFooter className="p-6 border-t border-border">

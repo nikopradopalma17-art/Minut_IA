@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSidebar } from './Sidebar/SidebarProvider';
 import { invoke } from '@tauri-apps/api/core';
 import { Button } from '@/components/ui/button';
@@ -29,6 +29,9 @@ import {
   CommandList,
 } from '@/components/ui/command';
 import { cn, isOllamaNotInstalledError } from '@/lib/utils';
+import { CURATED_SUMMARY_MODELS, persistSummaryModel, type SummaryModelProvider } from '@/lib/summaryModelCatalog';
+import { persistBeforeInvalidatingCatalog } from '@/lib/summaryModelSave';
+import { invalidateSummaryModelCatalog, useSummaryModelCatalog } from '@/hooks/useSummaryModelCatalog';
 import { toast } from 'sonner';
 
 export interface ModelConfig {
@@ -53,59 +56,11 @@ interface OllamaModel {
   modified: string;
 }
 
-interface OpenRouterModel {
-  id: string;
-  name: string;
-  context_length?: number;
-  prompt_price?: string;
-  completion_price?: string;
-}
-
-interface OpenAIModel {
-  id: string;
-}
-
-interface AnthropicModel {
-  id: string;
-  display_name?: string;
-}
-
-interface GroqModel {
-  id: string;
-  owned_by?: string;
-}
-
-// Fallback models for when API fetch fails or no API key provided
-const OPENAI_FALLBACK_MODELS = [
-  'gpt-4o',
-  'gpt-4o-mini',
-  'gpt-4-turbo',
-  'gpt-4',
-  'gpt-3.5-turbo',
-  'o1',
-  'o1-mini',
-  'o3',
-  'o3-mini',
-];
-
-const CLAUDE_FALLBACK_MODELS = [
-  'claude-sonnet-4-5-20250929',
-  'claude-haiku-4-5-20251001',
-  'claude-opus-4-5-20251101',
-  'claude-3-5-sonnet-latest',
-];
-
-const GROQ_FALLBACK_MODELS = [
-  'llama-3.3-70b-versatile',
-  'llama-3.1-70b-versatile',
-  'mixtral-8x7b-32768',
-  'gemma2-9b-it',
-];
 
 interface ModelSettingsModalProps {
   modelConfig: ModelConfig;
   setModelConfig: (config: ModelConfig | ((prev: ModelConfig) => ModelConfig)) => void;
-  onSave: (config: ModelConfig) => void;
+  onSave: (config: ModelConfig) => void | Promise<void>;
   skipInitialFetch?: boolean; // Optional: skip fetching config from backend if parent manages it
   layout?: 'inline' | 'dialog';
 }
@@ -122,8 +77,6 @@ export function ModelSettingsModal({
   const { t } = useTranslation();
   const modelConfig = configContext?.modelConfig || propsModelConfig;
   const setModelConfig = configContext?.setModelConfig || propsSetModelConfig;
-  const providerApiKeys = configContext?.providerApiKeys;
-  const updateProviderApiKey = configContext?.updateProviderApiKey;
 
   const [models, setModels] = useState<OllamaModel[]>([]);
   const [error, setError] = useState<string>('');
@@ -132,9 +85,6 @@ export function ModelSettingsModal({
   const [isApiKeyLocked, setIsApiKeyLocked] = useState<boolean>(!!modelConfig.apiKey?.trim());
   const [isLockButtonVibrating, setIsLockButtonVibrating] = useState<boolean>(false);
   const { serverAddress } = useSidebar();
-  const [openRouterModels, setOpenRouterModels] = useState<OpenRouterModel[]>([]);
-  const [openRouterError, setOpenRouterError] = useState<string>('');
-  const [isLoadingOpenRouter, setIsLoadingOpenRouter] = useState<boolean>(false);
   const [ollamaEndpoint, setOllamaEndpoint] = useState<string>(modelConfig.ollamaEndpoint || '');
   const [isLoadingOllama, setIsLoadingOllama] = useState<boolean>(false);
   const [lastFetchedEndpoint, setLastFetchedEndpoint] = useState<string>(modelConfig.ollamaEndpoint || '');
@@ -160,13 +110,13 @@ export function ModelSettingsModal({
   // Combobox state
   const [modelComboboxOpen, setModelComboboxOpen] = useState<boolean>(false);
 
-  // Dynamic model fetching state for OpenAI, Claude, and Groq
-  const [openaiModels, setOpenaiModels] = useState<string[]>([]);
-  const [claudeModels, setClaudeModels] = useState<string[]>([]);
-  const [groqModels, setGroqModels] = useState<string[]>([]);
-  const [isLoadingOpenAI, setIsLoadingOpenAI] = useState<boolean>(false);
-  const [isLoadingClaude, setIsLoadingClaude] = useState<boolean>(false);
-  const [isLoadingGroq, setIsLoadingGroq] = useState<boolean>(false);
+  const cloudCatalogProvider = ['claude', 'groq', 'openai', 'openrouter'].includes(modelConfig.provider)
+    ? modelConfig.provider as SummaryModelProvider
+    : null;
+  const reconcileCloudModel = useCallback((model: string) => {
+    setModelConfig(previous => ({ ...previous, model }));
+  }, [setModelConfig]);
+  const { models: cloudCatalogModels, isLoading: isLoadingCloudCatalog, error: cloudCatalogError, refresh: refreshCloudCatalog } = useSummaryModelCatalog(cloudCatalogProvider, modelConfig.model, reconcileCloudModel);
 
   // Use global download context instead of local state
   const { isDownloading, getProgress, downloadingModels } = useOllamaDownload();
@@ -205,18 +155,6 @@ export function ModelSettingsModal({
     return () => clearTimeout(timer);
   }, [ollamaEndpoint]);
 
-  const fetchApiKey = async (provider: string) => {
-    try {
-      const data = (await invoke('api_get_api_key', {
-        provider,
-      })) as string;
-      setApiKey(data || '');
-    } catch (err) {
-      console.error('Error fetching API key:', err);
-      setApiKey(null);
-    }
-  };
-
   // Auto-unlock when API key becomes empty, 
   useEffect(() => {
     const hasContent = !!apiKey?.trim();
@@ -227,13 +165,16 @@ export function ModelSettingsModal({
 
   const modelOptions: Record<string, string[]> = {
     ollama: models.map((model) => model.name),
-    claude: claudeModels.length > 0 ? claudeModels : CLAUDE_FALLBACK_MODELS,
-    groq: groqModels.length > 0 ? groqModels : GROQ_FALLBACK_MODELS,
-    openai: openaiModels.length > 0 ? openaiModels : OPENAI_FALLBACK_MODELS,
-    openrouter: openRouterModels.map((m) => m.id),
+    claude: cloudCatalogProvider === 'claude' ? cloudCatalogModels.map(model => model.id) : CURATED_SUMMARY_MODELS.claude.map(model => model.id),
+    groq: cloudCatalogProvider === 'groq' ? cloudCatalogModels.map(model => model.id) : CURATED_SUMMARY_MODELS.groq.map(model => model.id),
+    openai: cloudCatalogProvider === 'openai' ? cloudCatalogModels.map(model => model.id) : CURATED_SUMMARY_MODELS.openai.map(model => model.id),
+    openrouter: cloudCatalogProvider === 'openrouter' ? cloudCatalogModels.map(model => model.id) : CURATED_SUMMARY_MODELS.openrouter.map(model => model.id),
     'builtin-ai': builtinAiModels.map((m) => m.name),
     'custom-openai': customOpenAIModel ? [customOpenAIModel] : [], // User specifies model manually
   };
+  const visibleModelItems = cloudCatalogProvider
+    ? cloudCatalogModels
+    : modelOptions[modelConfig.provider]?.map(id => ({ id, label: id, source: 'dynamic' as const, available: true })) || [];
 
   const requiresApiKey =
     modelConfig.provider === 'claude' ||
@@ -269,18 +210,8 @@ export function ModelSettingsModal({
         if (data && data.provider !== null) {
           setModelConfig(data);
 
-          // Fetch API key if not included in response and provider requires it
-          if (data.provider !== 'ollama' && !data.apiKey) {
-            try {
-              const apiKeyData = await invoke('api_get_api_key', {
-                provider: data.provider
-              }) as string;
-              data.apiKey = apiKeyData;
-              setApiKey(apiKeyData);
-            } catch (err) {
-              console.error('Failed to fetch API key:', err);
-            }
-          }
+          // Persisted credentials never prefill this editor.
+          setApiKey('');
 
           // Sync ollamaEndpoint state with fetched config
           if (data.ollamaEndpoint) {
@@ -296,7 +227,7 @@ export function ModelSettingsModal({
               if (customConfig) {
                 setCustomOpenAIEndpoint(customConfig.endpoint || '');
                 setCustomOpenAIModel(customConfig.model || '');
-                setCustomOpenAIApiKey(customConfig.apiKey || '');
+                setCustomOpenAIApiKey('');
                 setCustomMaxTokens(customConfig.maxTokens?.toString() || '');
                 setCustomTemperature(customConfig.temperature?.toString() || '');
                 setCustomTopP(customConfig.topP?.toString() || '');
@@ -403,17 +334,6 @@ export function ModelSettingsModal({
     }
   }, [ollamaEndpoint, lastFetchedEndpoint, modelConfig.provider]);
 
-  // Sync local apiKey state when provider changes
-  useEffect(() => {
-    if (providerApiKeys && requiresApiKey && modelConfig.provider !== 'custom-openai') {
-      const correctKey = providerApiKeys[modelConfig.provider as keyof typeof providerApiKeys];
-      if (correctKey !== apiKey) {
-        setApiKey(correctKey || '');
-        setIsApiKeyLocked(!!correctKey?.trim());
-      }
-    }
-  }, [modelConfig.provider, providerApiKeys, requiresApiKey]);
-
   // Manual fetch function for Ollama models
   const fetchOllamaModels = async (silent = false) => {
     const trimmedEndpoint = ollamaEndpoint.trim();
@@ -487,24 +407,6 @@ export function ModelSettingsModal({
     };
   }, [modelConfig.provider]); // Only depend on provider, NOT endpoint
 
-  const loadOpenRouterModels = async () => {
-    if (openRouterModels.length > 0) return; // Already loaded
-
-    try {
-      setIsLoadingOpenRouter(true);
-      setOpenRouterError('');
-      const data = (await invoke('get_openrouter_models')) as OpenRouterModel[];
-      setOpenRouterModels(data);
-    } catch (err) {
-      console.error('Error loading OpenRouter models:', err);
-      setOpenRouterError(
-        err instanceof Error ? err.message : 'Failed to load OpenRouter models'
-      );
-    } finally {
-      setIsLoadingOpenRouter(false);
-    }
-  };
-
   const loadBuiltinAiModels = async () => {
     if (builtinAiModels.length > 0) return; // Already loaded
 
@@ -525,81 +427,6 @@ export function ModelSettingsModal({
     }
   };
 
-  // Fetch OpenAI models from API
-  const loadOpenAIModels = async (key: string | null) => {
-    if (!key?.trim()) {
-      setOpenaiModels([]); // Will use fallback via modelOptions
-      return;
-    }
-    setIsLoadingOpenAI(true);
-    try {
-      const data = (await invoke('get_openai_models', { apiKey: key })) as OpenAIModel[];
-      setOpenaiModels(data.map((m) => m.id));
-    } catch (err) {
-      console.error('Error loading OpenAI models:', err);
-      setOpenaiModels([]); // Will use fallback via modelOptions
-    } finally {
-      setIsLoadingOpenAI(false);
-    }
-  };
-
-  // Fetch Anthropic (Claude) models from API
-  const loadClaudeModels = async (key: string | null) => {
-    if (!key?.trim()) {
-      setClaudeModels([]); // Will use fallback via modelOptions
-      return;
-    }
-    setIsLoadingClaude(true);
-    try {
-      const data = (await invoke('get_anthropic_models', { apiKey: key })) as AnthropicModel[];
-      setClaudeModels(data.map((m) => m.id));
-    } catch (err) {
-      console.error('Error loading Claude models:', err);
-      setClaudeModels([]); // Will use fallback via modelOptions
-    } finally {
-      setIsLoadingClaude(false);
-    }
-  };
-
-  // Fetch Groq models from API
-  const loadGroqModels = async (key: string | null) => {
-    if (!key?.trim()) {
-      setGroqModels([]); // Will use fallback via modelOptions
-      return;
-    }
-    setIsLoadingGroq(true);
-    try {
-      const data = (await invoke('get_groq_models', { apiKey: key })) as GroqModel[];
-      setGroqModels(data.map((m) => m.id));
-    } catch (err) {
-      console.error('Error loading Groq models:', err);
-      setGroqModels([]); // Will use fallback via modelOptions
-    } finally {
-      setIsLoadingGroq(false);
-    }
-  };
-
-  // Auto-fetch OpenAI models when provider is openai and we have an API key
-  useEffect(() => {
-    if (modelConfig.provider === 'openai' && apiKey?.trim()) {
-      loadOpenAIModels(apiKey);
-    }
-  }, [modelConfig.provider, apiKey]);
-
-  // Auto-fetch Claude models when provider is claude and we have an API key
-  useEffect(() => {
-    if (modelConfig.provider === 'claude' && apiKey?.trim()) {
-      loadClaudeModels(apiKey);
-    }
-  }, [modelConfig.provider, apiKey]);
-
-  // Auto-fetch Groq models when provider is groq and we have an API key
-  useEffect(() => {
-    if (modelConfig.provider === 'groq' && apiKey?.trim()) {
-      loadGroqModels(apiKey);
-    }
-  }, [modelConfig.provider, apiKey]);
-
   // Restore cached model when async model lists become available
   useEffect(() => {
     const providerModels = modelOptions[modelConfig.provider];
@@ -614,7 +441,7 @@ export function ModelSettingsModal({
     if (cachedModel && providerModels.includes(cachedModel)) {
       setModelConfig((prev: ModelConfig) => ({ ...prev, model: cachedModel }));
     }
-  }, [models, openRouterModels, builtinAiModels, openaiModels, claudeModels, groqModels, modelConfig.provider]);
+  }, [models, cloudCatalogModels, builtinAiModels, modelConfig.provider]);
 
   const handleSave = async () => {
     // For custom-openai provider, save the custom config first
@@ -652,22 +479,33 @@ export function ModelSettingsModal({
       // For custom-openai, use the customOpenAIModel as the model field
       model: modelConfig.provider === 'custom-openai' ? customOpenAIModel.trim() : modelConfig.model,
     };
-    setModelConfig(updatedConfig);
+    const isCatalogProvider = ['claude', 'groq', 'openai', 'openrouter', 'builtin-ai'].includes(updatedConfig.provider);
+
+    try {
+      if (isCatalogProvider) {
+        await persistBeforeInvalidatingCatalog(
+          updatedConfig.provider,
+          () => onSave(updatedConfig),
+          (provider) => invalidateSummaryModelCatalog(provider as SummaryModelProvider),
+        );
+      } else {
+        await onSave(updatedConfig);
+      }
+    } catch (error) {
+      console.error('Failed to persist model configuration:', error);
+      return;
+    }
+
+    setModelConfig({ ...updatedConfig, apiKey: null, customOpenAIApiKey: null });
     console.log('ModelSettingsModal - handleSave - Updated ModelConfig:', updatedConfig);
 
-    // Persist confirmed model choice to per-provider cache
+    // Persist confirmed model choice to per-provider cache.
     if (updatedConfig.model) {
-      const map = JSON.parse(localStorage.getItem('providerModelMap') || '{}');
-      map[updatedConfig.provider] = updatedConfig.model;
-      localStorage.setItem('providerModelMap', JSON.stringify(map));
+      persistSummaryModel(updatedConfig.provider, updatedConfig.model);
     }
 
-    // Update provider-specific key in context
-    if (updateProviderApiKey && updatedConfig.apiKey && updatedConfig.provider !== 'custom-openai') {
-      updateProviderApiKey(updatedConfig.provider, updatedConfig.apiKey);
-    }
-
-    onSave(updatedConfig);
+    setApiKey('');
+    setCustomOpenAIApiKey('');
   };
 
   // Test custom OpenAI connection
@@ -843,12 +681,7 @@ export function ModelSettingsModal({
                   provider,
                   model,
                 });
-                // API key is now synced automatically via useEffect watching providerApiKeys
-
-                // Load OpenRouter models only when OpenRouter is selected
-                if (provider === 'openrouter') {
-                  loadOpenRouterModels();
-                }
+                // Persisted keys remain opaque; this field is only for a newly typed replacement.
 
                 // Load Built-in AI models when selected
                 if (provider === 'builtin-ai') {
@@ -861,7 +694,7 @@ export function ModelSettingsModal({
                     if (config) {
                       setCustomOpenAIEndpoint(config.endpoint || '');
                       setCustomOpenAIModel(config.model || '');
-                      setCustomOpenAIApiKey(config.apiKey || '');
+                      setCustomOpenAIApiKey('');
                       setCustomMaxTokens(config.maxTokens?.toString() || '');
                       setCustomTemperature(config.temperature?.toString() || '');
                       setCustomTopP(config.topP?.toString() || '');
@@ -905,34 +738,39 @@ export function ModelSettingsModal({
                   <Command>
                     <CommandInput placeholder={t('models.search_models')} />
                     <CommandList className="max-h-[300px]">
-                      {(modelConfig.provider === 'openrouter' && isLoadingOpenRouter) ||
-                       (modelConfig.provider === 'openai' && isLoadingOpenAI) ||
-                       (modelConfig.provider === 'claude' && isLoadingClaude) ||
-                       (modelConfig.provider === 'groq' && isLoadingGroq) ? (
+                      {isLoadingCloudCatalog && cloudCatalogProvider ? (
                         <div className="py-6 text-center text-sm text-muted-foreground">
                           <RefreshCw className="mx-auto h-4 w-4 animate-spin mb-2" />
                           {t('models.loading_models')}
+                        </div>
+                      ) : cloudCatalogError && cloudCatalogProvider ? (
+                        <div className="py-6 px-4 text-center space-y-3">
+                          <p className="text-sm text-destructive">{cloudCatalogError}</p>
+                          <Button variant="outline" size="sm" onClick={() => refreshCloudCatalog()} className="mx-auto">
+                            <RefreshCw className="mr-2 h-3.5 w-3.5" />Reintentar
+                          </Button>
                         </div>
                       ) : (
                         <>
                           <CommandEmpty>{t('models.no_models_found')}</CommandEmpty>
                           <CommandGroup>
-                            {modelOptions[modelConfig.provider]?.map((model) => (
+                            {visibleModelItems.map((model) => (
                               <CommandItem
-                                key={model}
-                                value={model}
-                                onSelect={(currentValue) => {
-                                  setModelConfig((prev: ModelConfig) => ({ ...prev, model: currentValue }));
+                                key={model.id}
+                                value={model.id}
+                                onSelect={() => {
+                                  setModelConfig((prev: ModelConfig) => ({ ...prev, model: model.id }));
                                   setModelComboboxOpen(false);
                                 }}
                               >
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    modelConfig.model === model ? "opacity-100" : "opacity-0"
+                                    modelConfig.model === model.id ? "opacity-100" : "opacity-0"
                                   )}
                                 />
-                                <span className="truncate">{model}</span>
+                                <span className="truncate">{model.label}</span>
+                                {cloudCatalogProvider && <span className="ml-2 text-[10px] text-muted-foreground">{model.source === 'dynamic' ? 'Disponible' : 'Catálogo'}</span>}
                               </CommandItem>
                             ))}
                           </CommandGroup>

@@ -7,7 +7,7 @@ import { About } from "./About";
 interface SettingTabsProps {
     modelConfig: ModelConfig;
     setModelConfig: (config: ModelConfig | ((prev: ModelConfig) => ModelConfig)) => void;
-    onSave: (config: ModelConfig) => void;
+    onSave: (config: ModelConfig) => void | Promise<void>;
     transcriptModelConfig: TranscriptModelProps;
     setTranscriptModelConfig: (config: TranscriptModelProps) => void;
     onSaveTranscript: (config: TranscriptModelProps) => void;
