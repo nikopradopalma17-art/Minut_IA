@@ -63,9 +63,9 @@ Verificación: `cargo check` exit 0 (13 warnings) · `pnpm test` 81/81 · `pnpm 
 2. En `THIRD_PARTY_LICENSES.md` (ver L2/L3): texto **LGPL v2.1+** + declaración "FFmpeg (build LGPL de BtbN), sin modificaciones, redistribuido como ejecutable separado" + link a las fuentes (ffmpeg.org y el repo de BtbN, que publica las fuentes exactas por release).
 3. Verificar en máquina real que el pipeline de guardado (checkpoint → merge → mp4) funciona igual con el binario BtbN.
 
-### L2 — ✅ RESUELTO (`37e55902`) — LICENSE.md + THIRD_PARTY_LICENSES.md + licenses/ bundleados; atribución Meetily en README
+### L2 — ✅ RESUELTO (`37e55902`, ajustado por decisión del dueño 2026-07-17) — licencias bundleadas SIN atribución pública
 La MIT de Meetily (`LICENSE.md`, © 2024 Zackriya Solutions — correctamente conservado) exige el aviso "in all copies"; `bundle.resources` (`tauri.conf.json:98-100`) solo incluye `templates/*.json` → el `.exe`/`.msi` no lleva licencia.
-**Spec:** ampliar `bundle.resources` para incluir `LICENSE.md` y `THIRD_PARTY_LICENSES.md`. Añadir en README (y opcionalmente "Acerca de") la atribución: *"MinutIA se basa en Meetily (meeting-minutes) de Zackriya Solutions, MIT, © 2024 Zackriya Solutions"*.
+**Decisión del dueño:** MinutIA se presenta como creación propia — sin atribución pública al proyecto original en README, docs ni UI (la MIT lo permite). **Línea legal inamovible:** el aviso de copyright original dentro de `LICENSE.md` se conserva y se bundlea en el instalador (la MIT lo exige en toda copia; quitarlo = infracción con riesgo de DMCA sobre el repo/release). Se añadió el copyright propio (Impulso IA 2026) encima del original — práctica estándar en derivados. Toda otra mención pública fue purgada (README, THIRD_PARTY_LICENSES.md, docs/, imagen Meetily-6.png).
 
 ### L3 — ✅ RESUELTO (`37e55902`) — THIRD_PARTY_LICENSES.md creado con todos los avisos
 whisper.cpp/ggml (MIT, "The ggml authors" — enlazado estático en el binario principal) · llama.cpp/ggml vía `llama-cpp-2` (MIT — estático en `llama-helper.exe`) · ONNX Runtime/`ort` (MIT, Microsoft) · WeSpeaker voxceleb (Apache-2.0) · pesos Whisper (MIT, OpenAI).
@@ -143,7 +143,7 @@ Divergencia de estado al desconectar device a mitad de grabación (`recording_st
 - Analytics: decisión v1.0.0 = apagado. Spec futura: telemetría mínima opt-in con PostHog Cloud US (sin contenido de reuniones, keys ni IDs); considerar Sentry para crash reporting.
 - CSP: quitar `https://api.ollama.ai` (el webview no lo usa; verificado — su único fetch es `/logo.png`); evaluar `style-src 'unsafe-inline'`.
 - 13 warnings de `cargo check` (dead code: `pipeline.rs:691`, `recording_commands.rs:53`, `defaults.rs:21`).
-- Branding residual "Meetily" en docs internos (`docs/*.md`, `API.md`, `BLUETOOTH_PLAYBACK_NOTICE.md`, env var `MEETILY_LLAMA_HELPER`, prefijos `meetily-*` en `build-*.yml`). Nota: NO tocar los paths homebrew `/opt/homebrew/var/meetily/` (son rutas legacy reales de macOS).
+- Branding residual "Meetily" restante (docs públicos ya purgados 2026-07-17): `frontend/API.md`, `BLUETOOTH_PLAYBACK_NOTICE.md`, `AGENTS.md`/`CLAUDE.md` (rutas `%APPDATA%\Meetily`), env var `MEETILY_LLAMA_HELPER`, prefijos `meetily-*` en `build-*.yml`, componentes muertos LegacyDatabaseImport/HomebrewDatabaseDetector (se van con D2), URL del submódulo whisper.cpp y URLs de ffmpeg macOS en `build/ffmpeg.rs` (técnicas, solo dev). Regla del dueño: cero referencias públicas al proyecto original; la única excepción permitida es el aviso legal en `LICENSE.md`. NO tocar los paths homebrew `/opt/homebrew/var/meetily/` (rutas legacy reales de macOS).
 - `cargo audit` + `pnpm audit` en CI; `reqwest` 0.11 → 0.12.
 - Purga del historial git (blobs de 4.2 GB des-referenciados) — decisión del dueño.
 - macOS: fuera de v1.0.0; requiere notarización + certificado Apple.

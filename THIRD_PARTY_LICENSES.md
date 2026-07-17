@@ -68,14 +68,6 @@ Parakeet transcription and speaker diarization run on
 [ONNX Runtime](https://github.com/microsoft/onnxruntime) via the `ort` crate.
 Copyright (c) Microsoft Corporation. MIT license text as above.
 
-### Meetily (upstream project) — MIT
-
-MinutIA is based on the open-source project
-**Meetily ([meeting-minutes](https://github.com/Zackriya-Solutions/meeting-minutes))
-by Zackriya Solutions** — Copyright (c) 2024 Zackriya Solutions, MIT license.
-The full text is preserved in this repository's `LICENSE.md` and bundled with
-the installer.
-
 ## Models downloaded at runtime (not bundled)
 
 | Model | Source | License | Notes |
