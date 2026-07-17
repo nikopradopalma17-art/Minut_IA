@@ -109,8 +109,27 @@ print(json.dumps(frames.tolist()))
     serde_json::from_slice(&output.stdout).expect("parse sherpa reference")
 }
 
+/// The reference requires a Python environment with numpy, onnx and
+/// sherpa_onnx installed (plus network access to fetch the model). CI
+/// runners and most dev machines don't have that stack, so the test
+/// skips itself when it's missing instead of failing.
+fn python_reference_available() -> bool {
+    Command::new("python")
+        .args(["-c", "import numpy, onnx, sherpa_onnx"])
+        .output()
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
 #[test]
 fn fbank_matches_sherpa_onnx_reference() {
+    if !python_reference_available() {
+        eprintln!(
+            "SKIPPED fbank_matches_sherpa_onnx_reference: python with numpy/onnx/sherpa_onnx not available"
+        );
+        return;
+    }
+
     let temp_dir = std::env::temp_dir().join("minutia_diarization_tests");
     std::fs::create_dir_all(&temp_dir).unwrap();
     let wav_path = temp_dir.join("sine_220hz.wav");
