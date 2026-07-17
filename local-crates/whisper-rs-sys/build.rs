@@ -141,8 +141,29 @@ fn main() {
         match bindings {
             Ok(b) => {
                 let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-                b.write_to_file(out_path.join("bindings.rs"))
+                let bindings_path = out_path.join("bindings.rs");
+                b.write_to_file(&bindings_path)
                     .expect("Couldn't write bindings!");
+
+                // whisper-rs's WhisperGrammarElementType is `repr(u32)` on every
+                // target except Windows/MSVC, but libclang parses the plain C
+                // `enum whisper_gretype` as a signed `int` here regardless of
+                // platform. Patch the freshly generated type alias to `c_uint`
+                // so the enum discriminants type-check against whisper-rs.
+                let bindings_src = std::fs::read_to_string(&bindings_path)
+                    .expect("Couldn't read generated bindings back for patching");
+                let patched = bindings_src.replace(
+                    "pub type whisper_gretype = ::std::os::raw::c_int;",
+                    "pub type whisper_gretype = ::std::os::raw::c_uint;",
+                );
+                if patched == bindings_src {
+                    println!(
+                        "cargo:warning=whisper_gretype u32 patch found nothing to replace; \
+                         bindgen output format may have changed, check whisper-rs compatibility"
+                    );
+                }
+                std::fs::write(&bindings_path, patched)
+                    .expect("Couldn't write patched bindings!");
             }
             Err(e) => {
                 println!("cargo:warning=Unable to generate bindings: {}", e);
