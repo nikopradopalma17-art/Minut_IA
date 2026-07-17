@@ -206,6 +206,9 @@ pub struct AudioCapture {
     channels: u16,
     chunk_counter: Arc<std::sync::atomic::AtomicU64>,
     device_type: DeviceType,
+    // Retained from the constructor; the recording path now flows through
+    // AudioPipeline::recording_sender_for_mixed instead.
+    #[allow(dead_code)]
     recording_sender: Option<mpsc::UnboundedSender<AudioChunk>>,
     needs_resampling: bool,  // Flag if resampling is required
     // CRITICAL FIX: Persistent resampler to preserve energy across chunks
@@ -688,6 +691,9 @@ impl AudioCapture {
 pub struct AudioPipeline {
     receiver: mpsc::UnboundedReceiver<AudioChunk>,
     transcription_sender: mpsc::UnboundedSender<AudioChunk>,
+    // Kept alongside the loop's stop-signal handling; the run loop
+    // deliberately does NOT poll state.is_recording() (see run()).
+    #[allow(dead_code)]
     state: Arc<RecordingState>,
     vad_processor: ContinuousVadProcessor,
     sample_rate: u32,

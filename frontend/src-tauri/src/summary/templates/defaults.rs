@@ -18,6 +18,9 @@ pub const REUNION_CLIENTE: &str = include_str!("../../../templates/reunion_clien
 /// Registry of all built-in templates
 ///
 /// Maps template identifiers to their embedded JSON content
+// Currently only exercised by unit tests; runtime code uses
+// get_builtin_template / list_builtin_template_ids directly.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn get_builtin_templates() -> Vec<(&'static str, &'static str)> {
     vec![
         ("reunion_estandar", REUNION_ESTANDAR),

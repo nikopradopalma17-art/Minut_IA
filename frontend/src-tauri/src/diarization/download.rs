@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Result};
 use futures_util::StreamExt;
-use log::{info, warn};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::{Duration, Instant};

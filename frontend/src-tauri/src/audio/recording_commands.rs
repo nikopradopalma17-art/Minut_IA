@@ -60,8 +60,6 @@ static TRANSCRIPT_LISTENER_ID: Mutex<Option<tauri::EventId>> = Mutex::new(None);
 struct EnergyWindow {
     start_seconds: f64,
     end_seconds: f64,
-    mic_rms: f32,
-    sys_rms: f32,
     speaker: Option<String>,
 }
 
@@ -127,8 +125,6 @@ pub fn record_active_speaker_window(
     timeline.push_back(EnergyWindow {
         start_seconds,
         end_seconds,
-        mic_rms,
-        sys_rms,
         speaker,
     });
     prune_active_speaker_windows(&mut timeline);

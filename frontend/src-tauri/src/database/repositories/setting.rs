@@ -228,7 +228,7 @@ impl SettingsRepository {
     }
 
     pub async fn get_transcript_api_key(
-        pool: &SqlitePool,
+        _pool: &SqlitePool,
         provider: &str,
     ) -> std::result::Result<Option<String>, sqlx::Error> {
         if provider == "parakeet" {
