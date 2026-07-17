@@ -196,6 +196,9 @@ impl HardwareProfile {
         Self::has_windows_vulkan_loader(Path::new(r"C:\Windows"))
     }
 
+    // Only called from Windows-gated runtime code, but exercised by
+    // platform-independent unit tests on every OS.
+    #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     fn has_windows_vulkan_loader(system_root: &Path) -> bool {
         system_root.join("System32").join("vulkan-1.dll").is_file()
     }

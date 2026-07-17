@@ -19,40 +19,45 @@ export function PermissionRow({ icon, title, description, status, isPending = fa
 
   return (
     <div
-      className={cn(
-        'flex items-center justify-between rounded-2xl border px-6 py-5',
-        'transition-all duration-200',
-        isAuthorized ? 'border-impulso-ocean/30 bg-impulso-ocean/5' : isDenied ? 'border-destructive/30 bg-destructive/5' : 'bg-card border-border'
-      )}
+      className="flex items-center justify-between rounded-3xl border px-6 py-5 transition-all duration-200"
+      style={isAuthorized
+        ? { background: 'rgba(45,91,117,0.12)', borderColor: 'rgba(45,91,117,0.3)' }
+        : isDenied
+          ? { background: 'rgba(180,60,60,0.1)', borderColor: 'rgba(180,60,60,0.25)' }
+          : { background: '#0d1f33', borderColor: '#1a2d42' }
+      }
     >
       {/* Left side: Icon + Info */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
         {/* Icon */}
         <div
-          className={cn(
-            'flex size-10 items-center justify-center rounded-full flex-shrink-0',
-            isAuthorized ? 'bg-impulso-ocean/10' : isDenied ? 'bg-destructive/10' : 'bg-muted'
-          )}
+          className="flex w-10 h-10 items-center justify-center rounded-xl flex-shrink-0 border"
+          style={isAuthorized
+            ? { background: 'rgba(45,91,117,0.15)', borderColor: 'rgba(45,91,117,0.35)', color: '#2D5B75' }
+            : isDenied
+              ? { background: 'rgba(180,60,60,0.15)', borderColor: 'rgba(180,60,60,0.35)', color: '#d97070' }
+              : { background: '#061222', borderColor: '#1a2d42', color: '#5a7a94' }
+          }
         >
-          <div className={cn(isAuthorized ? 'text-impulso-ocean' : isDenied ? 'text-destructive' : 'text-muted-foreground')}>{icon}</div>
+          {icon}
         </div>
 
         {/* Title + Description */}
-        <div className="min-w-0 flex-1">
-          <div className="font-medium truncate text-foreground">{title}</div>
-          <div className="text-sm text-muted-foreground">
+        <div className="min-w-0 flex-1 ml-1">
+          <div className="font-semibold truncate text-white text-sm">{title}</div>
+          <div className="text-xs mt-0.5">
             {isAuthorized ? (
-              <span className="text-impulso-ocean flex items-center gap-1">
+              <span className="flex items-center gap-1" style={{ color: '#2D5B75' }}>
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 {t('onboarding.permissions.access_granted')}
               </span>
             ) : isDenied ? (
-              <span className="text-destructive flex items-center gap-1">
+              <span className="flex items-center gap-1" style={{ color: '#d97070' }}>
                 <XCircle className="w-3.5 h-3.5" />
                 {t('onboarding.permissions.access_denied')}
               </span>
             ) : (
-              <span>{description}</span>
+              <span style={{ color: '#7a9ab5' }}>{description}</span>
             )}
           </div>
         </div>
@@ -62,19 +67,23 @@ export function PermissionRow({ icon, title, description, status, isPending = fa
       <div className="flex items-center gap-2 flex-shrink-0 ml-3">
         {!isAuthorized && (
           <Button
-            variant={isDenied ? "destructive" : "outline"}
             size="sm"
             onClick={onAction}
             disabled={isChecking}
-            className="min-w-[100px]"
+            className="min-w-[100px] font-bold rounded-xl text-xs transition-all"
+            style={isDenied
+              ? { background: '#9e3f3f', color: '#ffffff' }
+              : { background: '#447794', color: '#061222' }
+            }
           >
             {isChecking && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {getButtonText()}
           </Button>
         )}
         {isAuthorized && (
-          <div className="flex size-8 items-center justify-center rounded-full bg-impulso-ocean/10">
-            <CheckCircle2 className="w-4 h-4 text-impulso-ocean" />
+          <div className="flex w-8 h-8 items-center justify-center rounded-lg border"
+            style={{ background: 'rgba(45,91,117,0.15)', borderColor: 'rgba(45,91,117,0.35)', color: '#2D5B75' }}>
+            <CheckCircle2 className="w-4 h-4" />
           </div>
         )}
       </div>

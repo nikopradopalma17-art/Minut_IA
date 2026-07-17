@@ -4063,7 +4063,15 @@ pub const whisper_gretype_WHISPER_GRETYPE_CHAR: whisper_gretype = 3;
 pub const whisper_gretype_WHISPER_GRETYPE_CHAR_NOT: whisper_gretype = 4;
 pub const whisper_gretype_WHISPER_GRETYPE_CHAR_RNG_UPPER: whisper_gretype = 5;
 pub const whisper_gretype_WHISPER_GRETYPE_CHAR_ALT: whisper_gretype = 6;
+// whisper-rs's WhisperGrammarElementType is repr(u32) everywhere except
+// Windows/MSVC (see whisper_grammar.rs's own
+// `#[cfg_attr(any(not(windows), target_env = "gnu"), repr(u32))]` /
+// `#[cfg_attr(all(windows, not(target_env = "gnu")), repr(i32))]`), so this
+// alias must match that split rather than bindgen's single inferred type.
+#[cfg(all(windows, not(target_env = "gnu")))]
 pub type whisper_gretype = ::std::os::raw::c_int;
+#[cfg(not(all(windows, not(target_env = "gnu"))))]
+pub type whisper_gretype = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct whisper_grammar_element {

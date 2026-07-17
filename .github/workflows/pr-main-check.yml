@@ -54,12 +54,27 @@ jobs:
       - name: Install system dependencies (Ubuntu)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev
+          # ffmpeg: audio tests (incremental_saver) invoke the real binary and
+          # otherwise fall back to a flaky runtime download from the internet
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev ffmpeg
 
       - name: Setup Rust toolchain
         uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           cache: true
+
+      - name: Build llama-helper sidecar
+        run: |
+          echo "Building llama-helper sidecar (CPU mode)..."
+          cargo build --release -p llama-helper
+
+          # Copy binary to binaries directory; the Tauri app's build script
+          # requires this sidecar resource to exist even for `cargo test`.
+          mkdir -p frontend/src-tauri/binaries
+          cp target/release/llama-helper frontend/src-tauri/binaries/llama-helper-x86_64-unknown-linux-gnu
+
+          echo "Copied llama-helper to frontend/src-tauri/binaries/"
+          ls -la frontend/src-tauri/binaries/
 
       - name: Run cargo test
         run: cargo test

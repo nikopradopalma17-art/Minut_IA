@@ -28,9 +28,8 @@ macro_rules! perf_trace {
     ($($arg:tt)*) => {};
 }
 
-// Make these macros available to other modules
-pub(crate) use perf_debug;
-pub(crate) use perf_trace;
+// perf_debug!/perf_trace! are macro_rules macros defined above, so they are
+// textually in scope for every module declared below — no re-export needed.
 
 // Re-export async logging macros for external use (removed due to macro conflicts)
 
@@ -52,6 +51,8 @@ pub mod openrouter;
 pub mod parakeet_engine;
 pub mod state;
 pub mod summary;
+pub mod chat;
+pub mod system_info;
 pub mod tray;
 pub mod utils;
 pub mod whisper_engine;
@@ -59,11 +60,106 @@ pub mod whisper_engine;
 use audio::{list_audio_devices, AudioDevice, trigger_audio_permission};
 use log::{error as log_error, info as log_info};
 use notifications::commands::NotificationManagerState;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, Runtime};
 use tokio::sync::RwLock;
 
+/// Canonicalise a root directory for containment checks.  If the directory
+/// doesn't exist yet (fresh install), canonicalise its parent and re-append
+/// the final component so the comparison still works.
+fn canonicalize_root(root: &Path) -> Option<PathBuf> {
+    if let Ok(canon) = root.canonicalize() {
+        return Some(canon);
+    }
+    let parent = root.parent()?;
+    let canon_parent = parent.canonicalize().ok()?;
+    Some(canon_parent.join(root.file_name()?))
+}
+
+/// Resolve `path` and ensure it lives inside one of `roots`.  Roots must
+/// already be canonical.  Kept free of `AppHandle` so it can be unit-tested.
+fn resolve_within_roots(roots: &[PathBuf], path: &str) -> Result<PathBuf, String> {
+    let input = Path::new(path);
+
+    // Canonicalise the input path.  For read operations the file must
+    // already exist; for write operations the parent must exist.  We try
+    // canonicalising the input directly, and if that fails (file doesn't
+    // exist yet) we canonicalise the parent and re-append the file name.
+    let canonical = match input.canonicalize() {
+        Ok(c) => c,
+        Err(_) => {
+            // File doesn't exist yet (write path).  Canonicalise parent.
+            let parent = input.parent().ok_or_else(|| {
+                "Invalid path: no parent directory".to_string()
+            })?;
+            let canon_parent = parent.canonicalize().map_err(|e| {
+                format!("Parent directory does not exist or is inaccessible: {}", e)
+            })?;
+            canon_parent.join(input.file_name().ok_or_else(|| {
+                "Invalid path: no file component".to_string()
+            })?)
+        }
+    };
+
+    for root in roots {
+        if canonical.starts_with(root) {
+            return Ok(canonical);
+        }
+    }
+
+    Err(format!(
+        "Access denied: path '{}' is outside the allowed application directories",
+        canonical.display()
+    ))
+}
+
+/// Canonicalise `path` and ensure it lives inside one of the allowed root
+/// directories: the app data dir, the user's download dir, or the recordings
+/// folder (both the configured one and the platform default — recordings live
+/// outside app data, e.g. `Music\MinutIA-recordings`, and the folder is
+/// user-configurable, so playback via `read_audio_file` must allow it).
+///
+/// This prevents a compromised webview from using `read_audio_file` or
+/// `save_transcript` to read or write arbitrary files on disk (e.g.
+/// `~/.ssh/id_rsa` or the Windows Startup folder).
+async fn resolve_within_allowed<R: Runtime>(
+    app: &AppHandle<R>,
+    path: &str,
+) -> Result<PathBuf, String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    if let Ok(app_data) = app.path().app_data_dir() {
+        candidates.push(app_data);
+    }
+    if let Ok(download) = app.path().download_dir() {
+        candidates.push(download);
+    }
+    if let Ok(prefs) = audio::recording_preferences::load_recording_preferences(app).await {
+        candidates.push(prefs.save_folder);
+    }
+    candidates.push(audio::recording_preferences::get_default_recordings_folder());
+
+    // Canonicalise each root so symlinks are resolved before the
+    // starts_with check.
+    let allowed_roots: Vec<PathBuf> = candidates
+        .iter()
+        .filter_map(|root| canonicalize_root(root))
+        .collect();
+
+    resolve_within_roots(&allowed_roots, path)
+}
+
 static RECORDING_FLAG: AtomicBool = AtomicBool::new(false);
+
+/// App handle for emitting events from places with no `AppHandle` plumbed
+/// through (the panic hook, deep audio tasks). `None` in unit tests and
+/// before setup runs.
+static GLOBAL_APP_HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
+pub(crate) fn global_app_handle() -> Option<&'static tauri::AppHandle> {
+    GLOBAL_APP_HANDLE.get()
+}
 
 // Global language preference storage (default to "auto-translate" for automatic translation to English)
 static LANGUAGE_PREFERENCE: std::sync::LazyLock<StdMutex<String>> =
@@ -225,19 +321,29 @@ fn get_transcription_status() -> TranscriptionStatus {
 }
 
 #[tauri::command]
-fn read_audio_file(file_path: String) -> Result<Vec<u8>, String> {
-    match std::fs::read(&file_path) {
+async fn read_audio_file<R: Runtime>(
+    app: AppHandle<R>,
+    file_path: String,
+) -> Result<Vec<u8>, String> {
+    let resolved = resolve_within_allowed(&app, &file_path).await?;
+    match std::fs::read(&resolved) {
         Ok(data) => Ok(data),
         Err(e) => Err(format!("Failed to read audio file: {}", e)),
     }
 }
 
 #[tauri::command]
-async fn save_transcript(file_path: String, content: String) -> Result<(), String> {
+async fn save_transcript<R: Runtime>(
+    app: AppHandle<R>,
+    file_path: String,
+    content: String,
+) -> Result<(), String> {
     log_info!("Saving transcript to: {}", file_path);
 
+    let resolved = resolve_within_allowed(&app, &file_path).await?;
+
     // Ensure parent directory exists
-    if let Some(parent) = std::path::Path::new(&file_path).parent() {
+    if let Some(parent) = resolved.parent() {
         if !parent.exists() {
             std::fs::create_dir_all(parent)
                 .map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -245,7 +351,7 @@ async fn save_transcript(file_path: String, content: String) -> Result<(), Strin
     }
 
     // Write content to file
-    std::fs::write(&file_path, content)
+    std::fs::write(&resolved, content)
         .map_err(|e| format!("Failed to write transcript: {}", e))?;
 
     log_info!("Transcript saved successfully");
@@ -398,6 +504,23 @@ pub fn get_language_preference_internal() -> Option<String> {
 pub fn run() {
     log::set_max_level(log::LevelFilter::Info);
 
+    // A panic anywhere — including audio tasks, where tokio swallows it as a
+    // JoinError nobody joins — gets logged with its location and surfaced to
+    // the frontend before unwinding continues. Without this, a panicked
+    // checkpoint task kills recording persistence with zero diagnostics.
+    let default_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        log::error!("PANIC: {}", info);
+        if let Some(app) = global_app_handle() {
+            use tauri::Emitter;
+            let _ = app.emit(
+                "fatal-panic",
+                serde_json::json!({ "message": info.to_string() }),
+            );
+        }
+        default_panic_hook(info);
+    }));
+
     let mut builder = tauri::Builder::default();
 
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
@@ -418,7 +541,7 @@ pub fn run() {
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
-        .manage(whisper_engine::parallel_commands::ParallelProcessorState::new())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(Arc::new(RwLock::new(
             None::<notifications::manager::NotificationManager<tauri::Wry>>,
         )) as NotificationManagerState<tauri::Wry>)
@@ -426,6 +549,10 @@ pub fn run() {
         .manage(summary::summary_engine::ModelManagerState(Arc::new(tokio::sync::Mutex::new(None))))
         .setup(|_app| {
             log::info!("Application setup complete");
+
+            // Register the global handle used by the panic hook and deep
+            // audio tasks to emit events to the frontend.
+            let _ = GLOBAL_APP_HANDLE.set(_app.handle().clone());
 
             // Initialize system tray
             if let Err(e) = tray::create_tray(_app.handle()) {
@@ -501,10 +628,40 @@ pub fn run() {
             // }
 
             // Initialize database (handles first launch detection and conditional setup)
-            tauri::async_runtime::block_on(async {
+            //
+            // A failed migration must NOT panic: sqlx records applied
+            // migrations, so a panic here turns into a permanent boot loop
+            // for every auto-updated user. Show a diagnostic dialog instead
+            // and exit cleanly — a pre-migration backup exists (see
+            // DatabaseManager::backup_before_migrations).
+            let db_init = tauri::async_runtime::block_on(async {
                 database::setup::initialize_database_on_startup(&_app.handle()).await
-            })
-            .expect("Failed to initialize database");
+            });
+            if let Err(e) = db_init {
+                log_error!("Database initialization failed: {}", e);
+                let data_dir = _app
+                    .handle()
+                    .path()
+                    .app_data_dir()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|_| "the application data folder".to_string());
+                use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                _app.handle()
+                    .dialog()
+                    .message(format!(
+                        "MinutIA could not open or update its database and will close.\n\n\
+                         Error: {}\n\n\
+                         Your data folder:\n{}\n\n\
+                         A backup (meeting_minutes.sqlite.pre-v*.bak) is created \
+                         automatically before every update. Restoring it or \
+                         reinstalling the previous version recovers your data.",
+                        e, data_dir
+                    ))
+                    .kind(MessageDialogKind::Error)
+                    .title("MinutIA — database error")
+                    .blocking_show();
+                std::process::exit(1);
+            }
 
             // Initialize bundled templates directory for dynamic template discovery
             log::info!("Initializing bundled templates directory...");
@@ -589,18 +746,6 @@ pub fn run() {
             parakeet_engine::commands::parakeet_cancel_download,
             parakeet_engine::commands::parakeet_delete_corrupted_model,
             parakeet_engine::commands::open_parakeet_models_folder,
-            // Parallel processing commands
-            whisper_engine::parallel_commands::initialize_parallel_processor,
-            whisper_engine::parallel_commands::start_parallel_processing,
-            whisper_engine::parallel_commands::pause_parallel_processing,
-            whisper_engine::parallel_commands::resume_parallel_processing,
-            whisper_engine::parallel_commands::stop_parallel_processing,
-            whisper_engine::parallel_commands::get_parallel_processing_status,
-            whisper_engine::parallel_commands::get_system_resources,
-            whisper_engine::parallel_commands::check_resource_constraints,
-            whisper_engine::parallel_commands::calculate_optimal_workers,
-            whisper_engine::parallel_commands::prepare_audio_chunks,
-            whisper_engine::parallel_commands::test_parallel_processing_setup,
             get_audio_devices,
             trigger_microphone_permission,
             start_recording_with_devices,
@@ -646,12 +791,11 @@ pub fn run() {
             api::api_search_transcripts,
             api::api_get_model_config,
             api::api_save_model_config,
-            api::api_get_api_key,
-            // api::api_get_auto_generate_setting,
-            // api::api_save_auto_generate_setting,
+            api::summary_list_models,
+            api::api_save_api_key,
+            api::api_get_api_key_status,
             api::api_get_transcript_config,
             api::api_save_transcript_config,
-            api::api_get_transcript_api_key,
             api::api_delete_meeting,
             api::api_get_meeting,
             api::api_get_meeting_metadata,
@@ -701,6 +845,10 @@ pub fn run() {
             audio::recording_preferences::get_current_audio_backend,
             audio::recording_preferences::set_audio_backend,
             audio::recording_preferences::get_audio_backend_info,
+            // System info commands
+            system_info::get_system_memory_info,
+            // Chat commands
+            chat::api_ask_transcript,
             // Language preference commands
             set_language_preference,
             // Notification system commands
@@ -798,4 +946,77 @@ pub fn run() {
                 _ => {}
             }
         });
+}
+
+#[cfg(test)]
+mod path_confinement_tests {
+    use super::{canonicalize_root, resolve_within_roots};
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn test_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir()
+            .join(format!("minutia-path-tests-{}", std::process::id()))
+            .join(name);
+        fs::create_dir_all(&root).expect("create test root");
+        root
+    }
+
+    #[test]
+    fn accepts_existing_file_inside_root() {
+        let root = test_root("inside");
+        let file = root.join("meeting.wav");
+        fs::write(&file, b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_ok());
+    }
+
+    #[test]
+    fn accepts_new_file_inside_root_when_parent_exists() {
+        let root = test_root("write");
+        let file = root.join("new-transcript.txt");
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_ok());
+    }
+
+    #[test]
+    fn rejects_path_outside_roots() {
+        let root = test_root("outside-a");
+        let other = test_root("outside-b");
+        let file = other.join("secret.txt");
+        fs::write(&file, b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn rejects_parent_traversal_escaping_root() {
+        let root = test_root("traversal");
+        let escape = root.join("..").join("traversal-evil").join("f.txt");
+        let evil_dir = root.parent().unwrap().join("traversal-evil");
+        fs::create_dir_all(&evil_dir).unwrap();
+        fs::write(evil_dir.join("f.txt"), b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, escape.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn rejects_sibling_directory_sharing_prefix() {
+        // starts_with must compare whole components: "recordings-evil" is not
+        // inside "recordings" even though the string is a prefix.
+        let root = test_root("recordings");
+        let evil = test_root("recordings-evil");
+        let file = evil.join("f.txt");
+        fs::write(&file, b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn canonicalize_root_handles_missing_leaf_dir() {
+        let base = test_root("missing-leaf");
+        let not_created = base.join("does-not-exist-yet");
+        let canon = canonicalize_root(&not_created).expect("parent exists");
+        assert!(canon.ends_with("does-not-exist-yet"));
+    }
 }

@@ -43,8 +43,11 @@ export function OnboardingContainer({
   };
 
   return (
-    <div className="fixed inset-0 bg-background flex items-center justify-center z-50 overflow-hidden">
-      <div className={cn('w-full max-w-2xl h-full max-h-screen flex flex-col px-6 py-6', className)}>
+    <div
+      className="fixed inset-0 flex items-center justify-center z-50 overflow-hidden bg-grid-subtle font-sans"
+      style={{ background: 'radial-gradient(circle at center, #0a1628 0%, #061222 100%)', color: '#e2e8f0' }}
+    >
+      <div className={cn('w-full max-w-2xl h-full max-h-screen flex flex-col px-8 py-8', className)}>
         {/* Progress Indicator with Navigation - Fixed */}
         {step && !hideProgress && (
           <div className="mb-2 relative flex-shrink-0">
@@ -55,9 +58,9 @@ export function OnboardingContainer({
                   onClick={handlePrevious}
                   disabled={!canGoPrevious || step === 1}
                   className={cn(
-                    'pointer-events-auto w-8 h-8 rounded-full bg-card border border-border shadow-sm flex items-center justify-center transition-all duration-200',
+                    'pointer-events-auto w-8 h-8 rounded-full shadow-sm flex items-center justify-center transition-all duration-200 border',
                     canGoPrevious && step !== 1
-                      ? 'hover:bg-muted hover:shadow-md hover:scale-110 text-foreground'
+                      ? 'bg-[#0d1f33] border-[#1a2d42] text-[#7a9ab5] hover:bg-[#1a2d42] hover:scale-110'
                       : 'opacity-0 cursor-not-allowed'
                   )}
                 >
@@ -68,9 +71,9 @@ export function OnboardingContainer({
                   onClick={handleNext}
                   disabled={!canGoNext || step === totalSteps}
                   className={cn(
-                    'pointer-events-auto w-8 h-8 rounded-full bg-card border border-border shadow-sm flex items-center justify-center transition-all duration-200',
+                    'pointer-events-auto w-8 h-8 rounded-full shadow-sm flex items-center justify-center transition-all duration-200 border',
                     canGoNext && step !== totalSteps
-                      ? 'hover:bg-muted hover:shadow-md hover:scale-110 text-foreground'
+                      ? 'bg-[#0d1f33] border-[#1a2d42] text-[#7a9ab5] hover:bg-[#1a2d42] hover:scale-110'
                       : 'opacity-0 cursor-not-allowed'
                   )}
                 >
@@ -85,10 +88,10 @@ export function OnboardingContainer({
         )}
 
         {/* Header - Fixed */}
-        <div className="mb-4 text-center space-y-3 flex-shrink-0">
-          <h1 className="font-heading text-4xl font-semibold text-foreground animate-fade-in-up">{title}</h1>
+        <div className="mb-6 text-center space-y-3 flex-shrink-0">
+          <h1 className="font-heading text-4xl font-extrabold text-white tracking-tight animate-fade-in-up">{title}</h1>
           {description && (
-            <p className="text-base text-muted-foreground max-w-md mx-auto animate-fade-in-up delay-75">
+            <p className="text-base max-w-md mx-auto animate-fade-in-up delay-75" style={{ color: '#7a9ab5' }}>
               {description}
             </p>
           )}

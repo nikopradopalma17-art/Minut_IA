@@ -178,13 +178,20 @@ impl IncrementalAudioSaver {
         
         let mut command = std::process::Command::new(ffmpeg_path);
         
+        let list_file_str = list_file.to_str().ok_or_else(|| {
+            anyhow!("Checkpoint list path is not valid UTF-8: {}", list_file.display())
+        })?;
+        let output_str = output.to_str().ok_or_else(|| {
+            anyhow!("Output path is not valid UTF-8: {}", output.display())
+        })?;
+
         command.args(&[
             "-f", "concat",          // Use concat demuxer
             "-safe", "0",            // Allow absolute paths
-            "-i", list_file.to_str().unwrap(),
+            "-i", list_file_str,
             "-c", "copy",            // Copy codec - no re-encoding!
             "-y",                    // Overwrite output file
-            output.to_str().unwrap()
+            output_str
         ]);
 
         // Hide console window on Windows to prevent CMD popup during finalization
@@ -312,10 +319,13 @@ pub async fn recover_audio_from_checkpoints(
 
     let mut command = std::process::Command::new(ffmpeg_path);
 
+    let concat_file_path_str = concat_file_path.to_str()
+        .ok_or("Concat file path is not valid UTF-8")?;
+
     command.args(&[
         "-f", "concat",
         "-safe", "0",
-        "-i", concat_file_path.to_str().unwrap(),
+        "-i", concat_file_path_str,
         "-c", "copy",
         "-y", // Overwrite if exists
         &output_path_str

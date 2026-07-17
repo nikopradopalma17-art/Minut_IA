@@ -129,6 +129,12 @@ pub struct Setting {
     #[sqlx(rename = "customOpenAIConfig")]
     #[serde(rename = "customOpenAIConfig")]
     pub custom_openai_config: Option<String>,
+    #[sqlx(rename = "geminiApiKey")]
+    #[serde(rename = "geminiApiKey")]
+    pub gemini_api_key: Option<String>,
+    #[sqlx(rename = "keyringMigrationDone")]
+    #[serde(rename = "keyringMigrationDone")]
+    pub keyring_migration_done: i64,
 }
 
 impl Setting {

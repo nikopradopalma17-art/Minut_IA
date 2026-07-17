@@ -2,9 +2,7 @@
 
 import './globals.css'
 import { Inter, Jost } from 'next/font/google'
-import Sidebar from '@/components/Sidebar'
 import { SidebarProvider } from '@/components/Sidebar/SidebarProvider'
-import MainContent from '@/components/MainContent'
 import AnalyticsProvider from '@/components/AnalyticsProvider'
 import { Toaster, toast } from 'sonner'
 import "sonner/dist/styles.css"
@@ -26,6 +24,7 @@ import { ImportDialogProvider } from '@/contexts/ImportDialogContext'
 import { isAudioExtension, getAudioFormatsDisplayList } from '@/constants/audioFormats'
 import { TranslationProvider } from '@/contexts/TranslationContext'
 import { SearchCommand } from '@/components/SearchCommand'
+import { UpdateCheckProvider } from '@/components/UpdateCheckProvider'
 
 
 const inter = Inter({
@@ -237,46 +236,49 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="es">
+    // MinutIA ships a single, committed dark brand identity. Forcing the `dark`
+    // token set keeps modals, dialogs, onboarding and legacy routes consistent
+    // with the dark SPA surfaces instead of rendering light-on-dark.
+    <html lang="es" className="dark">
       <body className={`${inter.variable} ${jost.variable} font-sans antialiased`}>
         <AnalyticsProvider>
           <TranslationProvider>
             <RecordingStateProvider>
               <TranscriptProvider>
                 <ConfigProvider>
-                  <OllamaDownloadProvider>
-                    <OnboardingProvider>
-                      <SidebarProvider>
-                        <TooltipProvider>
-                          <RecordingPostProcessingProvider>
-                            <ImportDialogProvider onOpen={handleOpenImportDialog}>
-                              {/* Download progress toast provider - listens for background downloads */}
-                              <DownloadProgressToastProvider />
+                  <UpdateCheckProvider>
+                    <OllamaDownloadProvider>
+                      <OnboardingProvider>
+                        <SidebarProvider>
+                          <TooltipProvider>
+                            <RecordingPostProcessingProvider>
+                              <ImportDialogProvider onOpen={handleOpenImportDialog}>
+                                {/* Download progress toast provider - listens for background downloads */}
+                                <DownloadProgressToastProvider />
 
-                              {/* Show onboarding or main app */}
-                              {showOnboarding ? (
-                                <OnboardingFlow onComplete={handleOnboardingComplete} />
-                              ) : (
-                                <div className="flex">
-                                  <Sidebar />
-                                  <MainContent>{children}</MainContent>
-                                </div>
-                              )}
-                              {/* Import audio overlay and dialog */}
-                              <ImportDropOverlay visible={showDropOverlay} />
-                              <ConditionalImportDialog
-                                showImportDialog={showImportDialog}
-                                handleImportDialogClose={handleImportDialogClose}
-                                importFilePath={importFilePath}
-                              />
-                            </ImportDialogProvider>
-                            <SearchCommand />
-                          </RecordingPostProcessingProvider>
-                        </TooltipProvider>
-                      </SidebarProvider>
-                    </OnboardingProvider>
-
-                  </OllamaDownloadProvider>
+                                {/* Show onboarding or main app */}
+                                {showOnboarding ? (
+                                  <OnboardingFlow onComplete={handleOnboardingComplete} />
+                                ) : (
+                                  <div className="flex-1 w-full min-h-dvh h-dvh overflow-x-hidden overflow-y-hidden flex flex-col">
+                                    {children}
+                                  </div>
+                                )}
+                                {/* Import audio overlay and dialog */}
+                                <ImportDropOverlay visible={showDropOverlay} />
+                                <ConditionalImportDialog
+                                  showImportDialog={showImportDialog}
+                                  handleImportDialogClose={handleImportDialogClose}
+                                  importFilePath={importFilePath}
+                                />
+                              </ImportDialogProvider>
+                              <SearchCommand />
+                            </RecordingPostProcessingProvider>
+                          </TooltipProvider>
+                        </SidebarProvider>
+                      </OnboardingProvider>
+                    </OllamaDownloadProvider>
+                  </UpdateCheckProvider>
                 </ConfigProvider>
               </TranscriptProvider>
             </RecordingStateProvider>

@@ -302,7 +302,11 @@ impl RecordingManager {
             }
             Err(e) => {
                 error!("Failed to save recording: {}", e);
-                // Don't fail the stop operation if saving fails
+                // Propagate: returning Ok here made stop_recording report
+                // success while audio.mp4 was never written (disk full,
+                // ffmpeg blocked). The caller notifies the frontend and
+                // still finishes the shutdown — transcripts are preserved.
+                return Err(anyhow::anyhow!("Failed to save recording: {}", e));
             }
         }
 

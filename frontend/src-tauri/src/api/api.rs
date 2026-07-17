@@ -69,6 +69,68 @@ impl From<CommitmentWithMeetingModel> for CommitmentItem {
     }
 }
 
+#[cfg(test)]
+mod summary_catalog_tests {
+    use super::{is_summary_catalog_provider, SummaryCatalogResponse};
+
+    #[test]
+    fn only_supported_cloud_summary_providers_are_accepted() {
+        for provider in ["openai", "claude", "groq", "openrouter"] {
+            assert!(is_summary_catalog_provider(provider));
+        }
+        for provider in ["builtin-ai", "ollama", "custom-openai", "whisper"] {
+            assert!(!is_summary_catalog_provider(provider));
+        }
+    }
+
+    #[test]
+    fn curated_response_never_claims_dynamic_discovery() {
+        let response = SummaryCatalogResponse::curated();
+        assert_eq!(response.source, "curated");
+        assert!(response.models.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod endpoint_validation_tests {
+    use super::validate_custom_endpoint;
+
+    #[test]
+    fn accepts_https_and_loopback_http() {
+        for endpoint in [
+            "https://api.example.com/v1",
+            "http://localhost:11434/v1",
+            "http://LOCALHOST:8080",
+            "http://127.0.0.1:8000/v1",
+            "http://127.0.0.5:9999",
+            "http://[::1]:8000/v1",
+        ] {
+            assert!(validate_custom_endpoint(endpoint).is_ok(), "{}", endpoint);
+        }
+    }
+
+    #[test]
+    fn rejects_http_to_non_loopback_hosts() {
+        for endpoint in [
+            "http://api.example.com/v1",
+            "http://localhost.evil.com/v1",
+            "http://localhostx.com",
+            "http://127.0.0.1.evil.com/v1",
+            "http://localhost@evil.com/v1",
+            "http://192.168.1.10:11434",
+        ] {
+            assert!(validate_custom_endpoint(endpoint).is_err(), "{}", endpoint);
+        }
+    }
+
+    #[test]
+    fn rejects_non_http_schemes_and_garbage() {
+        for endpoint in ["file:///etc/passwd", "ftp://x.com", "not a url", ""] {
+            assert!(validate_custom_endpoint(endpoint).is_err(), "{}", endpoint);
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchRequest {
     pub query: String,
@@ -91,6 +153,19 @@ pub struct ModelConfig {
     pub whisper_model: String,
     #[serde(rename = "apiKey")]
     pub api_key: Option<String>,
+    #[serde(rename = "ollamaEndpoint")]
+    pub ollama_endpoint: Option<String>,
+}
+
+/// Secret-free model configuration returned to the frontend.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ModelConfigStatus {
+    pub provider: String,
+    pub model: String,
+    #[serde(rename = "whisperModel")]
+    pub whisper_model: String,
+    #[serde(rename = "apiKeyConfigured")]
+    pub api_key_configured: bool,
     #[serde(rename = "ollamaEndpoint")]
     pub ollama_endpoint: Option<String>,
 }
@@ -118,6 +193,25 @@ pub struct TranscriptConfig {
     pub model: String,
     #[serde(rename = "apiKey")]
     pub api_key: Option<String>,
+}
+
+/// Secret-free custom OpenAI configuration returned to the frontend.
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CustomOpenAIConfigStatus {
+    pub endpoint: String,
+    pub model: String,
+    #[serde(rename = "apiKeyConfigured")]
+    pub api_key_configured: bool,
+    #[serde(rename = "maxTokens")]
+    pub max_tokens: Option<i32>,
+    pub temperature: Option<f32>,
+    #[serde(rename = "topP")]
+    pub top_p: Option<f32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ApiKeyStatus {
+    pub configured: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -409,7 +503,7 @@ pub async fn api_get_model_config<R: Runtime>(
     _app: AppHandle<R>,
     state: tauri::State<'_, AppState>,
     _auth_token: Option<String>,
-) -> Result<Option<ModelConfig>, String> {
+) -> Result<Option<ModelConfigStatus>, String> {
     log_info!("api_get_model_config called (native)");
     let pool = state.db_manager.pool();
 
@@ -424,12 +518,12 @@ pub async fn api_get_model_config<R: Runtime>(
             );
             match SettingsRepository::get_api_key(pool, &config.provider).await {
                 Ok(api_key) => {
-                    log_info!("Successfully retrieved model config and API key.");
-                    Ok(Some(ModelConfig {
+                    log_info!("Successfully retrieved model config status.");
+                    Ok(Some(ModelConfigStatus {
                         provider: config.provider,
                         model: config.model,
                         whisper_model: config.whisper_model,
-                        api_key,
+                        api_key_configured: api_key.is_some_and(|key| !key.trim().is_empty()),
                         ollama_endpoint: config.ollama_endpoint,
                     }))
                 }
@@ -495,6 +589,7 @@ pub async fn api_save_model_config<R: Runtime>(
                 log_error!("❌ Failed to save API key: {}", e);
                 return Err(e.to_string());
             }
+            clear_summary_model_cache(&provider);
         }
     }
 
@@ -509,32 +604,6 @@ pub async fn api_save_model_config<R: Runtime>(
     Ok(
         serde_json::json!({ "status": "success", "message": "Model configuration saved successfully" }),
     )
-}
-
-#[tauri::command]
-pub async fn api_get_api_key<R: Runtime>(
-    _app: AppHandle<R>,
-    state: tauri::State<'_, AppState>,
-    provider: String,
-    _auth_token: Option<String>,
-) -> Result<String, String> {
-    log_info!(
-        "api_get_api_key called (native) for provider '{}'",
-        &provider
-    );
-    match SettingsRepository::get_api_key(&state.db_manager.pool(), &provider).await {
-        Ok(key) => {
-            log_info!(
-                "Successfully retrieved API key for provider '{}'.",
-                &provider
-            );
-            Ok(key.unwrap_or_default())
-        }
-        Err(e) => {
-            log_error!("Failed to get API key for provider '{}': {}", &provider, e);
-            Err(e.to_string())
-        }
-    }
 }
 
 #[tauri::command]
@@ -554,12 +623,12 @@ pub async fn api_get_transcript_config<R: Runtime>(
                 &config.model
             );
             match SettingsRepository::get_transcript_api_key(pool, &config.provider).await {
-                Ok(api_key) => {
-                    log_info!("Successfully retrieved transcript config and API key.");
+                Ok(_api_key) => {
+                    log_info!("Successfully retrieved transcript config.");
                     Ok(Some(TranscriptConfig {
                         provider: config.provider,
                         model: config.model,
-                        api_key,
+                        api_key: None,
                     }))
                 }
                 Err(e) => {
@@ -625,33 +694,117 @@ pub async fn api_save_transcript_config<R: Runtime>(
 }
 
 #[tauri::command]
-pub async fn api_get_transcript_api_key<R: Runtime>(
+pub async fn api_save_api_key<R: Runtime>(
     _app: AppHandle<R>,
     state: tauri::State<'_, AppState>,
     provider: String,
+    api_key: String,
     _auth_token: Option<String>,
-) -> Result<String, String> {
-    log_info!(
-        "api_get_transcript_api_key called (native) for provider '{}'",
-        &provider
-    );
-    match SettingsRepository::get_transcript_api_key(&state.db_manager.pool(), &provider).await {
-        Ok(key) => {
-            log_info!(
-                "Successfully retrieved transcript API key for provider '{}'.",
-                &provider
-            );
-            Ok(key.unwrap_or_default())
-        }
-        Err(e) => {
-            log_error!(
-                "Failed to get transcript API key for provider '{}': {}",
-                &provider,
-                e
-            );
-            Err(e.to_string())
-        }
+) -> Result<(), String> {
+    SettingsRepository::save_api_key(&state.db_manager.pool(), &provider, &api_key)
+        .await
+        .map_err(|e| e.to_string())?;
+    clear_summary_model_cache(&provider);
+    Ok(())
+}
+
+/// Reports only whether a stored cloud credential exists for a provider.
+#[tauri::command]
+pub async fn api_get_api_key_status<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    provider: String,
+) -> Result<ApiKeyStatus, String> {
+    let key = SettingsRepository::get_api_key(&state.db_manager.pool(), &provider)
+        .await
+        .map_err(|error| error.to_string())?;
+    Ok(ApiKeyStatus {
+        configured: key.is_some_and(|value| !value.trim().is_empty()),
+    })
+}
+
+/// Lists summary-capable cloud models without exposing the stored provider credential.
+///
+/// This command uses dynamic-only provider discovery and labels a curated fallback on
+/// missing credentials, network errors, and empty provider responses.
+#[tauri::command]
+pub async fn summary_list_models<R: Runtime>(
+    _app: AppHandle<R>,
+    state: tauri::State<'_, AppState>,
+    provider: String,
+) -> Result<SummaryCatalogResponse, String> {
+    if !is_summary_catalog_provider(&provider) {
+        return Err(format!("Unsupported summary catalog provider: {}", provider));
     }
+
+    let api_key = SettingsRepository::get_api_key(&state.db_manager.pool(), &provider)
+        .await
+        .map_err(|error| error.to_string())?;
+
+    let Some(api_key) = api_key.filter(|key| !key.trim().is_empty()) else {
+        return Ok(SummaryCatalogResponse::curated());
+    };
+
+    let models: Result<Vec<SummaryCatalogModel>, String> = match provider.as_str() {
+        "openai" => crate::openai::openai::fetch_openai_models(api_key.clone())
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel { label: model.id.clone(), id: model.id }).collect()),
+        "claude" => crate::anthropic::anthropic::fetch_anthropic_models(api_key.clone())
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel {
+                label: model.display_name.unwrap_or_else(|| model.id.clone()),
+                id: model.id,
+            }).collect()),
+        "groq" => crate::groq::groq::fetch_groq_models(api_key.clone())
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel { label: model.id.clone(), id: model.id }).collect()),
+        "openrouter" => crate::openrouter::fetch_openrouter_models(api_key)
+            .await
+            .map(|models| models.into_iter().map(|model| SummaryCatalogModel { label: model.name, id: model.id }).collect()),
+        _ => unreachable!("provider was validated above"),
+    };
+
+    // When the user has configured an API key, propagate real errors instead of
+    // silently falling back to curated models — the UI shows them a retry option.
+    // An empty dynamic list still degrades gracefully to curated.
+    match models {
+        Ok(models) if !models.is_empty() => Ok(SummaryCatalogResponse { models, source: "dynamic" }),
+        Ok(_) => Ok(SummaryCatalogResponse::curated()),
+        Err(error) => Err(format!("No se pudieron cargar los modelos de {}: {}", provider, error)),
+    }
+}
+
+/// A model identifier safe to expose to the frontend. Credentials never cross this boundary.
+#[derive(Debug, Serialize)]
+pub struct SummaryCatalogModel {
+    pub id: String,
+    pub label: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SummaryCatalogResponse {
+    pub models: Vec<SummaryCatalogModel>,
+    pub source: &'static str,
+}
+
+impl SummaryCatalogResponse {
+    fn curated() -> Self {
+        Self { models: Vec::new(), source: "curated" }
+    }
+}
+
+fn clear_summary_model_cache(provider: &str) {
+    match provider {
+        "openai" => crate::openai::openai::clear_cache(),
+        "claude" => crate::anthropic::anthropic::clear_cache(),
+        "groq" => crate::groq::groq::clear_cache(),
+        "openrouter" => crate::openrouter::clear_cache(),
+        _ => {}
+    }
+}
+
+fn is_summary_catalog_provider(provider: &str) -> bool {
+    matches!(provider, "openai" | "claude" | "groq" | "openrouter")
 }
 
 #[tauri::command]
@@ -667,6 +820,7 @@ pub async fn api_delete_api_key<R: Runtime>(
     );
     match SettingsRepository::delete_api_key(&state.db_manager.pool(), &provider).await {
         Ok(_) => {
+            clear_summary_model_cache(&provider);
             log_info!("Successfully deleted API key for provider '{}'.", &provider);
             Ok(())
         }
@@ -1018,24 +1172,52 @@ pub async fn open_meeting_folder<R: Runtime>(
 
 #[tauri::command]
 pub async fn open_external_url(url: String) -> Result<(), String> {
-    use std::process::Command;
-
-    let result = if cfg!(target_os = "windows") {
-        Command::new("cmd").args(&["/C", "start", &url]).output()
-    } else if cfg!(target_os = "macos") {
-        Command::new("open").arg(&url).output()
-    } else {
-        // Linux and other Unix-like systems
-        Command::new("xdg-open").arg(&url).output()
-    };
-
-    match result {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to open URL: {}", e)),
+    let parsed = url::Url::parse(&url).map_err(|e| format!("Invalid URL: {}", e))?;
+    match parsed.scheme() {
+        "http" | "https" => {}
+        scheme => return Err(format!("Unsupported URL scheme: {}", scheme)),
     }
+
+    // Delegates to the OS's native "open" mechanism (ShellExecuteW on Windows,
+    // `open` on macOS, `xdg-open` on Linux) instead of spawning cmd.exe, which
+    // re-parses its whole command line and would let shell metacharacters in
+    // `url` execute arbitrary commands.
+    open::that(&url).map_err(|e| format!("Failed to open URL: {}", e))
 }
 
 // ===== CUSTOM OPENAI API COMMANDS =====
+
+/// Validate a user-supplied OpenAI-compatible endpoint URL.
+///
+/// `https` is required except for loopback hosts (localhost, 127.0.0.0/8,
+/// ::1), because the endpoint is later called with the API key in a Bearer
+/// header. String-prefix checks are not enough here: `http://localhost.evil.com`,
+/// `http://127.0.0.1.evil.com` and `http://localhost@evil.com` must all be
+/// rejected, so the host is checked on the parsed URL.
+pub(crate) fn validate_custom_endpoint(endpoint: &str) -> Result<(), String> {
+    let parsed =
+        url::Url::parse(endpoint).map_err(|e| format!("Invalid endpoint URL: {}", e))?;
+    match parsed.scheme() {
+        "https" => Ok(()),
+        "http" => {
+            let is_loopback = match parsed.host() {
+                Some(url::Host::Domain(host)) => host.eq_ignore_ascii_case("localhost"),
+                Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+                Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+                None => false,
+            };
+            if is_loopback {
+                Ok(())
+            } else {
+                Err(
+                    "Endpoint must use https:// (http:// is allowed only for localhost, 127.0.0.1 or [::1])"
+                        .to_string(),
+                )
+            }
+        }
+        other => Err(format!("Unsupported endpoint scheme: {}", other)),
+    }
+}
 
 /// Saves the custom OpenAI configuration
 /// This configuration is stored as JSON and includes endpoint, apiKey, model, and optional parameters
@@ -1064,10 +1246,9 @@ pub async fn api_save_custom_openai_config<R: Runtime>(
         return Err("Model name is required".to_string());
     }
 
-    // Validate endpoint URL format
-    if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-        return Err("Endpoint must start with http:// or https://".to_string());
-    }
+    // Validate endpoint URL: require https:// unless it's a loopback host.
+    let trimmed_endpoint = endpoint.trim();
+    validate_custom_endpoint(trimmed_endpoint)?;
 
     // Validate optional numeric parameters
     if let Some(temp) = temperature {
@@ -1117,7 +1298,7 @@ pub async fn api_save_custom_openai_config<R: Runtime>(
 pub async fn api_get_custom_openai_config<R: Runtime>(
     _app: AppHandle<R>,
     state: tauri::State<'_, AppState>,
-) -> Result<Option<CustomOpenAIConfig>, String> {
+) -> Result<Option<CustomOpenAIConfigStatus>, String> {
     log_info!("api_get_custom_openai_config called");
 
     let pool = state.db_manager.pool();
@@ -1130,7 +1311,14 @@ pub async fn api_get_custom_openai_config<R: Runtime>(
             } else {
                 log_info!("No custom OpenAI config found");
             }
-            Ok(config)
+            Ok(config.map(|config| CustomOpenAIConfigStatus {
+                endpoint: config.endpoint,
+                model: config.model,
+                api_key_configured: config.api_key.is_some_and(|key| !key.trim().is_empty()),
+                max_tokens: config.max_tokens,
+                temperature: config.temperature,
+                top_p: config.top_p,
+            }))
         }
         Err(e) => {
             log_error!("❌ Failed to get custom OpenAI config: {}", e);
@@ -1154,13 +1342,12 @@ pub async fn api_test_custom_openai_connection<R: Runtime>(
         &model
     );
 
-    // Validate endpoint URL format
-    if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-        return Err("Endpoint must start with http:// or https://".to_string());
-    }
+    // Validate endpoint URL: require https:// unless it's a loopback host.
+    let trimmed_endpoint = endpoint.trim();
+    validate_custom_endpoint(trimmed_endpoint)?;
 
     // Build the URL - append /chat/completions to the base endpoint
-    let url = format!("{}/chat/completions", endpoint.trim_end_matches('/'));
+    let url = format!("{}/chat/completions", trimmed_endpoint.trim_end_matches('/'));
 
     // Create a minimal test request
     let test_request = serde_json::json!({

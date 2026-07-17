@@ -217,14 +217,16 @@ export default function PageContent({
         ollamaEndpoint: config.ollamaEndpoint ?? null,
       });
 
-      // Emit event so ConfigContext and other listeners stay in sync
+      const safeConfig = { ...config, apiKey: null, customOpenAIApiKey: null };
+      // Emit event so ConfigContext and other listeners stay in sync without credentials.
       const { emit } = await import('@tauri-apps/api/event');
-      await emit('model-config-updated', config);
+      await emit('model-config-updated', safeConfig);
 
       toast.success(t('meeting_details.model_settings_saved'));
     } catch (error) {
       console.error('Failed to save model config:', error);
       toast.error(t('meeting_details.model_settings_save_failed'));
+      throw error;
     }
   };
 
@@ -286,7 +288,7 @@ export default function PageContent({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: 'easeOut' }}
-      className="flex flex-col h-screen bg-background"
+      className="flex flex-col h-dvh bg-background overflow-hidden"
     >
       <div ref={panelsContainerRef} className="flex flex-1 overflow-hidden">
         <TranscriptPanel

@@ -394,11 +394,15 @@ pub async fn api_process_transcript<R: Runtime>(
     let final_prompt = custom_prompt.unwrap_or_else(|| "".to_string());
     let final_template_id = template_id.unwrap_or_else(|| "minuta_corporativa".to_string());
 
-    // Normalise empty / whitespace-only to None so "" and null behave identically
-    let summary_language = summary_language.and_then(|s| {
-        let t = s.trim();
-        if t.is_empty() { None } else { Some(t.to_string()) }
-    });
+    // Normalise empty / whitespace-only to None so "" and null behave identically.
+    // Default to Spanish ("es") when no language is requested so AI summaries are
+    // generated in the user's primary language unless explicitly overridden.
+    let summary_language = summary_language
+        .and_then(|s| {
+            let t = s.trim();
+            if t.is_empty() { None } else { Some(t.to_string()) }
+        })
+        .or_else(|| Some("es".to_string()));
 
     // Create or reset the process entry in the database
     SummaryProcessesRepository::create_or_reset_process(&pool, &m_id)

@@ -378,6 +378,12 @@ $env:RUST_LOG="debug"; ./clean_run_windows.bat
 
 7. **Audio Permissions**: Request permissions early. macOS requires both microphone AND screen recording for system audio.
 
+8. **Never change `identifier` in `frontend/src-tauri/tauri.conf.json` again after the first public MinutIA release**: Tauri's auto-updater ties update continuity to this bundle identifier (`com.minutia.app`). Changing it again would make every existing installation invisible to future auto-updates — users would need to manually reinstall, exactly like the Meetily → MinutIA rebrand already did once (`com.meetily.ai` → `com.minutia.app`).
+
+9. **Code signing is not yet enabled**: `.github/workflows/release.yml` builds with `sign-binaries: false` and only targets Windows. Installers ship unsigned until DigiCert (Windows) / Apple Developer (macOS) certificates are configured as CI secrets — expect SmartScreen/Gatekeeper warnings on install until then.
+
+10. **Never edit a published SQL migration** in `frontend/src-tauri/migrations/`: sqlx embeds them at compile time and verifies per-file checksums against the user's database (`_sqlx_migrations`). Editing an already-shipped `.sql` (even a comment) makes every existing install fail with `VersionMismatch` on the next update. Only ADD new migration files with a later timestamp. The migrations shipped in v1.0.0 are frozen.
+
 ## Repository-Specific Conventions
 
 - **Logging Format**: Rust logs should include enough module context to diagnose app behavior

@@ -126,17 +126,7 @@ const Sidebar: React.FC = () => {
       try {
         const data = await invoke('api_get_model_config') as any;
         if (data && data.provider !== null) {
-          // Fetch API key if not included and provider requires it
-          if (data.provider !== 'ollama' && !data.apiKey) {
-            try {
-              const apiKeyData = await invoke('api_get_api_key', {
-                provider: data.provider
-              }) as string;
-              data.apiKey = apiKeyData;
-            } catch (err) {
-              console.error('Failed to fetch API key:', err);
-            }
-          }
+          data.apiKey = '';
           setModelConfig(data);
         }
       } catch (error) {
@@ -202,19 +192,21 @@ const Sidebar: React.FC = () => {
         ollamaEndpoint: config.ollamaEndpoint,
       });
 
-      setModelConfig(config);
+      const safeConfig = { ...config, apiKey: null, customOpenAIApiKey: null };
+      setModelConfig(safeConfig);
       console.log('Model config saved successfully');
       setSettingsSaveSuccess(true);
 
       // Emit event to sync other components
       const { emit } = await import('@tauri-apps/api/event');
-      await emit('model-config-updated', config);
+      await emit('model-config-updated', safeConfig);
 
       // Track settings change
       await Analytics.trackSettingsChanged('model_config', `${config.provider}_${config.model}`);
     } catch (error) {
       console.error('Error saving model config:', error);
       setSettingsSaveSuccess(false);
+      throw error;
     }
   };
 

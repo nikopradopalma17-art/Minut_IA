@@ -1,132 +1,19 @@
 'use client';
 
-import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
-import { ArrowLeft, Settings2, Mic, Database as DatabaseIcon, SparkleIcon } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { invoke } from '@tauri-apps/api/core';
-import { motion } from 'framer-motion';
-import { TranscriptSettings } from '@/components/TranscriptSettings';
-import { RecordingSettings } from '@/components/RecordingSettings';
-import { PreferenceSettings } from '@/components/PreferenceSettings';
-import { SummaryModelSettings } from '@/components/SummaryModelSettings';
-import { useConfig } from '@/contexts/ConfigContext';
+import HubTopNav from '@/components/HubTopNav';
+import { SettingsPanel } from '@/components/SettingsPanel';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-
-// Tabs configuration (constant). labelKey resolves via i18n at render.
-const TABS = [
-  { value: 'general', labelKey: 'settings.general', icon: Settings2 },
-  { value: 'recording', labelKey: 'settings.recordings', icon: Mic },
-  { value: 'Transcriptionmodels', labelKey: 'settings.transcription', icon: DatabaseIcon },
-  { value: 'summaryModels', labelKey: 'settings.summary', icon: SparkleIcon }
-] as const;
 
 export default function SettingsPage() {
-  const router = useRouter();
   const { t } = useTranslation();
-  const { transcriptModelConfig, setTranscriptModelConfig } = useConfig();
-
-  // Animation state for tabs
-  const [activeTab, setActiveTab] = useState('general');
-  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const [underlineStyle, setUnderlineStyle] = useState({ left: 0, width: 0 });
-
-  // Load saved transcript configuration on mount
-  useEffect(() => {
-    const loadTranscriptConfig = async () => {
-      try {
-        const config = await invoke('api_get_transcript_config') as any;
-        if (config) {
-          console.log('Loaded saved transcript config:', config);
-          setTranscriptModelConfig({
-            provider: config.provider || 'localWhisper',
-            model: config.model || 'large-v3',
-            apiKey: config.apiKey || null
-          });
-        }
-      } catch (error) {
-        console.error('Failed to load transcript config:', error);
-      }
-    };
-    loadTranscriptConfig();
-  }, [setTranscriptModelConfig]);
-
-  // Update underline position when active tab changes
-  useLayoutEffect(() => {
-    const activeIndex = TABS.findIndex(tab => tab.value === activeTab);
-    const activeTabElement = tabRefs.current[activeIndex];
-
-    if (activeTabElement) {
-      const { offsetLeft, offsetWidth } = activeTabElement;
-      setUnderlineStyle({ left: offsetLeft, width: offsetWidth });
-    }
-  }, [activeTab]);
 
   return (
-    <div className="h-screen bg-background flex flex-col">
-      {/* Fixed Header */}
-      <div className="sticky top-0 z-10 bg-background border-b border-border">
-        <div className="max-w-6xl mx-auto px-8 py-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.back()}
-              className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span>{t('settings.back')}</span>
-            </button>
-            <h1 className="font-heading text-3xl font-bold text-foreground">{t('settings.title')}</h1>
-          </div>
-        </div>
-      </div>
-
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="max-w-6xl mx-auto p-8 pt-6">
-          {/* Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="bg-transparent relative rounded-none border-b border-border p-0 h-auto">
-              {TABS.map((tab, index) => {
-                const Icon = tab.icon;
-                return (
-                  <TabsTrigger
-                    key={tab.value}
-                    value={tab.value}
-                    ref={el => { tabRefs.current[index] = el }}
-                    className="flex items-center gap-2 px-6 py-4 bg-transparent rounded-none border-0 data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none text-muted-foreground hover:text-foreground relative z-10"
-                  >
-                    <Icon className="w-4 h-4" />
-                    {t(tab.labelKey)}
-                  </TabsTrigger>
-                );
-              })}
-
-              <motion.div
-                className="absolute bottom-0 z-20 h-0.5 bg-primary"
-                layoutId="underline"
-                style={{ left: underlineStyle.left, width: underlineStyle.width }}
-                transition={{ type: 'spring', stiffness: 400, damping: 40 }}
-              />
-            </TabsList>
-
-            <TabsContent value="general">
-              <PreferenceSettings />
-            </TabsContent>
-            <TabsContent value="recording">
-              <RecordingSettings />
-            </TabsContent>
-            <TabsContent value="Transcriptionmodels">
-              <TranscriptSettings
-                transcriptModelConfig={transcriptModelConfig}
-                setTranscriptModelConfig={setTranscriptModelConfig}
-              />
-            </TabsContent>
-            <TabsContent value="summaryModels">
-              <SummaryModelSettings />
-            </TabsContent>
-          </Tabs>
-        </div>
-      </div>
+    <div className="h-dvh bg-background overflow-hidden flex flex-col">
+      <HubTopNav active="ajustes" />
+      <main className="flex-1 min-h-0 overflow-y-auto max-w-6xl mx-auto px-4 py-6 sm:px-6 xl:px-8 w-full">
+        <h1 className="font-heading text-3xl font-bold text-foreground mb-6">{t('settings.title')}</h1>
+        <SettingsPanel />
+      </main>
     </div>
   );
-};
+}

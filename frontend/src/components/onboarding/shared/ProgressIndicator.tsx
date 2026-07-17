@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Lock, Download, CheckCircle2, BrainCircuit } from 'lucide-react';
+import { Check, Lock, Download, CheckCircle2, BrainCircuit, Cloud } from 'lucide-react';
 
 interface ProgressIndicatorProps {
   current: number;
@@ -10,8 +10,9 @@ interface ProgressIndicatorProps {
 const stepIcons = [
   Lock,         // 1. Welcome
   BrainCircuit, // 2. Setup Overview
-  Download,     // 3. Download Progress
-  // Step 4 (Permissions) doesn't need icon - auto-skipped on non-macOS
+  Cloud,        // 3. Local vs Cloud
+  Download,     // 4. Download Progress
+  // Step 5 (Permissions) doesn't need icon - auto-skipped on non-macOS
 ];
 
 export function ProgressIndicator({ current, total, onStepClick }: ProgressIndicatorProps) {
@@ -32,12 +33,12 @@ export function ProgressIndicator({ current, total, onStepClick }: ProgressIndic
               <button
                 onClick={() => isClickable && onStepClick(step)}
                 disabled={!isClickable}
-                className={`relative flex items-center justify-center transition-all duration-300 ${
+                className={`relative flex items-center justify-center transition-all duration-300 rounded-full border ${
                   isCompleted
-                    ? 'w-7 h-7 bg-impulso-ocean rounded-full'
+                    ? 'w-7 h-7 bg-[#2D5B75] border-[#2D5B75]'
                     : isActive
-                      ? 'w-8 h-8 bg-primary rounded-full'
-                      : 'w-6 h-6 bg-muted rounded-full'
+                      ? 'w-8 h-8 bg-[#447794] border-[#447794]'
+                      : 'w-6 h-6 bg-[#0d1f33] border-[#1a2d42]'
                 } ${isClickable ? 'cursor-pointer hover:scale-110 hover:shadow-md' : 'cursor-default'}`}
               >
                 {isCompleted ? (
@@ -45,7 +46,7 @@ export function ProgressIndicator({ current, total, onStepClick }: ProgressIndic
                 ) : (
                   <StepIcon
                     className={`transition-all duration-300 ${
-                      isActive ? 'w-4 h-4 text-primary-foreground' : 'w-3 h-3 text-muted-foreground'
+                      isActive ? 'w-4 h-4 text-[#061222]' : 'w-3 h-3 text-[#5a7a94]'
                     }`}
                   />
                 )}
@@ -55,7 +56,7 @@ export function ProgressIndicator({ current, total, onStepClick }: ProgressIndic
               {index < visibleSteps.length - 1 && (
                 <div
                   className={`h-0.5 w-6 transition-all duration-300 ${
-                    isCompleted ? 'bg-impulso-ocean' : 'bg-border'
+                    isCompleted ? 'bg-[#2D5B75]' : 'bg-[#1a2d42]'
                   }`}
                 />
               )}

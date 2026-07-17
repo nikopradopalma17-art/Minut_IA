@@ -1,29 +1,29 @@
-# Meetily Privacy Policy
+# MinutIA Privacy Policy
 
-*Last updated: [Current Date]*
+*Last updated: 2026-07-16*
 
 ## Our Privacy-First Commitment
 
-Meetily is built on the principle that your meeting data should remain private and under your control. This privacy policy explains how we handle data in our open-source meeting assistant.
+MinutIA is built on the principle that your meeting data should remain private and under your control. This privacy policy explains how we handle data in our open-source meeting assistant.
 
 ## Data Processing Philosophy
 
 ### Local-First Processing
-- **Meeting transcription**: Processed entirely on your device using local Whisper models
-- **Audio recordings**: Never transmitted to external servers
+- **Meeting transcription**: Processed entirely on your device using local Whisper/Parakeet models
+- **Audio recordings**: MinutIA does not transmit your audio recordings to external servers — audio is processed locally. If you choose a cloud LLM provider for summaries, the transcribed **text** (not the audio) is sent to that provider according to your configuration
 - **Meeting content**: Remains on your infrastructure
 - **AI summaries**: Generated locally or through your chosen LLM provider
 
 ### Your Data Ownership
 - You own all meeting data, transcripts, and recordings
 - Data is stored locally on your device
-- No vendor lock-in - export your data anytime
+- No vendor lock-in — export your data anytime
 - Complete control over data retention and deletion
 
 ## Usage Analytics
 
 ### What We Collect
-Usage analytics is optional and off by default. When you choose to enable it, Meetily collects minimal, anonymized usage data:
+Usage analytics is optional and off by default. When you choose to enable it, MinutIA collects minimal, anonymized usage data:
 
 **Application Usage:**
 - Feature usage patterns (which tools you use most)
@@ -56,7 +56,7 @@ When enabled, analytics helps us with:
 ### Analytics Implementation
 - **Provider**: PostHog (privacy-focused analytics platform)
 - **Default**: Off by default; analytics starts only after you enable it in settings
-- **Anonymization**: All data linked to generated user IDs only - no personal identification
+- **Anonymization**: All data linked to generated user IDs only — no personal identification
 - **Data retention**: 12 months maximum, then automatically deleted
 - **Encryption**: All data encrypted in transit using industry-standard protocols
 - **Location**: Data processed in accordance with PostHog's privacy policy
@@ -68,6 +68,7 @@ When enabled, analytics helps us with:
 If you choose to use external LLM providers:
 - **Anthropic Claude**: Subject to Anthropic's privacy policy
 - **Groq**: Subject to Groq's privacy policy
+- **OpenAI / OpenRouter**: Subject to their respective privacy policies
 - **Local Ollama**: Processed entirely on your device
 
 ### Analytics Service (Optional)
@@ -82,7 +83,6 @@ If you choose to use external LLM providers:
 - **Export**: Export your data in standard formats
 - **Delete**: Remove all data from your device
 
-
 ### Analytics Transparency
 - **Open source**: Full analytics implementation available for review in our source code
 - **Opt-in**: New and existing installs have analytics disabled until you turn it on
@@ -92,6 +92,7 @@ If you choose to use external LLM providers:
 
 ### Local Security
 - Data encrypted at rest using your device's security features
+- API keys stored in the OS keychain (Windows Credential Manager / macOS Keychain / Linux Secret Service)
 - No transmission of sensitive meeting data
 - Standard file system permissions protect your data
 
@@ -110,13 +111,12 @@ We will notify users of any material changes to this privacy policy through:
 ## Contact Us
 
 For privacy-related questions or concerns:
-- **GitHub Issues**: [Create an issue](https://github.com/Zackriya-Solutions/meeting-minutes/issues)
-- **Email**: [Contact form](https://www.zackriya.com/service-interest-form/)
-- **Community**: [Discord](https://discord.gg/crRymMQBFH)
+- **GitHub Issues**: [Create an issue](https://github.com/nikopradopalma17-art/Minut_IA/issues)
+- **Email**: [niko_pp_3000@outlook.com](mailto:niko_pp_3000@outlook.com)
 
 ## Open Source Commitment
 
-As an open-source project under MIT license, you can:
+As an open-source project, you can:
 - Review our complete privacy implementation
 - Modify data handling to meet your requirements
 - Deploy entirely on your own infrastructure
@@ -124,4 +124,4 @@ As an open-source project under MIT license, you can:
 
 ---
 
-*This privacy policy applies to Meetily v0.0.5 and later versions. For enterprise deployments, additional privacy controls may be available.*
+*This privacy policy applies to MinutIA v1.0.0 and later versions.*

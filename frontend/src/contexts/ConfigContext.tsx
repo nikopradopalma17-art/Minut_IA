@@ -7,6 +7,8 @@ import { configService, ModelConfig } from '@/services/configService';
 import { invoke } from '@tauri-apps/api/core';
 import Analytics from '@/lib/analytics';
 import { BetaFeatures, BetaFeatureKey, loadBetaFeatures, saveBetaFeatures } from '@/types/betaFeatures';
+import { normalizeMeetingNamePrefix } from '@/lib/meetingDefaults';
+import { CURATED_SUMMARY_MODELS } from '@/lib/summaryModelCatalog';
 
 export interface OllamaModel {
   name: string;
@@ -72,18 +74,17 @@ interface ConfigContextType {
   modelOptions: Record<ModelConfig['provider'], string[]>;
   error: string;
 
+  providerApiKeyStatus: Record<'claude' | 'groq' | 'openai' | 'openrouter', boolean>;
+
   // Summary configuration
   isAutoSummary: boolean;
   toggleIsAutoSummary: (checked: boolean) => void;
 
-  // Provider-specific API keys
-  providerApiKeys: {
-    claude: string | null;
-    groq: string | null;
-    openai: string | null;
-    openrouter: string | null;
-  };
-  updateProviderApiKey: (provider: string, apiKey: string | null) => void;
+  // Default meeting configuration
+  meetingNamePrefix: string;
+  setMeetingNamePrefix: (prefix: string) => void;
+  defaultTemplateId: string;
+  setDefaultTemplateId: (templateId: string) => void;
 
   // Preference settings (lazy loaded)
   notificationSettings: NotificationSettings | null;
@@ -112,23 +113,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     apiKey: null
   });
 
-  // Provider-specific API keys (loaded once at startup)
-  // Note: Gemini omitted for now - add when UI support is added
-  const [providerApiKeys, setProviderApiKeys] = useState<{
-    claude: string | null;
-    groq: string | null;
-    openai: string | null;
-    openrouter: string | null;
-  }>({
-    claude: null,
-    groq: null,
-    openai: null,
-    openrouter: null,
-  });
-
   // Ollama models list and error state
   const [models, setModels] = useState<OllamaModel[]>([]);
   const [error, setError] = useState<string>('');
+  const [providerApiKeyStatus, setProviderApiKeyStatus] = useState<Record<'claude' | 'groq' | 'openai' | 'openrouter', boolean>>({ claude: false, groq: false, openai: false, openrouter: false });
 
   // Device configuration state
   const [selectedDevices, setSelectedDevices] = useState<SelectedDevices>({
@@ -161,6 +149,20 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       return saved !== null ? saved === 'true' : false
     }
     return false;
+  });
+
+  const [meetingNamePrefix, setMeetingNamePrefixState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return normalizeMeetingNamePrefix(localStorage.getItem('meetingNamePrefix') || 'Reunión');
+    }
+    return 'Reunión';
+  });
+
+  const [defaultTemplateId, setDefaultTemplateIdState] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('defaultTemplateId') || 'minuta_corporativa';
+    }
+    return 'minuta_corporativa';
   });
 
   // Beta features state (localStorage)
@@ -248,7 +250,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
                   whisperModel: data.whisperModel || prev.whisperModel,
                   customOpenAIEndpoint: customConfig.endpoint,
                   customOpenAIModel: customConfig.model,
-                  customOpenAIApiKey: customConfig.apiKey,
+                  customOpenAIApiKey: null,
                   maxTokens: customConfig.maxTokens,
                   temperature: customConfig.temperature,
                   topP: customConfig.topP,
@@ -291,33 +293,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     fetchModelConfig();
   }, []);
 
-  // Load all provider API keys on mount
-  useEffect(() => {
-    const loadAllApiKeys = async () => {
-      try {
-        const providers = ['claude', 'groq', 'openai', 'openrouter'];
-        const keys = await Promise.all(
-          providers.map(p =>
-            invoke<string>('api_get_api_key', { provider: p })
-              .catch(() => null) // Gracefully handle missing keys
-          )
-        );
-
-        setProviderApiKeys({
-          claude: keys[0],
-          groq: keys[1],
-          openai: keys[2],
-          openrouter: keys[3],
-        });
-        console.log('[ConfigContext] Loaded provider API keys');
-      } catch (error) {
-        console.error('[ConfigContext] Failed to load provider API keys:', error);
-      }
-    };
-
-    loadAllApiKeys();
-  }, []);
-
   // Listen for model config updates from other components
   useEffect(() => {
     const setupListener = async () => {
@@ -326,10 +301,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
         console.log('[ConfigContext] Received model-config-updated event:', event.payload);
         setModelConfig(event.payload);
 
-        // Update provider-specific key when config changes
-        if (event.payload.apiKey && event.payload.provider !== 'custom-openai') {
-          updateProviderApiKey(event.payload.provider, event.payload.apiKey);
-        }
       });
       return unlisten;
     };
@@ -364,10 +335,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
   // Calculate model options based on available models
   const modelOptions: Record<ModelConfig['provider'], string[]> = {
     ollama: models.map(model => model.name),
-    claude: ['claude-3-5-sonnet-latest'],
-    groq: ['llama-3.3-70b-versatile'],
-    openrouter: [],
-    openai: ['gpt-4', 'gpt-4-turbo', 'gpt-3.5-turbo'],
+    claude: CURATED_SUMMARY_MODELS.claude.map(model => model.id),
+    groq: CURATED_SUMMARY_MODELS.groq.map(model => model.id),
+    openrouter: CURATED_SUMMARY_MODELS.openrouter.map(model => model.id),
+    openai: CURATED_SUMMARY_MODELS.openai.map(model => model.id),
     'builtin-ai': [],
     'custom-openai': [],
   };
@@ -388,6 +359,30 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('isAutoSummary', checked.toString());
     }
   }, [])
+
+  const setMeetingNamePrefix = useCallback((prefix: string) => {
+    const sanitizedPrefix = normalizeMeetingNamePrefix(prefix);
+    setMeetingNamePrefixState(sanitizedPrefix);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('meetingNamePrefix', sanitizedPrefix);
+    }
+  }, []);
+
+  useEffect(() => {
+    void Promise.all(['claude', 'groq', 'openai', 'openrouter'].map(async provider => [
+      provider,
+      await invoke<{ configured: boolean }>('api_get_api_key_status', { provider }),
+    ] as const)).then(statuses => {
+      setProviderApiKeyStatus(statuses.reduce((next, [provider, status]) => ({ ...next, [provider]: status.configured }), { claude: false, groq: false, openai: false, openrouter: false }));
+    }).catch(() => undefined);
+  }, []);
+
+  const setDefaultTemplateId = useCallback((templateId: string) => {
+    setDefaultTemplateIdState(templateId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('defaultTemplateId', templateId);
+    }
+  }, []);
 
   // Toggle beta feature with localStorage persistence and analytics
   const toggleBetaFeature = useCallback((featureKey: BetaFeatureKey, enabled: boolean) => {
@@ -412,11 +407,6 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
 
       return updated;
     });
-  }, []);
-
-  // Update individual provider API key
-  const updateProviderApiKey = useCallback((provider: string, apiKey: string | null) => {
-    setProviderApiKeys(prev => ({ ...prev, [provider]: apiKey }));
   }, []);
 
   // Lazy load preference settings (only loads if not already cached)
@@ -496,8 +486,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     setModelConfig,
     isAutoSummary,
     toggleIsAutoSummary,
-    providerApiKeys,
-    updateProviderApiKey,
+    meetingNamePrefix,
+    setMeetingNamePrefix,
+    defaultTemplateId,
+    setDefaultTemplateId,
     transcriptModelConfig,
     setTranscriptModelConfig,
     selectedDevices,
@@ -511,6 +503,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     models,
     modelOptions,
     error,
+    providerApiKeyStatus,
     notificationSettings,
     storageLocations,
     isLoadingPreferences,
@@ -520,8 +513,10 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     modelConfig,
     isAutoSummary,
     toggleIsAutoSummary,
-    providerApiKeys,
-    updateProviderApiKey,
+    meetingNamePrefix,
+    setMeetingNamePrefix,
+    defaultTemplateId,
+    setDefaultTemplateId,
     transcriptModelConfig,
     selectedDevices,
     selectedLanguage,
@@ -533,6 +528,7 @@ export function ConfigProvider({ children }: { children: ReactNode }) {
     models,
     modelOptions,
     error,
+    providerApiKeyStatus,
     notificationSettings,
     storageLocations,
     isLoadingPreferences,

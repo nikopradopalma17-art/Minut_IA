@@ -104,7 +104,7 @@ export function PermissionsStep() {
     <OnboardingContainer
       title={t('onboarding.permissions.title')}
       description={t('onboarding.permissions.description')}
-      step={4}
+      step={5}
       hideProgress={true}
       showNavigation={allPermissionsGranted}
       canGoNext={allPermissionsGranted}
@@ -131,19 +131,27 @@ export function PermissionsStep() {
         </div>
 
         <div className="flex flex-col gap-3 pt-4">
-          <Button onClick={handleFinish} disabled={!allPermissionsGranted} className="w-full h-11">
+          <Button
+            onClick={handleFinish}
+            disabled={!allPermissionsGranted}
+            className="w-full h-11 font-bold rounded-2xl transition-all"
+            style={{ background: '#447794', color: '#061222' }}
+            onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.9')}
+            onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+          >
             {t('onboarding.permissions.finish')}
           </Button>
 
           <button
             onClick={handleSkip}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs transition-colors hover:text-white"
+            style={{ color: '#5a7a94' }}
           >
             {t('onboarding.permissions.later')}
           </button>
 
           {!allPermissionsGranted && (
-            <p className="text-xs text-center text-muted-foreground">
+            <p className="text-[10px] text-center" style={{ color: '#5a7a94' }}>
               {t('onboarding.permissions.note')}
             </p>
           )}

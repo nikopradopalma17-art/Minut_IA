@@ -20,7 +20,7 @@ interface UseRecordingStartReturn {
  * Handles both manual start (button click) and auto-start (from sidebar navigation).
  *
  * Features:
- * - Meeting title generation (format: Meeting DD_MM_YY_HH_MM_SS)
+ * - Meeting title generation (format: {prefix}.YYYY-MM-DD.HH.mm)
  * - Transcript clearing on start
  * - Analytics tracking
  * - Recording notification display
@@ -36,7 +36,7 @@ export function useRecordingStart(
 
   const { clearTranscripts, setMeetingTitle } = useTranscripts();
   const { setIsMeetingActive } = useSidebar();
-  const { selectedDevices } = useConfig();
+  const { selectedDevices, meetingNamePrefix } = useConfig();
   const { setStatus } = useRecordingState();
 
   // Generate meeting title with timestamp
@@ -44,12 +44,11 @@ export function useRecordingStart(
     const now = new Date();
     const day = String(now.getDate()).padStart(2, '0');
     const month = String(now.getMonth() + 1).padStart(2, '0');
-    const year = String(now.getFullYear()).slice(-2);
+    const year = String(now.getFullYear());
     const hours = String(now.getHours()).padStart(2, '0');
     const minutes = String(now.getMinutes()).padStart(2, '0');
-    const seconds = String(now.getSeconds()).padStart(2, '0');
-    return `Meeting ${day}_${month}_${year}_${hours}_${minutes}_${seconds}`;
-  }, []);
+    return `${meetingNamePrefix}.${year}-${month}-${day}.${hours}.${minutes}`;
+  }, [meetingNamePrefix]);
 
   // Check if Parakeet transcription model is ready
   const checkParakeetReady = useCallback(async (): Promise<boolean> => {

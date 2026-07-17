@@ -2,6 +2,7 @@ use log::info;
 use tauri::{AppHandle, Emitter, Manager};
 
 use super::manager::DatabaseManager;
+use super::repositories::setting::SettingsRepository;
 use crate::state::AppState;
 
 /// Initialize database on app startup
@@ -29,6 +30,12 @@ pub async fn initialize_database_on_startup(app: &AppHandle) -> Result<(), Strin
         let db_manager = DatabaseManager::new_from_app_handle(app)
             .await
             .map_err(|e| format!("Failed to initialize database manager: {}", e))?;
+
+        // One-shot migration: move any plaintext API keys to the OS keyring.
+        let pool = db_manager.pool();
+        if let Err(e) = SettingsRepository::migrate_plaintext_api_keys_to_keyring(pool).await {
+            log::warn!("Keyring migration failed (non-fatal): {}", e);
+        }
 
         app.manage(AppState { db_manager });
         info!("Database initialized successfully");

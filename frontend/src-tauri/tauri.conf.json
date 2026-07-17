@@ -1,7 +1,7 @@
 {
     "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
     "productName": "MinutIA",
-    "version": "0.4.0",
+    "version": "1.0.0",
     "identifier": "com.minutia.app",
     "build": {
         "frontendDist": "../out",
@@ -13,8 +13,10 @@
         "windows": [
             {
                 "title": "MinutIA",
-                "width": 1100,
-                "height": 700,
+                "width": 1200,
+                "height": 750,
+                "minWidth": 1024,
+                "minHeight": 640,
                 "resizable": true,
                 "fullscreen": false,
                 "theme": "Light",
@@ -27,7 +29,7 @@
                 "default-src": "'self'",
                 "style-src": "'self' 'unsafe-inline'",
                 "img-src": "'self' asset: https://asset.localhost data:",
-                "connect-src": "'self' http://localhost:11434 http://localhost:5167 http://localhost:8178 https://api.ollama.ai"
+                "connect-src": "'self' http://localhost:11434 https://api.ollama.ai"
             },
             "assetProtocol": {
                 "enable": true,
@@ -45,8 +47,6 @@
                     "permissions": [
                         "fs:default",
                         "fs:allow-read-file",
-                        "fs:read-all",
-                        "fs:write-all",
                         "fs:allow-app-read",
                         "fs:allow-app-write",
                         "fs:allow-download-write",
@@ -65,6 +65,7 @@
                         "notification:allow-is-permission-granted",
                         "dialog:default",
                         "process:default",
+                        "updater:default",
                         {
                             "identifier": "fs:scope",
                             "allow": [
@@ -88,15 +89,18 @@
             "app",
             "dmg"
         ],
-        "createUpdaterArtifacts": false,
+        "createUpdaterArtifacts": true,
         "icon": [
             "icons/icon.png",
             "icons/app_icon.icns",
             "icons/app_icon.ico"
         ],
-        "resources": [
-            "templates/*.json"
-        ],
+        "resources": {
+            "templates/*.json": "templates/",
+            "../../LICENSE.md": "LICENSE.md",
+            "../../THIRD_PARTY_LICENSES.md": "THIRD_PARTY_LICENSES.md",
+            "../../licenses/*": "licenses/"
+        },
         "externalBin": [
             "binaries/llama-helper",
             "binaries/ffmpeg"
@@ -106,9 +110,14 @@
             "signingIdentity": "-",
             "hardenedRuntime": true
         },
-        "windows": {
-            "signCommand": "powershell -ExecutionPolicy Bypass -File scripts/sign-windows.ps1 -FilePath %1"
-        }
+        "windows": {}
     },
-    "plugins": {}
+    "plugins": {
+        "updater": {
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDM0REQ0JENTlENzAwRDQKUldUVUFOZFp2ZHc5YkhTOHQrSUNLcC8xa2xSaC8rWVArMWJWVUVWVlNYUVJRakdwbzB0dDhaZXUK",
+            "endpoints": [
+                "https://github.com/nikopradopalma17-art/Minut_IA/releases/latest/download/latest.json"
+            ]
+        }
+    }
 }
