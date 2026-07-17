@@ -10,6 +10,8 @@ const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const tauriConfig = JSON.parse(
   readFileSync(path.join(repoRoot, 'frontend/src-tauri/tauri.conf.json'), 'utf8')
 );
+const packageJson = JSON.parse(readFileSync(path.join(repoRoot, 'frontend/package.json'), 'utf8'));
+const cargoToml = readFileSync(path.join(repoRoot, 'frontend/src-tauri/Cargo.toml'), 'utf8');
 const layoutSource = readFileSync(path.join(repoRoot, 'frontend/src/app/layout.tsx'), 'utf8');
 const libSource = readFileSync(path.join(repoRoot, 'frontend/src-tauri/src/lib.rs'), 'utf8');
 const parakeetSource = readFileSync(
@@ -35,6 +37,12 @@ test('tauri updater is enabled and points at MinutIA release manifest', () => {
   assert.ok(tauriConfig.plugins.updater.pubkey.length > 64);
   assert.ok(tauriConfig.app.security.capabilities[0].permissions.includes('updater:default'));
   assert.equal('signCommand' in tauriConfig.bundle.windows, false);
+});
+
+test('v1.0.0 release version is identical across every package manifest', () => {
+  assert.equal(tauriConfig.version, '1.0.0');
+  assert.equal(packageJson.version, '1.0.0');
+  assert.match(cargoToml, /^version = "1\.0\.0"$/m);
 });
 
 test('desktop app mounts the updater provider and registers the Rust updater plugin', () => {
