@@ -148,20 +148,38 @@ fn main() {
                 // whisper-rs's WhisperGrammarElementType is `repr(u32)` on every
                 // target except Windows/MSVC, but libclang parses the plain C
                 // `enum whisper_gretype` as a signed `int` here regardless of
-                // platform. Patch the freshly generated type alias to `c_uint`
-                // so the enum discriminants type-check against whisper-rs.
+                // platform. Rewrite the freshly generated type alias (whatever
+                // its exact underlying-type spelling) to an unsigned type so
+                // the enum discriminants type-check against whisper-rs.
                 let bindings_src = std::fs::read_to_string(&bindings_path)
                     .expect("Couldn't read generated bindings back for patching");
-                let patched = bindings_src.replace(
-                    "pub type whisper_gretype = ::std::os::raw::c_int;",
-                    "pub type whisper_gretype = ::std::os::raw::c_uint;",
-                );
-                if patched == bindings_src {
-                    println!(
-                        "cargo:warning=whisper_gretype u32 patch found nothing to replace; \
-                         bindgen output format may have changed, check whisper-rs compatibility"
+                let mut found_alias = false;
+                let mut patched: String = bindings_src
+                    .lines()
+                    .map(|line| {
+                        if line.trim_start().starts_with("pub type whisper_gretype = ") {
+                            found_alias = true;
+                            "pub type whisper_gretype = ::std::os::raw::c_uint;".to_string()
+                        } else {
+                            line.to_string()
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                if !found_alias {
+                    panic!(
+                        "whisper_gretype type alias not found in freshly generated bindings; \
+                         bindgen's output format changed, update the patch in \
+                         local-crates/whisper-rs-sys/build.rs"
                     );
                 }
+                // Compile-time guard: if a future bindgen/libclang change makes
+                // whisper_gretype something other than u32 again, fail loudly
+                // and immediately in this crate instead of a confusing
+                // "mismatched types" error deep inside whisper-rs.
+                patched.push_str(
+                    "\n#[allow(dead_code)]\nfn _whisper_gretype_is_u32(x: whisper_gretype) -> u32 { x }\n",
+                );
                 std::fs::write(&bindings_path, patched)
                     .expect("Couldn't write patched bindings!");
             }
