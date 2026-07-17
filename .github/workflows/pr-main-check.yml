@@ -61,6 +61,19 @@ jobs:
         with:
           cache: true
 
+      - name: Build llama-helper sidecar
+        run: |
+          echo "Building llama-helper sidecar (CPU mode)..."
+          cargo build --release -p llama-helper
+
+          # Copy binary to binaries directory; the Tauri app's build script
+          # requires this sidecar resource to exist even for `cargo test`.
+          mkdir -p frontend/src-tauri/binaries
+          cp target/release/llama-helper frontend/src-tauri/binaries/llama-helper-x86_64-unknown-linux-gnu
+
+          echo "Copied llama-helper to frontend/src-tauri/binaries/"
+          ls -la frontend/src-tauri/binaries/
+
       - name: Run cargo test
         run: cargo test
         working-directory: frontend/src-tauri
