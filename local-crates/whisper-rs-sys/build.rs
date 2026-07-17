@@ -100,6 +100,12 @@ fn main() {
     }
 
     println!("cargo:rerun-if-changed=wrapper.h");
+    // Once any rerun-if-changed directive is emitted, Cargo stops watching
+    // build.rs itself for changes automatically. Combined with CI's
+    // cache-on-failure caching of target/, an edit to this file alone could
+    // otherwise be missed and a stale OUT_DIR (with the wrong bindgen output)
+    // gets silently reused across runs.
+    println!("cargo:rerun-if-changed=build.rs");
 
     let out = PathBuf::from(env::var("OUT_DIR").unwrap());
     let whisper_root = out.join("whisper.cpp/");
