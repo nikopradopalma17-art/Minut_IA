@@ -183,6 +183,12 @@ impl RecordingSaver {
             tokio::spawn(async move {
                 info!("Recording saver accumulation task started (save_audio: {})", save_audio);
 
+                // Report the first checkpoint failure to the frontend once —
+                // otherwise the audio silently stops being written (disk
+                // full, antivirus blocking ffmpeg) while transcription keeps
+                // working and the user notices nothing.
+                let mut save_error_reported = false;
+
                 while let Some(chunk) = receiver.recv().await {
                     // Check if we should continue
                     let should_continue = if let Ok(is_saving) = is_saving_clone.lock() {
@@ -202,6 +208,19 @@ impl RecordingSaver {
                             let mut saver_guard = saver_arc.lock().await;
                             if let Err(e) = saver_guard.add_chunk(chunk) {
                                 error!("Failed to add chunk to incremental saver: {}", e);
+                                if !save_error_reported {
+                                    save_error_reported = true;
+                                    if let Some(app) = crate::global_app_handle() {
+                                        use tauri::Emitter;
+                                        let _ = app.emit(
+                                            "recording-save-failed",
+                                            serde_json::json!({
+                                                "error": e.to_string(),
+                                                "recoverable": true,
+                                            }),
+                                        );
+                                    }
+                                }
                             }
                         } else {
                             error!("Incremental saver not available while accumulating");

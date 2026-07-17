@@ -137,6 +137,38 @@ export function useRecordingStop(
     };
   }, [router]);
 
+  // Surface audio save failures (disk full, ffmpeg blocked by antivirus):
+  // without this the stop flow looks successful while audio.mp4 was never
+  // written. Transcripts are preserved and checkpoints stay recoverable.
+  useEffect(() => {
+    let unlistenFn: (() => void) | undefined;
+
+    const setupSaveFailedListener = async () => {
+      try {
+        unlistenFn = await listen<{ error: string; recoverable?: boolean }>(
+          'recording-save-failed',
+          (event) => {
+            console.error('Recording audio save failed:', event.payload.error);
+            toast.error(t('toasts.recording_audio_save_failed'), {
+              description: t('toasts.recording_audio_save_failed_desc'),
+              duration: 12000,
+            });
+          }
+        );
+      } catch (error) {
+        console.error('Failed to setup recording-save-failed listener:', error);
+      }
+    };
+
+    setupSaveFailedListener();
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
+  }, [t]);
+
   // Main recording stop handler
   const handleRecordingStop = useCallback(async (isCallApi: boolean) => {
     if (recordingStoppedDataRef.current) {

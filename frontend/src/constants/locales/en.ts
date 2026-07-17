@@ -509,6 +509,8 @@ export const en: Record<keyof typeof es, string> = {
   "toasts.recording_saved_desc": "{n} transcript segments saved.",
   "toasts.view_meeting": "View Meeting",
   "toasts.save_meeting_failed": "Failed to save meeting",
+  "toasts.recording_audio_save_failed": "The recording audio could not be saved",
+  "toasts.recording_audio_save_failed_desc": "Your transcripts were preserved. Check free disk space; the audio checkpoints remain in the meeting folder and can be recovered.",
   "toasts.transcription_model_not_ready": "Transcription model not ready",
   "toasts.transcription_model_not_ready_desc": "Please download a transcription model before recording.",
   "toasts.transcription_setup_required": "Transcription model setup required",

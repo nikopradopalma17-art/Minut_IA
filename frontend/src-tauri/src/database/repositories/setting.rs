@@ -381,6 +381,11 @@ impl SettingsRepository {
 
         log::info!("Running one-shot migration: plaintext API keys → keyring");
 
+        // If any key fails to reach the keyring we must NOT mark the
+        // migration as done, or that key would stay in SQLite as plaintext
+        // forever with no retry.
+        let mut had_failures = false;
+
         // --- settings table ---
         // Map column name → keyring account name.
         let settings_keys: &[(&str, &str)] = &[
@@ -406,7 +411,8 @@ impl SettingsRepository {
                     log::info!("Migrating {} from SQLite to keyring", col);
                     if let Err(e) = Self::keyring_set(account, &key) {
                         log::warn!("Failed to migrate {} to keyring: {} — leaving column intact", col, e);
-                        // Don't NULL the column if keyring failed — user can retry.
+                        // Don't NULL the column if keyring failed — retried on next startup.
+                        had_failures = true;
                         continue;
                     }
                     // NULL out the column.
@@ -435,6 +441,7 @@ impl SettingsRepository {
                         log::info!("Migrating customOpenAIConfig apiKey to keyring");
                         if let Err(e) = Self::keyring_set("summary-custom-openai", &key) {
                             log::warn!("Failed to migrate customOpenAIConfig apiKey to keyring: {}", e);
+                            had_failures = true;
                         } else {
                             // Re-serialize without the API key and update the column.
                             config.api_key = None;
@@ -475,6 +482,7 @@ impl SettingsRepository {
                     log::info!("Migrating transcript {} from SQLite to keyring", col);
                     if let Err(e) = Self::keyring_set(account, &key) {
                         log::warn!("Failed to migrate {} to keyring: {} — leaving column intact", col, e);
+                        had_failures = true;
                         continue;
                     }
                     sqlx::query(&format!(
@@ -485,6 +493,16 @@ impl SettingsRepository {
                     .await?;
                 }
             }
+        }
+
+        if had_failures {
+            // Leave the flag unset so the migration retries on next startup;
+            // the keys that failed are still in SQLite and must eventually
+            // reach the keyring.
+            log::warn!(
+                "Keyring migration incomplete (some keys could not be stored) — will retry on next startup"
+            );
+            return Ok(());
         }
 
         // Mark migration as done.

@@ -938,11 +938,28 @@ pub async fn stop_recording<R: Runtime>(
                     "⚠️ Error during recording cleanup (transcripts preserved): {}",
                     e
                 );
-                // Don't fail shutdown - transcripts are already preserved
+                // Don't fail shutdown - transcripts are already preserved.
+                // But DO tell the user: without this event the frontend only
+                // sees a successful "recording-stopped" while audio.mp4 was
+                // never written. Checkpoints stay on disk for recovery.
+                let _ = app.emit(
+                    "recording-save-failed",
+                    serde_json::json!({
+                        "error": e.to_string(),
+                        "recoverable": true,
+                    }),
+                );
             }
             Err(_) => {
                 warn!("⏱️ File I/O timeout (5 minutes) reached during save, continuing shutdown");
                 // Don't fail shutdown - transcripts are already preserved
+                let _ = app.emit(
+                    "recording-save-failed",
+                    serde_json::json!({
+                        "error": "Timed out while saving the recording (5 minutes)",
+                        "recoverable": true,
+                    }),
+                );
             }
         }
 

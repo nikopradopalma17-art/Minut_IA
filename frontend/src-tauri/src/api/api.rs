@@ -91,6 +91,46 @@ mod summary_catalog_tests {
     }
 }
 
+#[cfg(test)]
+mod endpoint_validation_tests {
+    use super::validate_custom_endpoint;
+
+    #[test]
+    fn accepts_https_and_loopback_http() {
+        for endpoint in [
+            "https://api.example.com/v1",
+            "http://localhost:11434/v1",
+            "http://LOCALHOST:8080",
+            "http://127.0.0.1:8000/v1",
+            "http://127.0.0.5:9999",
+            "http://[::1]:8000/v1",
+        ] {
+            assert!(validate_custom_endpoint(endpoint).is_ok(), "{}", endpoint);
+        }
+    }
+
+    #[test]
+    fn rejects_http_to_non_loopback_hosts() {
+        for endpoint in [
+            "http://api.example.com/v1",
+            "http://localhost.evil.com/v1",
+            "http://localhostx.com",
+            "http://127.0.0.1.evil.com/v1",
+            "http://localhost@evil.com/v1",
+            "http://192.168.1.10:11434",
+        ] {
+            assert!(validate_custom_endpoint(endpoint).is_err(), "{}", endpoint);
+        }
+    }
+
+    #[test]
+    fn rejects_non_http_schemes_and_garbage() {
+        for endpoint in ["file:///etc/passwd", "ftp://x.com", "not a url", ""] {
+            assert!(validate_custom_endpoint(endpoint).is_err(), "{}", endpoint);
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SearchRequest {
     pub query: String,
@@ -1147,6 +1187,38 @@ pub async fn open_external_url(url: String) -> Result<(), String> {
 
 // ===== CUSTOM OPENAI API COMMANDS =====
 
+/// Validate a user-supplied OpenAI-compatible endpoint URL.
+///
+/// `https` is required except for loopback hosts (localhost, 127.0.0.0/8,
+/// ::1), because the endpoint is later called with the API key in a Bearer
+/// header. String-prefix checks are not enough here: `http://localhost.evil.com`,
+/// `http://127.0.0.1.evil.com` and `http://localhost@evil.com` must all be
+/// rejected, so the host is checked on the parsed URL.
+pub(crate) fn validate_custom_endpoint(endpoint: &str) -> Result<(), String> {
+    let parsed =
+        url::Url::parse(endpoint).map_err(|e| format!("Invalid endpoint URL: {}", e))?;
+    match parsed.scheme() {
+        "https" => Ok(()),
+        "http" => {
+            let is_loopback = match parsed.host() {
+                Some(url::Host::Domain(host)) => host.eq_ignore_ascii_case("localhost"),
+                Some(url::Host::Ipv4(ip)) => ip.is_loopback(),
+                Some(url::Host::Ipv6(ip)) => ip.is_loopback(),
+                None => false,
+            };
+            if is_loopback {
+                Ok(())
+            } else {
+                Err(
+                    "Endpoint must use https:// (http:// is allowed only for localhost, 127.0.0.1 or [::1])"
+                        .to_string(),
+                )
+            }
+        }
+        other => Err(format!("Unsupported endpoint scheme: {}", other)),
+    }
+}
+
 /// Saves the custom OpenAI configuration
 /// This configuration is stored as JSON and includes endpoint, apiKey, model, and optional parameters
 #[tauri::command]
@@ -1174,17 +1246,9 @@ pub async fn api_save_custom_openai_config<R: Runtime>(
         return Err("Model name is required".to_string());
     }
 
-    // Validate endpoint URL format
-    // Validate endpoint URL: require https:// unless it's a localhost address.
+    // Validate endpoint URL: require https:// unless it's a loopback host.
     let trimmed_endpoint = endpoint.trim();
-    let is_localhost = trimmed_endpoint.starts_with("http://localhost")
-        || trimmed_endpoint.starts_with("http://127.0.0.1");
-
-    if !trimmed_endpoint.starts_with("https://") && !is_localhost {
-        return Err(
-            "Endpoint must use https:// (or http:// for localhost/127.0.0.1 only)".to_string(),
-        );
-    }
+    validate_custom_endpoint(trimmed_endpoint)?;
 
     // Validate optional numeric parameters
     if let Some(temp) = temperature {
@@ -1278,16 +1342,9 @@ pub async fn api_test_custom_openai_connection<R: Runtime>(
         &model
     );
 
-    // Validate endpoint URL: require https:// unless it's a localhost address.
+    // Validate endpoint URL: require https:// unless it's a loopback host.
     let trimmed_endpoint = endpoint.trim();
-    let is_localhost = trimmed_endpoint.starts_with("http://localhost")
-        || trimmed_endpoint.starts_with("http://127.0.0.1");
-
-    if !trimmed_endpoint.starts_with("https://") && !is_localhost {
-        return Err(
-            "Endpoint must use https:// (or http:// for localhost/127.0.0.1 only)".to_string(),
-        );
-    }
+    validate_custom_endpoint(trimmed_endpoint)?;
 
     // Build the URL - append /chat/completions to the base endpoint
     let url = format!("{}/chat/completions", trimmed_endpoint.trim_end_matches('/'));

@@ -66,41 +66,22 @@ use std::sync::Arc;
 use tauri::{AppHandle, Manager, Runtime};
 use tokio::sync::RwLock;
 
-/// Canonicalise `path` and ensure it lives inside one of the allowed root
-/// directories (app data dir or the user's download dir).  Returns the
-/// canonical `PathBuf` on success or an error string suitable for a Tauri
-/// command response.
-///
-/// This prevents a compromised webview from using `read_audio_file` or
-/// `save_transcript` to read or write arbitrary files on disk (e.g.
-/// `~/.ssh/id_rsa` or the Windows Startup folder).
-fn resolve_within_allowed<R: Runtime>(
-    app: &AppHandle<R>,
-    path: &str,
-) -> Result<PathBuf, String> {
+/// Canonicalise a root directory for containment checks.  If the directory
+/// doesn't exist yet (fresh install), canonicalise its parent and re-append
+/// the final component so the comparison still works.
+fn canonicalize_root(root: &Path) -> Option<PathBuf> {
+    if let Ok(canon) = root.canonicalize() {
+        return Some(canon);
+    }
+    let parent = root.parent()?;
+    let canon_parent = parent.canonicalize().ok()?;
+    Some(canon_parent.join(root.file_name()?))
+}
+
+/// Resolve `path` and ensure it lives inside one of `roots`.  Roots must
+/// already be canonical.  Kept free of `AppHandle` so it can be unit-tested.
+fn resolve_within_roots(roots: &[PathBuf], path: &str) -> Result<PathBuf, String> {
     let input = Path::new(path);
-
-    // Build the list of allowed roots.  We canonicalise each root so that
-    // symlinks are resolved before the starts_with check.
-    let mut allowed_roots: Vec<PathBuf> = Vec::new();
-
-    if let Ok(app_data) = app.path().app_data_dir() {
-        // app_data_dir may not exist yet on a fresh install — canonicalize
-        // the parent instead and append the final component manually.
-        if let Ok(canon) = app_data.canonicalize() {
-            allowed_roots.push(canon);
-        } else if let Some(parent) = app_data.parent() {
-            if let Ok(canon_parent) = parent.canonicalize() {
-                allowed_roots.push(canon_parent.join(app_data.file_name().unwrap_or_default()));
-            }
-        }
-    }
-
-    if let Ok(download) = app.path().download_dir() {
-        if let Ok(canon) = download.canonicalize() {
-            allowed_roots.push(canon);
-        }
-    }
 
     // Canonicalise the input path.  For read operations the file must
     // already exist; for write operations the parent must exist.  We try
@@ -122,7 +103,7 @@ fn resolve_within_allowed<R: Runtime>(
         }
     };
 
-    for root in &allowed_roots {
+    for root in roots {
         if canonical.starts_with(root) {
             return Ok(canonical);
         }
@@ -134,7 +115,52 @@ fn resolve_within_allowed<R: Runtime>(
     ))
 }
 
+/// Canonicalise `path` and ensure it lives inside one of the allowed root
+/// directories: the app data dir, the user's download dir, or the recordings
+/// folder (both the configured one and the platform default — recordings live
+/// outside app data, e.g. `Music\MinutIA-recordings`, and the folder is
+/// user-configurable, so playback via `read_audio_file` must allow it).
+///
+/// This prevents a compromised webview from using `read_audio_file` or
+/// `save_transcript` to read or write arbitrary files on disk (e.g.
+/// `~/.ssh/id_rsa` or the Windows Startup folder).
+async fn resolve_within_allowed<R: Runtime>(
+    app: &AppHandle<R>,
+    path: &str,
+) -> Result<PathBuf, String> {
+    let mut candidates: Vec<PathBuf> = Vec::new();
+
+    if let Ok(app_data) = app.path().app_data_dir() {
+        candidates.push(app_data);
+    }
+    if let Ok(download) = app.path().download_dir() {
+        candidates.push(download);
+    }
+    if let Ok(prefs) = audio::recording_preferences::load_recording_preferences(app).await {
+        candidates.push(prefs.save_folder);
+    }
+    candidates.push(audio::recording_preferences::get_default_recordings_folder());
+
+    // Canonicalise each root so symlinks are resolved before the
+    // starts_with check.
+    let allowed_roots: Vec<PathBuf> = candidates
+        .iter()
+        .filter_map(|root| canonicalize_root(root))
+        .collect();
+
+    resolve_within_roots(&allowed_roots, path)
+}
+
 static RECORDING_FLAG: AtomicBool = AtomicBool::new(false);
+
+/// App handle for emitting events from places with no `AppHandle` plumbed
+/// through (the panic hook, deep audio tasks). `None` in unit tests and
+/// before setup runs.
+static GLOBAL_APP_HANDLE: std::sync::OnceLock<tauri::AppHandle> = std::sync::OnceLock::new();
+
+pub(crate) fn global_app_handle() -> Option<&'static tauri::AppHandle> {
+    GLOBAL_APP_HANDLE.get()
+}
 
 // Global language preference storage (default to "auto-translate" for automatic translation to English)
 static LANGUAGE_PREFERENCE: std::sync::LazyLock<StdMutex<String>> =
@@ -296,11 +322,11 @@ fn get_transcription_status() -> TranscriptionStatus {
 }
 
 #[tauri::command]
-fn read_audio_file<R: Runtime>(
+async fn read_audio_file<R: Runtime>(
     app: AppHandle<R>,
     file_path: String,
 ) -> Result<Vec<u8>, String> {
-    let resolved = resolve_within_allowed(&app, &file_path)?;
+    let resolved = resolve_within_allowed(&app, &file_path).await?;
     match std::fs::read(&resolved) {
         Ok(data) => Ok(data),
         Err(e) => Err(format!("Failed to read audio file: {}", e)),
@@ -315,7 +341,7 @@ async fn save_transcript<R: Runtime>(
 ) -> Result<(), String> {
     log_info!("Saving transcript to: {}", file_path);
 
-    let resolved = resolve_within_allowed(&app, &file_path)?;
+    let resolved = resolve_within_allowed(&app, &file_path).await?;
 
     // Ensure parent directory exists
     if let Some(parent) = resolved.parent() {
@@ -479,6 +505,23 @@ pub fn get_language_preference_internal() -> Option<String> {
 pub fn run() {
     log::set_max_level(log::LevelFilter::Info);
 
+    // A panic anywhere — including audio tasks, where tokio swallows it as a
+    // JoinError nobody joins — gets logged with its location and surfaced to
+    // the frontend before unwinding continues. Without this, a panicked
+    // checkpoint task kills recording persistence with zero diagnostics.
+    let default_panic_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        log::error!("PANIC: {}", info);
+        if let Some(app) = global_app_handle() {
+            use tauri::Emitter;
+            let _ = app.emit(
+                "fatal-panic",
+                serde_json::json!({ "message": info.to_string() }),
+            );
+        }
+        default_panic_hook(info);
+    }));
+
     let mut builder = tauri::Builder::default();
 
     #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
@@ -507,6 +550,10 @@ pub fn run() {
         .manage(summary::summary_engine::ModelManagerState(Arc::new(tokio::sync::Mutex::new(None))))
         .setup(|_app| {
             log::info!("Application setup complete");
+
+            // Register the global handle used by the panic hook and deep
+            // audio tasks to emit events to the frontend.
+            let _ = GLOBAL_APP_HANDLE.set(_app.handle().clone());
 
             // Initialize system tray
             if let Err(e) = tray::create_tray(_app.handle()) {
@@ -582,10 +629,40 @@ pub fn run() {
             // }
 
             // Initialize database (handles first launch detection and conditional setup)
-            tauri::async_runtime::block_on(async {
+            //
+            // A failed migration must NOT panic: sqlx records applied
+            // migrations, so a panic here turns into a permanent boot loop
+            // for every auto-updated user. Show a diagnostic dialog instead
+            // and exit cleanly — a pre-migration backup exists (see
+            // DatabaseManager::backup_before_migrations).
+            let db_init = tauri::async_runtime::block_on(async {
                 database::setup::initialize_database_on_startup(&_app.handle()).await
-            })
-            .expect("Failed to initialize database");
+            });
+            if let Err(e) = db_init {
+                log_error!("Database initialization failed: {}", e);
+                let data_dir = _app
+                    .handle()
+                    .path()
+                    .app_data_dir()
+                    .map(|p| p.display().to_string())
+                    .unwrap_or_else(|_| "the application data folder".to_string());
+                use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                _app.handle()
+                    .dialog()
+                    .message(format!(
+                        "MinutIA could not open or update its database and will close.\n\n\
+                         Error: {}\n\n\
+                         Your data folder:\n{}\n\n\
+                         A backup (meeting_minutes.sqlite.pre-v*.bak) is created \
+                         automatically before every update. Restoring it or \
+                         reinstalling the previous version recovers your data.",
+                        e, data_dir
+                    ))
+                    .kind(MessageDialogKind::Error)
+                    .title("MinutIA — database error")
+                    .blocking_show();
+                std::process::exit(1);
+            }
 
             // Initialize bundled templates directory for dynamic template discovery
             log::info!("Initializing bundled templates directory...");
@@ -870,4 +947,77 @@ pub fn run() {
                 _ => {}
             }
         });
+}
+
+#[cfg(test)]
+mod path_confinement_tests {
+    use super::{canonicalize_root, resolve_within_roots};
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn test_root(name: &str) -> PathBuf {
+        let root = std::env::temp_dir()
+            .join(format!("minutia-path-tests-{}", std::process::id()))
+            .join(name);
+        fs::create_dir_all(&root).expect("create test root");
+        root
+    }
+
+    #[test]
+    fn accepts_existing_file_inside_root() {
+        let root = test_root("inside");
+        let file = root.join("meeting.wav");
+        fs::write(&file, b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_ok());
+    }
+
+    #[test]
+    fn accepts_new_file_inside_root_when_parent_exists() {
+        let root = test_root("write");
+        let file = root.join("new-transcript.txt");
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_ok());
+    }
+
+    #[test]
+    fn rejects_path_outside_roots() {
+        let root = test_root("outside-a");
+        let other = test_root("outside-b");
+        let file = other.join("secret.txt");
+        fs::write(&file, b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn rejects_parent_traversal_escaping_root() {
+        let root = test_root("traversal");
+        let escape = root.join("..").join("traversal-evil").join("f.txt");
+        let evil_dir = root.parent().unwrap().join("traversal-evil");
+        fs::create_dir_all(&evil_dir).unwrap();
+        fs::write(evil_dir.join("f.txt"), b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, escape.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn rejects_sibling_directory_sharing_prefix() {
+        // starts_with must compare whole components: "recordings-evil" is not
+        // inside "recordings" even though the string is a prefix.
+        let root = test_root("recordings");
+        let evil = test_root("recordings-evil");
+        let file = evil.join("f.txt");
+        fs::write(&file, b"x").unwrap();
+        let roots = vec![canonicalize_root(&root).unwrap()];
+        assert!(resolve_within_roots(&roots, file.to_str().unwrap()).is_err());
+    }
+
+    #[test]
+    fn canonicalize_root_handles_missing_leaf_dir() {
+        let base = test_root("missing-leaf");
+        let not_created = base.join("does-not-exist-yet");
+        let canon = canonicalize_root(&not_created).expect("parent exists");
+        assert!(canon.ends_with("does-not-exist-yet"));
+    }
 }

@@ -31,6 +31,13 @@ impl DatabaseManager {
             }
         }
 
+        // Safety net for the auto-updater: back up the database before any
+        // connection is opened and before migrations run, so a bad migration
+        // shipped in an update can be recovered by restoring the .bak file.
+        if Path::new(tauri_db_path).exists() {
+            Self::backup_before_migrations(tauri_db_path);
+        }
+
         let pool = SqlitePool::connect(tauri_db_path).await?;
 
         sqlx::migrate!("./migrations").run(&pool).await?;
@@ -44,6 +51,52 @@ impl DatabaseManager {
             pool,
             fts_available,
         })
+    }
+
+    /// Copy the database (plus its `-wal` sidecar when present) to
+    /// `<db>.pre-v{version}.bak` before migrations run, keeping only the
+    /// backup for the current version. Best-effort: a failed backup must
+    /// never block startup, so errors are only logged.
+    fn backup_before_migrations(db_path: &str) {
+        let version = env!("CARGO_PKG_VERSION");
+        let backup_path = format!("{}.pre-v{}.bak", db_path, version);
+        if Path::new(&backup_path).exists() {
+            return; // already backed up for this version
+        }
+
+        // Drop backups from older versions — only the latest one is kept.
+        if let (Some(dir), Some(file_name)) = (
+            Path::new(db_path).parent(),
+            Path::new(db_path).file_name().and_then(|n| n.to_str()),
+        ) {
+            let prefix = format!("{}.pre-v", file_name);
+            if let Ok(entries) = fs::read_dir(dir) {
+                for entry in entries.flatten() {
+                    if let Some(name) = entry.file_name().to_str() {
+                        if name.starts_with(&prefix)
+                            && (name.ends_with(".bak") || name.ends_with(".bak-wal"))
+                        {
+                            // Best-effort cleanup of stale backups.
+                            let _ = fs::remove_file(entry.path());
+                        }
+                    }
+                }
+            }
+        }
+
+        match fs::copy(db_path, &backup_path) {
+            Ok(_) => {
+                // Copy the WAL sidecar too: after a crash it may hold data
+                // not yet checkpointed into the main file. Restoring the
+                // pair (renamed consistently) preserves that data.
+                let wal_path = format!("{}-wal", db_path);
+                if Path::new(&wal_path).exists() {
+                    let _ = fs::copy(&wal_path, format!("{}-wal", backup_path));
+                }
+                log::info!("Pre-migration database backup created: {}", backup_path);
+            }
+            Err(e) => log::warn!("Could not create pre-migration backup: {}", e),
+        }
     }
 
     /// Probe FTS5 support and (when available) create the search index,

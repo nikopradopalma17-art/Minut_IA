@@ -505,6 +505,8 @@ export const es = {
   "toasts.recording_saved_desc": "Se guardaron {n} segmentos de transcripción.",
   "toasts.view_meeting": "Ver reunión",
   "toasts.save_meeting_failed": "No se pudo guardar la reunión",
+  "toasts.recording_audio_save_failed": "No se pudo guardar el audio de la grabación",
+  "toasts.recording_audio_save_failed_desc": "Tus transcripciones se conservaron. Revisa el espacio libre en disco; los checkpoints de audio quedan en la carpeta de la reunión y se pueden recuperar.",
   "toasts.transcription_model_not_ready": "Modelo de transcripción no listo",
   "toasts.transcription_model_not_ready_desc": "Descarga un modelo de transcripción antes de grabar.",
   "toasts.transcription_setup_required": "Se requiere configurar el modelo de transcripción",

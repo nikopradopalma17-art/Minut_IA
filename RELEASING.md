@@ -136,17 +136,21 @@ After the update to v1.0.1, verify these critical paths:
 1. **Open an external link** (e.g., privacy policy in Settings) — should
    open in the default browser, not crash.
 2. **Record a meeting** — start recording, stop, verify the audio file
-   was saved in `%APPDATA%\com.minutia.app\recording-*.wav`.
-3. **Save & export a meeting** — export to Downloads, verify the file
+   was saved in the recordings folder (default:
+   `%USERPROFILE%\Music\MinutIA-recordings`).
+3. **Play back the recording** inside the app — confirms
+   `resolve_within_allowed` allows the recordings folder (default *and*
+   a custom folder set in Recording Settings).
+4. **Save & export a meeting** — export to Downloads, verify the file
    appears there (confirms `resolve_within_allowed` works).
-4. **API key storage** — save an API key for a provider, close the app,
+5. **API key storage** — save an API key for a provider, close the app,
    reopen, verify the key is still there (confirms keyring works).
-5. **Upgrade from plaintext keys** (if testing on a machine with an old
+6. **Upgrade from plaintext keys** (if testing on a machine with an old
    Meetily install): verify that existing API keys were migrated to the
    keyring and the SQLite columns are NULL (confirms F1.2 migration).
-6. **Generate a summary** — with a valid API key, generate a summary and
+7. **Generate a summary** — with a valid API key, generate a summary and
    verify it appears in the UI.
-7. **Download a Whisper model** — download a small model (e.g., `base`)
+8. **Download a Whisper model** — download a small model (e.g., `base`)
    and verify it loads correctly.
 
 ## Rules
