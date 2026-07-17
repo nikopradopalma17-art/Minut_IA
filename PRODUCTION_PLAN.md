@@ -10,7 +10,7 @@ El grueso del plan original está **ejecutado y verificado**: compila (`cargo ch
 |---|---|---|
 | **A. Bloqueantes de código** | ✅ Ejecutados 2026-07-17 (commits `fde96ad0`, `37e55902`) | Crítico |
 | **B. Bloqueante legal** | ✅ Ejecutado: ffmpeg LGPL (BtbN n8.1) + THIRD_PARTY_LICENSES bundleado | Bloqueante-legal |
-| **C. Importantes pre-release** | R2 ✅, R3 ✅; quedan RT4–RT6, L4 (Lote B) | Importante |
+| **C. Importantes pre-release** | ✅ Lote B ejecutado 2026-07-17 (commit `6dfc0da2`) | Importante |
 | **D. Acciones del dueño** | ✅ resueltas 2026-07-17; quedan: PR/merge tras Lote A, release+publish, e2e v1.0.1 | Manual |
 | **E. Backlog post-release** | ver §8 | No bloqueante |
 
@@ -77,7 +77,7 @@ whisper.cpp/ggml (MIT, "The ggml authors" — enlazado estático en el binario p
 | Qwen3.5 2B / 4B GGUF | `unsloth/Qwen3.5-2B-GGUF` / `-4B-GGUF` | **apache-2.0** | Aviso Apache-2.0 en créditos |
 | Gemma 3 1B / 4B GGUF | `bartowski/google_gemma-3-1b-it-GGUF` / `-4b-it-GGUF` | **gemma** (Gemma Terms of Use; el 1B lo declara explícito, el 4B es el mismo modelo base) | Enlazar Gemma Terms of Use + Prohibited Use Policy en créditos |
 
-### L4 — MENOR — Ajustes a PRIVACY_POLICY.md
+### L4 — ✅ RESUELTO (`6dfc0da2`) — wording matizado, email niko_pp_3000@outlook.com, versión 1.0.0
 Línea 14: matizar "Never transmitted" → el audio nunca sale, pero el **texto** del transcript sí viaja al proveedor LLM elegido (la política ya lo dice en :15 y :67-72; quitar el absoluto). Línea 127: dice "v0.4.0", la app es 1.0.0. Línea 115: reemplazar el email noreply por el buzón real decidido por el dueño: **niko_pp_3000@outlook.com**.
 
 ---
@@ -91,7 +91,7 @@ Línea 14: matizar "Never transmitted" → el audio nunca sale, pero el **texto*
 2. **Backup pre-migración** (barato, de-riesga todo): en `manager.rs` antes de `migrate!().run()`, copiar `meeting_minutes.sqlite` → `meeting_minutes.pre-v{version}.bak` (conservar solo el último).
 3. Proceso: documentar en `CLAUDE.md`/`CONTRIBUTING.md` que **las 13 migraciones publicadas en v1.0.0 quedan congeladas** (sqlx verifica checksums; editar una = `VersionMismatch` = boot loop). Ideal: check de CI que falle si un `.sql` existente cambia.
 
-### D2 — MENOR — Borrar `LegacyDatabaseImport.tsx` + `HomebrewDatabaseDetector.tsx`
+### D2 — ✅ RESUELTO (`6dfc0da2`) — componentes DatabaseImport eliminados
 Código muerto (cero imports; la detección real está inline en `OnboardingContext.tsx:176-214`) y con branding "Welcome to Meetily!". En Windows el import legacy es inexistente por diseño (busca en el app_data nuevo) — aceptable sin usuarios reales; empezar limpio es el comportamiento deseado.
 
 **Verificado OK:** upgrades hacia adelante funcionan (migraciones embebidas, orden por timestamp, DDL aditivo) · primer arranque crea esquema completo con FTS5 degradable a LIKE · migración keyring tolera DB vacía · todos los datos bajo `com.minutia.app` · las grabaciones sobreviven la desinstalación (Music, fuera de AppData).
@@ -112,13 +112,13 @@ Cadena verificada: `add_chunk` falla → solo `error!` (`recording_saver.rs:202-
 Grep confirmado: cero `set_hook`/`catch_unwind` en `src/`. Un panic en cualquier task de audio desaparece como `JoinError` sin diagnóstico ni aviso.
 **Spec:** `std::panic::set_hook` en `run()` que loguee con backtrace y emita evento `fatal-audio-panic` al frontend.
 
-### RT4 — IMPORTANTE — `panic!` explícito al crear el VAD
+### RT4 — ✅ RESUELTO (`6dfc0da2`) — `panic!` del VAD eliminado; AudioPipeline::new → Result
 `pipeline.rs:740-748`: si Silero/ONNX falla al inicializar (dll en cuarentena, OOM) → panic en el comando `start_recording`. **Spec:** `AudioPipeline::new` → `Result`, propagar al comando.
 
-### RT5 — IMPORTANTE — Cola de transcripción unbounded → OOM en reuniones largas
+### RT5 — ✅ RESUELTO (`6dfc0da2`) — aviso `transcription-backlog-warning` (umbral 40 segmentos, re-armable) + toast EN/ES
 `worker.rs:69`, `recording_manager.rs:72`, `pipeline.rs:880`: `unbounded_channel` en toda la cadena. Whisper más lento que tiempo real (CPU sin GPU, modelo grande) → backlog monótono → OOM en reuniones de 1-2h. **Spec:** monitorear `chunks_queued - chunks_completed`; sobre un umbral, evento de aviso al frontend (sugerir modelo menor); opcional canal acotado.
 
-### RT6 — IMPORTANTE — Envenenamiento en cascada de `RECORDING_MANAGER`
+### RT6 — ✅ RESUELTO (`6dfc0da2`) — `lock_recording_manager()` recupera el mutex envenenado (17 sitios); el lock a través de await en reconnect se mantiene a propósito (soltar el guard crearía ventana de "Recording not active" para comandos concurrentes)
 ~25 usos de `.lock().unwrap()` en `recording_commands.rs`. Un panic con el lock tomado envenena el mutex → **todos** los comandos de grabación panican hasta reiniciar (ni siquiera se puede parar la grabación en curso). **Spec:** `.unwrap_or_else(|e| e.into_inner())` o `parking_lot::Mutex`; en `attempt_device_reconnect` (`:1297-1306`), soltar el guard antes del `.await`.
 
 ### RT7–RT9 — MENOR (post-release)
@@ -151,7 +151,7 @@ Divergencia de estado al desconectar device a mitad de grabación (`recording_st
 ## 9. Orden de ejecución sugerido
 
 1. **Lote A — ✅ EJECUTADO 2026-07-17** (commits `fde96ad0` seguridad/confiabilidad y `37e55902` legal). Verificado: `cargo check --tests` 0 errores, `pnpm test` 81/81, `pnpm build` OK, ffmpeg LGPL descargado y validado end-to-end. Nota: los tests unitarios Rust nuevos compilan pero no pueden ejecutarse en esta máquina (linker MSVC desactualizado vs STL de whisper_rs_sys) — correrán en CI/máquina real.
-2. **Lote B — importantes** (puede entrar en v1.0.0 si hay tiempo, si no v1.0.1): RT4, RT5, RT6, L4 (incluye email niko_pp_3000@outlook.com), D2.
+2. **Lote B — ✅ EJECUTADO 2026-07-17** (commit `6dfc0da2`). Verificado: `cargo check --tests` 0 errores, `pnpm test` 81/81, `pnpm build` OK.
 3. **Lote C — dueño (restante)**: PR/merge `feature/new-spa-interface` → `main` tras Lote A → correr `release.yml` → **publicar** el draft `v1.0.0` → e2e del updater antes de `v1.0.1`. (Commits, secrets, licencias y decisiones: ✅ hechos, ver §7.)
 4. **Lote D — backlog**: §8 tras el release.
 
