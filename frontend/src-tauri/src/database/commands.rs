@@ -161,7 +161,13 @@ pub async fn import_and_initialize_database(
         })?;
 
     // Update app state with the new manager
-    app.manage(AppState { db_manager });
+    app.manage(AppState { db_manager: db_manager.clone() });
+
+    // One-shot migration: move any plaintext API keys to the OS keyring.
+    let pool = db_manager.pool();
+    if let Err(e) = crate::database::repositories::setting::SettingsRepository::migrate_plaintext_api_keys_to_keyring(pool).await {
+        log::warn!("Keyring migration failed (non-fatal): {}", e);
+    }
 
     info!("Legacy database imported and initialized successfully");
 
@@ -214,6 +220,11 @@ pub async fn initialize_fresh_database(app: AppHandle) -> Result<(), String> {
     }
 
     info!("Fresh database initialized successfully with default models");
+
+    // Run keyring migration (no-op on fresh install, but keeps the flag set).
+    if let Err(e) = crate::database::repositories::setting::SettingsRepository::migrate_plaintext_api_keys_to_keyring(pool).await {
+        log::warn!("Keyring migration failed (non-fatal): {}", e);
+    }
 
     // Emit event to notify frontend that database is ready
     app.emit("database-initialized", ())

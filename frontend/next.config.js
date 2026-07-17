@@ -1,7 +1,11 @@
 const path = require('path');
-const tiptapPmResolveBase = path.dirname(require.resolve('@tiptap/pm/model'));
-const resolveFromTiptapPm = (pkg) =>
-  require.resolve(pkg, { paths: [tiptapPmResolveBase] });
+
+// Resolve ProseMirror packages from a single location to avoid duplicate
+// instances that break BlockNote.  We use @blocknote/core's resolution
+// context (it depends on prosemirror-* directly).
+const blocknoteResolveBase = path.dirname(require.resolve('@blocknote/core'));
+const resolveFromBlockNote = (pkg) =>
+  require.resolve(pkg, { paths: [blocknoteResolveBase] });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -14,6 +18,14 @@ const nextConfig = {
   basePath: '',
   assetPrefix: '/',
 
+  // Strip console.log / console.debug / console.warn in production builds.
+  // console.error is preserved so crash information still reaches users.
+  compiler: {
+    removeConsole: {
+      exclude: ['error'],
+    },
+  },
+
   // Add webpack configuration for Tauri
   webpack: (config, { isServer }) => {
     if (!isServer) {
@@ -24,24 +36,24 @@ const nextConfig = {
         os: false,
       };
 
-      // Keep ProseMirror single-instanced for BlockNote/Tiptap.
+      // Keep ProseMirror single-instanced for BlockNote.
       config.resolve.alias = {
         ...config.resolve.alias,
         '@blocknote/core$': require.resolve('@blocknote/core'),
         '@blocknote/react$': require.resolve('@blocknote/react'),
         '@blocknote/shadcn$': require.resolve('@blocknote/shadcn'),
-        'prosemirror-model': resolveFromTiptapPm('prosemirror-model'),
-        'prosemirror-state': resolveFromTiptapPm('prosemirror-state'),
-        'prosemirror-view': resolveFromTiptapPm('prosemirror-view'),
-        'prosemirror-transform': resolveFromTiptapPm('prosemirror-transform'),
-        'prosemirror-tables': resolveFromTiptapPm('prosemirror-tables'),
-        'prosemirror-schema-list': resolveFromTiptapPm('prosemirror-schema-list'),
-        'prosemirror-keymap': resolveFromTiptapPm('prosemirror-keymap'),
-        'prosemirror-commands': resolveFromTiptapPm('prosemirror-commands'),
-        'prosemirror-history': resolveFromTiptapPm('prosemirror-history'),
-        'prosemirror-inputrules': resolveFromTiptapPm('prosemirror-inputrules'),
-        'prosemirror-gapcursor': resolveFromTiptapPm('prosemirror-gapcursor'),
-        'prosemirror-dropcursor': resolveFromTiptapPm('prosemirror-dropcursor'),
+        'prosemirror-model': resolveFromBlockNote('prosemirror-model'),
+        'prosemirror-state': resolveFromBlockNote('prosemirror-state'),
+        'prosemirror-view': resolveFromBlockNote('prosemirror-view'),
+        'prosemirror-transform': resolveFromBlockNote('prosemirror-transform'),
+        'prosemirror-tables': resolveFromBlockNote('prosemirror-tables'),
+        'prosemirror-schema-list': resolveFromBlockNote('prosemirror-schema-list'),
+        'prosemirror-keymap': resolveFromBlockNote('prosemirror-keymap'),
+        'prosemirror-commands': resolveFromBlockNote('prosemirror-commands'),
+        'prosemirror-history': resolveFromBlockNote('prosemirror-history'),
+        'prosemirror-inputrules': resolveFromBlockNote('prosemirror-inputrules'),
+        'prosemirror-gapcursor': resolveFromBlockNote('prosemirror-gapcursor'),
+        'prosemirror-dropcursor': resolveFromBlockNote('prosemirror-dropcursor'),
       };
 
       // Give the Tauri webview's first cold on-demand compile (this app has

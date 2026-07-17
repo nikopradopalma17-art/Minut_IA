@@ -29,7 +29,7 @@
                 "default-src": "'self'",
                 "style-src": "'self' 'unsafe-inline'",
                 "img-src": "'self' asset: https://asset.localhost data:",
-                "connect-src": "'self' http://localhost:11434 http://localhost:5167 http://localhost:8178 https://api.ollama.ai"
+                "connect-src": "'self' http://localhost:11434 https://api.ollama.ai"
             },
             "assetProtocol": {
                 "enable": true,
@@ -47,8 +47,6 @@
                     "permissions": [
                         "fs:default",
                         "fs:allow-read-file",
-                        "fs:read-all",
-                        "fs:write-all",
                         "fs:allow-app-read",
                         "fs:allow-app-write",
                         "fs:allow-download-write",
@@ -113,7 +111,7 @@
     },
     "plugins": {
         "updater": {
-            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzNzVCOTMxMzVCN0FFQ0UKUldUT3JyYzFNYmwxZzZaM2s3bWRmYUVBRXZXaHQ5UEt5U0EveFdXMUFsaXJhMUwzSTlnQTJBclYK",
+            "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZDM0REQ0JENTlENzAwRDQKUldUVUFOZFp2ZHc5YkhTOHQrSUNLcC8xa2xSaC8rWVArMWJWVUVWVlNYUVJRakdwbzB0dDhaZXUK",
             "endpoints": [
                 "https://github.com/nikopradopalma17-art/Minut_IA/releases/latest/download/latest.json"
             ]

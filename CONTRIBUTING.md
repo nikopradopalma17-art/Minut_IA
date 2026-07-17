@@ -1,6 +1,6 @@
-# Contributing to Meeting Minutes Updates
+# Contributing to MinutIA
 
-Thank you for your interest in contributing to Meetily! This document provides guidelines and instructions for contributing to this project.
+Thank you for your interest in contributing to MinutIA! This document provides guidelines and instructions for contributing to this project.
 
 ## Development Workflow
 
@@ -15,11 +15,11 @@ Thank you for your interest in contributing to Meetily! This document provides g
 1. Fork the repository
 2. Clone your fork:
    ```bash
-   git clone https://github.com/YOUR_USERNAME/meeting-minutes.git
+   git clone https://github.com/YOUR_USERNAME/Minut_IA.git
    ```
 3. Add the original repository as upstream:
    ```bash
-   git remote add upstream https://github.com/Zackriya-Solutions/meeting-minutes.git
+   git remote add upstream https://github.com/nikopradopalma17-art/Minut_IA.git
    ```
 4. Create a new branch from `devtest`:
    ```bash

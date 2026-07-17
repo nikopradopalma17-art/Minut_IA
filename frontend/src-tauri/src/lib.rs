@@ -61,9 +61,78 @@ pub mod whisper_engine;
 use audio::{list_audio_devices, AudioDevice, trigger_audio_permission};
 use log::{error as log_error, info as log_info};
 use notifications::commands::NotificationManagerState;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::{AppHandle, Manager, Runtime};
 use tokio::sync::RwLock;
+
+/// Canonicalise `path` and ensure it lives inside one of the allowed root
+/// directories (app data dir or the user's download dir).  Returns the
+/// canonical `PathBuf` on success or an error string suitable for a Tauri
+/// command response.
+///
+/// This prevents a compromised webview from using `read_audio_file` or
+/// `save_transcript` to read or write arbitrary files on disk (e.g.
+/// `~/.ssh/id_rsa` or the Windows Startup folder).
+fn resolve_within_allowed<R: Runtime>(
+    app: &AppHandle<R>,
+    path: &str,
+) -> Result<PathBuf, String> {
+    let input = Path::new(path);
+
+    // Build the list of allowed roots.  We canonicalise each root so that
+    // symlinks are resolved before the starts_with check.
+    let mut allowed_roots: Vec<PathBuf> = Vec::new();
+
+    if let Ok(app_data) = app.path().app_data_dir() {
+        // app_data_dir may not exist yet on a fresh install — canonicalize
+        // the parent instead and append the final component manually.
+        if let Ok(canon) = app_data.canonicalize() {
+            allowed_roots.push(canon);
+        } else if let Some(parent) = app_data.parent() {
+            if let Ok(canon_parent) = parent.canonicalize() {
+                allowed_roots.push(canon_parent.join(app_data.file_name().unwrap_or_default()));
+            }
+        }
+    }
+
+    if let Ok(download) = app.path().download_dir() {
+        if let Ok(canon) = download.canonicalize() {
+            allowed_roots.push(canon);
+        }
+    }
+
+    // Canonicalise the input path.  For read operations the file must
+    // already exist; for write operations the parent must exist.  We try
+    // canonicalising the input directly, and if that fails (file doesn't
+    // exist yet) we canonicalise the parent and re-append the file name.
+    let canonical = match input.canonicalize() {
+        Ok(c) => c,
+        Err(_) => {
+            // File doesn't exist yet (write path).  Canonicalise parent.
+            let parent = input.parent().ok_or_else(|| {
+                "Invalid path: no parent directory".to_string()
+            })?;
+            let canon_parent = parent.canonicalize().map_err(|e| {
+                format!("Parent directory does not exist or is inaccessible: {}", e)
+            })?;
+            canon_parent.join(input.file_name().ok_or_else(|| {
+                "Invalid path: no file component".to_string()
+            })?)
+        }
+    };
+
+    for root in &allowed_roots {
+        if canonical.starts_with(root) {
+            return Ok(canonical);
+        }
+    }
+
+    Err(format!(
+        "Access denied: path '{}' is outside the allowed application directories",
+        canonical.display()
+    ))
+}
 
 static RECORDING_FLAG: AtomicBool = AtomicBool::new(false);
 
@@ -227,19 +296,29 @@ fn get_transcription_status() -> TranscriptionStatus {
 }
 
 #[tauri::command]
-fn read_audio_file(file_path: String) -> Result<Vec<u8>, String> {
-    match std::fs::read(&file_path) {
+fn read_audio_file<R: Runtime>(
+    app: AppHandle<R>,
+    file_path: String,
+) -> Result<Vec<u8>, String> {
+    let resolved = resolve_within_allowed(&app, &file_path)?;
+    match std::fs::read(&resolved) {
         Ok(data) => Ok(data),
         Err(e) => Err(format!("Failed to read audio file: {}", e)),
     }
 }
 
 #[tauri::command]
-async fn save_transcript(file_path: String, content: String) -> Result<(), String> {
+async fn save_transcript<R: Runtime>(
+    app: AppHandle<R>,
+    file_path: String,
+    content: String,
+) -> Result<(), String> {
     log_info!("Saving transcript to: {}", file_path);
 
+    let resolved = resolve_within_allowed(&app, &file_path)?;
+
     // Ensure parent directory exists
-    if let Some(parent) = std::path::Path::new(&file_path).parent() {
+    if let Some(parent) = resolved.parent() {
         if !parent.exists() {
             std::fs::create_dir_all(parent)
                 .map_err(|e| format!("Failed to create directory: {}", e))?;
@@ -247,7 +326,7 @@ async fn save_transcript(file_path: String, content: String) -> Result<(), Strin
     }
 
     // Write content to file
-    std::fs::write(&file_path, content)
+    std::fs::write(&resolved, content)
         .map_err(|e| format!("Failed to write transcript: {}", e))?;
 
     log_info!("Transcript saved successfully");
@@ -421,7 +500,6 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .manage(whisper_engine::parallel_commands::ParallelProcessorState::new())
         .manage(Arc::new(RwLock::new(
             None::<notifications::manager::NotificationManager<tauri::Wry>>,
         )) as NotificationManagerState<tauri::Wry>)
@@ -592,18 +670,6 @@ pub fn run() {
             parakeet_engine::commands::parakeet_cancel_download,
             parakeet_engine::commands::parakeet_delete_corrupted_model,
             parakeet_engine::commands::open_parakeet_models_folder,
-            // Parallel processing commands
-            whisper_engine::parallel_commands::initialize_parallel_processor,
-            whisper_engine::parallel_commands::start_parallel_processing,
-            whisper_engine::parallel_commands::pause_parallel_processing,
-            whisper_engine::parallel_commands::resume_parallel_processing,
-            whisper_engine::parallel_commands::stop_parallel_processing,
-            whisper_engine::parallel_commands::get_parallel_processing_status,
-            whisper_engine::parallel_commands::get_system_resources,
-            whisper_engine::parallel_commands::check_resource_constraints,
-            whisper_engine::parallel_commands::calculate_optimal_workers,
-            whisper_engine::parallel_commands::prepare_audio_chunks,
-            whisper_engine::parallel_commands::test_parallel_processing_setup,
             get_audio_devices,
             trigger_microphone_permission,
             start_recording_with_devices,
@@ -652,8 +718,6 @@ pub fn run() {
             api::summary_list_models,
             api::api_save_api_key,
             api::api_get_api_key_status,
-            // api::api_get_auto_generate_setting,
-            // api::api_save_auto_generate_setting,
             api::api_get_transcript_config,
             api::api_save_transcript_config,
             api::api_delete_meeting,

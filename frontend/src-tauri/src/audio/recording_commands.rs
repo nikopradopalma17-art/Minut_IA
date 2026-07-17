@@ -46,8 +46,6 @@ static TRANSCRIPTION_TASK: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
 // Listener ID for proper cleanup - prevents microphone from staying active after recording stops
 static TRANSCRIPT_LISTENER_ID: Mutex<Option<tauri::EventId>> = Mutex::new(None);
 
-static SCREENSHOT_TASK: Mutex<Option<JoinHandle<()>>> = Mutex::new(None);
-
 #[derive(Debug, Clone)]
 struct EnergyWindow {
     start_seconds: f64,
@@ -643,15 +641,7 @@ pub async fn stop_recording<R: Runtime>(
         }
     }
 
-    // Step 1.5: Clean up speaker timeline and transcript listener to release microphone
-    {
-        let mut global_task = SCREENSHOT_TASK.lock().unwrap();
-        if let Some(task) = global_task.take() {
-            task.abort();
-            info!("📸 Screenshot capture loop task aborted");
-        }
-    }
-
+    // Step 1.5: Clean up transcript listener to release microphone
     {
         use tauri::Listener;
         if let Some(listener_id) = TRANSCRIPT_LISTENER_ID.lock().unwrap().take() {

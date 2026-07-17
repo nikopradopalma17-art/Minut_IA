@@ -1132,21 +1132,17 @@ pub async fn open_meeting_folder<R: Runtime>(
 
 #[tauri::command]
 pub async fn open_external_url(url: String) -> Result<(), String> {
-    use std::process::Command;
-
-    let result = if cfg!(target_os = "windows") {
-        Command::new("cmd").args(&["/C", "start", &url]).output()
-    } else if cfg!(target_os = "macos") {
-        Command::new("open").arg(&url).output()
-    } else {
-        // Linux and other Unix-like systems
-        Command::new("xdg-open").arg(&url).output()
-    };
-
-    match result {
-        Ok(_) => Ok(()),
-        Err(e) => Err(format!("Failed to open URL: {}", e)),
+    let parsed = url::Url::parse(&url).map_err(|e| format!("Invalid URL: {}", e))?;
+    match parsed.scheme() {
+        "http" | "https" => {}
+        scheme => return Err(format!("Unsupported URL scheme: {}", scheme)),
     }
+
+    // Delegates to the OS's native "open" mechanism (ShellExecuteW on Windows,
+    // `open` on macOS, `xdg-open` on Linux) instead of spawning cmd.exe, which
+    // re-parses its whole command line and would let shell metacharacters in
+    // `url` execute arbitrary commands.
+    open::that(&url).map_err(|e| format!("Failed to open URL: {}", e))
 }
 
 // ===== CUSTOM OPENAI API COMMANDS =====
@@ -1179,8 +1175,15 @@ pub async fn api_save_custom_openai_config<R: Runtime>(
     }
 
     // Validate endpoint URL format
-    if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-        return Err("Endpoint must start with http:// or https://".to_string());
+    // Validate endpoint URL: require https:// unless it's a localhost address.
+    let trimmed_endpoint = endpoint.trim();
+    let is_localhost = trimmed_endpoint.starts_with("http://localhost")
+        || trimmed_endpoint.starts_with("http://127.0.0.1");
+
+    if !trimmed_endpoint.starts_with("https://") && !is_localhost {
+        return Err(
+            "Endpoint must use https:// (or http:// for localhost/127.0.0.1 only)".to_string(),
+        );
     }
 
     // Validate optional numeric parameters
@@ -1275,13 +1278,19 @@ pub async fn api_test_custom_openai_connection<R: Runtime>(
         &model
     );
 
-    // Validate endpoint URL format
-    if !endpoint.starts_with("http://") && !endpoint.starts_with("https://") {
-        return Err("Endpoint must start with http:// or https://".to_string());
+    // Validate endpoint URL: require https:// unless it's a localhost address.
+    let trimmed_endpoint = endpoint.trim();
+    let is_localhost = trimmed_endpoint.starts_with("http://localhost")
+        || trimmed_endpoint.starts_with("http://127.0.0.1");
+
+    if !trimmed_endpoint.starts_with("https://") && !is_localhost {
+        return Err(
+            "Endpoint must use https:// (or http:// for localhost/127.0.0.1 only)".to_string(),
+        );
     }
 
     // Build the URL - append /chat/completions to the base endpoint
-    let url = format!("{}/chat/completions", endpoint.trim_end_matches('/'));
+    let url = format!("{}/chat/completions", trimmed_endpoint.trim_end_matches('/'));
 
     // Create a minimal test request
     let test_request = serde_json::json!({
