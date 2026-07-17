@@ -27,8 +27,15 @@ pub fn ensure_ffmpeg_binary() {
     if binary_path.exists() {
         println!("cargo:warning=🔍 Found cached FFmpeg binary: {}", binary_name);
         if verify_ffmpeg_binary(&binary_path) {
-            println!("cargo:warning=✅ FFmpeg binary already cached and verified: {}", binary_name);
-            return;
+            if requires_lgpl(&target) && !ffmpeg_binary_is_lgpl(&binary_path) {
+                // A cached binary from before the GPL→LGPL switch would keep
+                // shipping silently forever — force the re-download.
+                println!("cargo:warning=⚠️  Cached FFmpeg binary is a GPL build; re-downloading the LGPL build (distribution requirement)...");
+                let _ = std::fs::remove_file(&binary_path);
+            } else {
+                println!("cargo:warning=✅ FFmpeg binary already cached and verified: {}", binary_name);
+                return;
+            }
         } else {
             println!("cargo:warning=⚠️  Cached FFmpeg binary appears corrupted, re-downloading...");
             let _ = std::fs::remove_file(&binary_path);
@@ -51,6 +58,9 @@ pub fn ensure_ffmpeg_binary() {
             // Verify downloaded binary works
             if !verify_ffmpeg_binary(&binary_path) {
                 panic!("⚠️  Downloaded FFmpeg binary verification failed!");
+            }
+            if requires_lgpl(&target) && !ffmpeg_binary_is_lgpl(&binary_path) {
+                panic!("⚠️  Downloaded FFmpeg binary is a GPL build — distribution requires LGPL (see THIRD_PARTY_LICENSES.md)");
             }
         }
         Err(e) => {
@@ -122,12 +132,26 @@ fn download_and_extract_ffmpeg(
 }
 
 /// Get FFmpeg download URL for specific target triple
+///
+/// Windows and Linux use the **LGPL** builds from BtbN/FFmpeg-Builds — a
+/// distribution requirement: the installer bundles ffmpeg, and shipping the
+/// GPL builds (gyan.dev "essentials") would put the whole distribution under
+/// GPL source-offer obligations. See THIRD_PARTY_LICENSES.md. Do not switch
+/// these back to a GPL build.
 fn get_ffmpeg_url_for_target(target: &str) -> Result<String, String> {
     // Platform-specific URLs
     let url = if target.contains("windows") {
-        // Windows
-        "https://github.com/Zackriya-Solutions/ffmpeg-binaries/releases/download/0.0.1/ffmpeg-8.0.1-essentials_build.zip"
+        if target.contains("aarch64") {
+            // Windows ARM64 (LGPL)
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-winarm64-lgpl-8.1.zip"
+        } else {
+            // Windows x86_64 (LGPL)
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-win64-lgpl-8.1.zip"
+        }
     } else if target.contains("apple") {
+        // macOS builds are not distributed in v1.0.x releases; these GPL
+        // builds are for local development only. Switch to an LGPL source
+        // before ever shipping macOS installers.
         if target.contains("aarch64") {
             // Apple Silicon (M1/M2/M3)
             "https://github.com/Zackriya-Solutions/ffmpeg-binaries/releases/download/0.0.1/ffmpeg80arm.zip"
@@ -137,17 +161,34 @@ fn get_ffmpeg_url_for_target(target: &str) -> Result<String, String> {
         }
     } else if target.contains("linux") {
         if target.contains("aarch64") || target.contains("arm") {
-            // Linux ARM64
-            "https://github.com/Zackriya-Solutions/ffmpeg-binaries/releases/download/0.0.1/ffmpeg-release-arm64-static.tar.xz"
+            // Linux ARM64 (LGPL)
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linuxarm64-lgpl-8.1.tar.xz"
         } else {
-            // Linux x86_64
-            "https://github.com/Zackriya-Solutions/ffmpeg-binaries/releases/download/0.0.1/ffmpeg-release-amd64-static.tar.xz"
+            // Linux x86_64 (LGPL)
+            "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-n8.1-latest-linux64-lgpl-8.1.tar.xz"
         }
     } else {
         return Err(format!("Unsupported target platform: {}", target));
     };
 
     Ok(url.to_string())
+}
+
+/// Whether this target must bundle an LGPL ffmpeg (targets we distribute).
+fn requires_lgpl(target: &str) -> bool {
+    target.contains("windows") || target.contains("linux")
+}
+
+/// Returns true when the binary reports an LGPL configuration (its
+/// `-version` banner contains no `--enable-gpl` flag).
+fn ffmpeg_binary_is_lgpl(path: &std::path::PathBuf) -> bool {
+    match std::process::Command::new(path).arg("-version").output() {
+        Ok(output) if output.status.success() => {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            !stdout.contains("--enable-gpl")
+        }
+        _ => false,
+    }
 }
 
 /// Extract FFmpeg binary from downloaded archive (handles ZIP and TAR.XZ)

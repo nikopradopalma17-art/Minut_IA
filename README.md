@@ -86,6 +86,12 @@ Guías útiles:
 - [Compilación en Linux](docs/building_in_linux.md)
 - [Arquitectura](docs/architecture.md)
 
+## Licencias y créditos
+
+MinutIA se basa en el proyecto de código abierto **Meetily** ([meeting-minutes](https://github.com/Zackriya-Solutions/meeting-minutes)) de Zackriya Solutions — Copyright (c) 2024 Zackriya Solutions, licenciado bajo MIT. El aviso completo se conserva en [LICENSE.md](LICENSE.md) y se distribuye dentro del instalador.
+
+El instalador incluye además software de terceros (FFmpeg en build LGPL, whisper.cpp, llama.cpp y ONNX Runtime, entre otros) y la app descarga modelos con sus propias licencias (NVIDIA Parakeet CC-BY-4.0, Qwen Apache-2.0, Gemma bajo los Gemma Terms of Use). El detalle completo, con los textos y la disponibilidad del código fuente de FFmpeg, está en [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+
 ## Impulso IA
 
 MinutIA es un producto de **Impulso IA**, orientado a transformar la forma de trabajar mediante inteligencia artificial, optimización de procesos y soluciones digitales ágiles.

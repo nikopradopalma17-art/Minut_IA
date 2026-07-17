@@ -95,9 +95,12 @@
             "icons/app_icon.icns",
             "icons/app_icon.ico"
         ],
-        "resources": [
-            "templates/*.json"
-        ],
+        "resources": {
+            "templates/*.json": "templates/",
+            "../../LICENSE.md": "LICENSE.md",
+            "../../THIRD_PARTY_LICENSES.md": "THIRD_PARTY_LICENSES.md",
+            "../../licenses/*": "licenses/"
+        },
         "externalBin": [
             "binaries/llama-helper",
             "binaries/ffmpeg"
