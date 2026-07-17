@@ -169,6 +169,42 @@ export function useRecordingStop(
     };
   }, [t]);
 
+  // Warn when transcription falls behind real time (large model on slow
+  // hardware): the queue is unbounded, so a long meeting could otherwise
+  // exhaust memory without any signal to the user.
+  useEffect(() => {
+    let unlistenFn: (() => void) | undefined;
+
+    const setupBacklogListener = async () => {
+      try {
+        unlistenFn = await listen<{ pending_segments: number }>(
+          'transcription-backlog-warning',
+          (event) => {
+            console.warn(
+              'Transcription backlog:',
+              event.payload.pending_segments,
+              'segments pending'
+            );
+            toast.warning(t('toasts.transcription_backlog'), {
+              description: t('toasts.transcription_backlog_desc'),
+              duration: 10000,
+            });
+          }
+        );
+      } catch (error) {
+        console.error('Failed to setup transcription-backlog listener:', error);
+      }
+    };
+
+    setupBacklogListener();
+
+    return () => {
+      if (unlistenFn) {
+        unlistenFn();
+      }
+    };
+  }, [t]);
+
   // Main recording stop handler
   const handleRecordingStop = useCallback(async (isCallApi: boolean) => {
     if (recordingStoppedDataRef.current) {

@@ -505,6 +505,8 @@ export const es = {
   "toasts.recording_saved_desc": "Se guardaron {n} segmentos de transcripción.",
   "toasts.view_meeting": "Ver reunión",
   "toasts.save_meeting_failed": "No se pudo guardar la reunión",
+  "toasts.transcription_backlog": "La transcripción se está quedando atrás",
+  "toasts.transcription_backlog_desc": "Tu equipo transcribe más lento que el tiempo real. La grabación continúa, pero considera cambiar a un modelo de transcripción más pequeño para reuniones largas.",
   "toasts.recording_audio_save_failed": "No se pudo guardar el audio de la grabación",
   "toasts.recording_audio_save_failed_desc": "Tus transcripciones se conservaron. Revisa el espacio libre en disco; los checkpoints de audio quedan en la carpeta de la reunión y se pueden recuperar.",
   "toasts.transcription_model_not_ready": "Modelo de transcripción no listo",

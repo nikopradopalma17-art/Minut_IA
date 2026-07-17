@@ -10,7 +10,7 @@ MinutIA is built on the principle that your meeting data should remain private a
 
 ### Local-First Processing
 - **Meeting transcription**: Processed entirely on your device using local Whisper/Parakeet models
-- **Audio recordings**: Never transmitted to external servers
+- **Audio recordings**: MinutIA does not transmit your audio recordings to external servers — audio is processed locally. If you choose a cloud LLM provider for summaries, the transcribed **text** (not the audio) is sent to that provider according to your configuration
 - **Meeting content**: Remains on your infrastructure
 - **AI summaries**: Generated locally or through your chosen LLM provider
 
@@ -112,7 +112,7 @@ We will notify users of any material changes to this privacy policy through:
 
 For privacy-related questions or concerns:
 - **GitHub Issues**: [Create an issue](https://github.com/nikopradopalma17-art/Minut_IA/issues)
-- **Email**: [Contact the maintainer](mailto:nikopradopalma17-art@users.noreply.github.com)
+- **Email**: [niko_pp_3000@outlook.com](mailto:niko_pp_3000@outlook.com)
 
 ## Open Source Commitment
 
@@ -124,4 +124,4 @@ As an open-source project, you can:
 
 ---
 
-*This privacy policy applies to MinutIA v0.4.0 and later versions.*
+*This privacy policy applies to MinutIA v1.0.0 and later versions.*

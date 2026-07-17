@@ -326,6 +326,14 @@ pub fn start_transcription_task<R: Runtime>(
         }
 
         // Main dispatcher: receive chunks and distribute to workers
+        //
+        // The work queue is unbounded: if the model transcribes slower than
+        // real time (large model on CPU) the backlog grows monotonically for
+        // the whole meeting and can end in OOM. Warn the user once when the
+        // backlog crosses the threshold; re-arm if it drains back down.
+        const BACKLOG_WARN_THRESHOLD: u64 = 40;
+        let mut backlog_warning_active = false;
+
         let mut receiver = transcription_receiver;
         while let Some(chunk) = receiver.recv().await {
             let queued = chunks_queued.fetch_add(1, Ordering::SeqCst) + 1;
@@ -333,6 +341,21 @@ pub fn start_transcription_task<R: Runtime>(
                 "📥 Dispatching chunk {} to workers (total queued: {})",
                 chunk.chunk_id, queued
             );
+
+            let backlog = queued.saturating_sub(chunks_completed.load(Ordering::SeqCst));
+            if backlog >= BACKLOG_WARN_THRESHOLD && !backlog_warning_active {
+                backlog_warning_active = true;
+                warn!(
+                    "⚠️ Transcription backlog: {} segments pending — model is slower than real time",
+                    backlog
+                );
+                let _ = app.emit(
+                    "transcription-backlog-warning",
+                    serde_json::json!({ "pending_segments": backlog }),
+                );
+            } else if backlog < BACKLOG_WARN_THRESHOLD / 2 {
+                backlog_warning_active = false;
+            }
 
             if let Err(_) = work_sender.send(chunk) {
                 error!("❌ Failed to send chunk to workers - this should not happen!");
