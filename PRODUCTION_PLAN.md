@@ -8,9 +8,9 @@ El grueso del plan original está **ejecutado y verificado**: compila (`cargo ch
 
 | Frente | Ítems | Gravedad |
 |---|---|---|
-| **A. Bloqueantes de código** | R1, D1, RT1, RT2, RT3 | Crítico |
-| **B. Bloqueante legal** | L1 (+L2, L3) — decisión tomada: ffmpeg LGPL | Bloqueante-legal |
-| **C. Importantes pre-release** | R2, R3, RT4–RT6, L4 | Importante |
+| **A. Bloqueantes de código** | ✅ Ejecutados 2026-07-17 (commits `fde96ad0`, `37e55902`) | Crítico |
+| **B. Bloqueante legal** | ✅ Ejecutado: ffmpeg LGPL (BtbN n8.1) + THIRD_PARTY_LICENSES bundleado | Bloqueante-legal |
+| **C. Importantes pre-release** | R2 ✅, R3 ✅; quedan RT4–RT6, L4 (Lote B) | Importante |
 | **D. Acciones del dueño** | ✅ resueltas 2026-07-17; quedan: PR/merge tras Lote A, release+publish, e2e v1.0.1 | Manual |
 | **E. Backlog post-release** | ver §8 | No bloqueante |
 
@@ -40,15 +40,15 @@ Verificación: `cargo check` exit 0 (13 warnings) · `pnpm test` 81/81 · `pnpm 
 
 ## 3. Re-review de los fixes (2026-07-17) — corregir antes del release
 
-### R1 — CRÍTICO — El confinamiento de rutas rompe la reproducción de grabaciones
+### R1 — ✅ RESUELTO (`fde96ad0`) — El confinamiento de rutas rompía la reproducción de grabaciones
 `resolve_within_allowed` (`lib.rs`) solo permite `app_data_dir` y `download_dir`, pero las grabaciones van por defecto a `%USERPROFILE%\Music\MinutIA-recordings` (`recording_preferences.rs:43-55`) y son configurables a cualquier carpeta. `useAudioPlayer.ts:76` lee con `invoke('read_audio_file')` → **"Access denied" al reproducir cualquier grabación**.
 **Spec:** agregar a `allowed_roots` la carpeta configurada (`load_recording_preferences(app).save_folder`) y `get_default_recordings_folder()`, ambas canonicalizadas igual que las otras raíces. Test: reproducir una grabación en la carpeta default y en una custom. Corregir también `RELEASING.md` Phase D-2 (dice `%APPDATA%\com.minutia.app\recording-*.wav`; la ruta real es Music).
 
-### R2 — IMPORTANTE — Validación de endpoint custom-OpenAI bypasseable
+### R2 — ✅ RESUELTO (`fde96ad0`) — Validación de endpoint custom-OpenAI bypasseable
 `api.rs:1180` y `:1283`: `starts_with("http://localhost")` acepta `http://localhost.evil.com`, `http://127.0.0.1.evil.com`, `http://localhost@evil.com` → API key en claro (`Bearer`) a host remoto vía `llm_client.rs:173-180` (sin re-validación).
 **Spec:** helper compartido con `url::Url::parse` (ya es dependencia): permitir `https`, o `http` solo si `host()` es exactamente `Domain("localhost")`, IPv4 en `127.0.0.0/8` o IPv6 `::1` (esto además arregla que `http://[::1]:8000` legítimo hoy sea rechazado). Aplicar en ambos comandos + test unitario con los bypasses.
 
-### R3 — IMPORTANTE — La migración keyring marca "done" aunque haya fallos
+### R3 — ✅ RESUELTO (`fde96ad0`) — La migración keyring marcaba "done" aunque hubiera fallos
 `setting.rs` (~490): tras el loop, `UPDATE settings SET keyringMigrationDone = 1` corre **incondicionalmente**; si `keyring_set` falló en alguna key (`continue`), esa key queda plaintext para siempre y el "retry" del comentario nunca ocurre.
 **Spec:** acumular `had_failures: bool` en los tres bloques (settings, customOpenAIConfig, transcript_settings); marcar el flag solo si `!had_failures`. Test con keyring simulado que falla.
 
@@ -56,18 +56,18 @@ Verificación: `cargo check` exit 0 (13 warnings) · `pnpm test` 81/81 · `pnpm 
 
 ## 4. Auditoría legal y licencias
 
-### L1 — BLOQUEANTE-LEGAL — ffmpeg GPL bundleado sin cumplimiento → **DECISIÓN: migrar a LGPL (BtbN)**
+### L1 — ✅ RESUELTO (`37e55902`) — ffmpeg ahora es build LGPL de BtbN (n8.1, verificado sin --enable-gpl); el build script rechaza binarios GPL
 `tauri.conf.json` bundlea `binaries/ffmpeg` como `externalBin`. El binario Windows actual viene de `ffmpeg-8.0.1-essentials_build.zip` (`build/ffmpeg.rs:127-129`, build gyan.dev = **GPL v3**) sin texto de licencia ni oferta de fuentes. (Uso como sidecar = "mera agregación"; NO contagia al código MIT propio.)
 **Spec (decisión del dueño 2026-07-17: build LGPL):**
 1. Cambiar las URLs de descarga en `build/ffmpeg.rs:127-145` a un build **LGPL** de BtbN (`ffmpeg-master-latest-win64-lgpl.zip` o release pinneada `-lgpl` de https://github.com/BtbN/FFmpeg-Builds/releases); verificar que la app solo usa funcionalidad disponible en LGPL (encode AAC/mux mp4 — sí lo está; los codecs GPL como libx264 no se usan).
 2. En `THIRD_PARTY_LICENSES.md` (ver L2/L3): texto **LGPL v2.1+** + declaración "FFmpeg (build LGPL de BtbN), sin modificaciones, redistribuido como ejecutable separado" + link a las fuentes (ffmpeg.org y el repo de BtbN, que publica las fuentes exactas por release).
 3. Verificar en máquina real que el pipeline de guardado (checkpoint → merge → mp4) funciona igual con el binario BtbN.
 
-### L2 — IMPORTANTE — El aviso MIT no viaja dentro del instalador
+### L2 — ✅ RESUELTO (`37e55902`) — LICENSE.md + THIRD_PARTY_LICENSES.md + licenses/ bundleados; atribución Meetily en README
 La MIT de Meetily (`LICENSE.md`, © 2024 Zackriya Solutions — correctamente conservado) exige el aviso "in all copies"; `bundle.resources` (`tauri.conf.json:98-100`) solo incluye `templates/*.json` → el `.exe`/`.msi` no lleva licencia.
 **Spec:** ampliar `bundle.resources` para incluir `LICENSE.md` y `THIRD_PARTY_LICENSES.md`. Añadir en README (y opcionalmente "Acerca de") la atribución: *"MinutIA se basa en Meetily (meeting-minutes) de Zackriya Solutions, MIT, © 2024 Zackriya Solutions"*.
 
-### L3 — IMPORTANTE — Avisos de terceros faltantes (van en `THIRD_PARTY_LICENSES.md`)
+### L3 — ✅ RESUELTO (`37e55902`) — THIRD_PARTY_LICENSES.md creado con todos los avisos
 whisper.cpp/ggml (MIT, "The ggml authors" — enlazado estático en el binario principal) · llama.cpp/ggml vía `llama-cpp-2` (MIT — estático en `llama-helper.exe`) · ONNX Runtime/`ort` (MIT, Microsoft) · WeSpeaker voxceleb (Apache-2.0) · pesos Whisper (MIT, OpenAI).
 
 **Licencias de modelos verificadas online en HuggingFace (2026-07-17):**
@@ -84,7 +84,7 @@ Línea 14: matizar "Never transmitted" → el audio nunca sale, pero el **texto*
 
 ## 5. Auditoría de upgrade de datos
 
-### D1 — CRÍTICO — Fallo de migración = boot loop irrecuperable
+### D1 — ✅ RESUELTO (`fde96ad0`) — Fallo de migración: diálogo + exit (sin panic), backup pre-migración con WAL, migraciones congeladas documentadas (CLAUDE.md §10)
 `lib.rs:585-588`: `block_on(initialize_database_on_startup(...)).expect("Failed to initialize database")`. Cualquier migración futura que falle (bug en 1.1.0, I/O) → panic al arrancar, y como sqlx registra las aplicadas, **cada reintento vuelve a fallar**: usuarios auto-actualizados quedan con la app inarrancable, sin mensaje. El recovery existente solo cubre WAL corrupto (`manager.rs:181`), no errores de migración. Downgrade (DB nueva + app vieja) → mismo panic (`VersionMissing`).
 **Spec:**
 1. Reemplazar `.expect()` por manejo graceful: en `Err`, mostrar diálogo nativo (tauri-plugin-dialog ya está) con el error y opciones *Reintentar / Abrir carpeta de datos / Salir*; no matar el proceso sin diagnóstico.
@@ -100,15 +100,15 @@ Código muerto (cero imports; la detección real está inline en `OnboardingCont
 
 ## 6. Auditoría de robustez runtime (Rust)
 
-### RT1 — CRÍTICO — Panics en el hilo de guardado (checkpoint cada 30s)
+### RT1 — ✅ RESUELTO (`fde96ad0`) — encode.rs sin panics; errores propagados
 `encode.rs:74,76,83,57`: `spawn().expect(...)`, `stdin.take().expect(...)`, `wait_with_output().unwrap()`, `to_str().unwrap()`. Si el antivirus bloquea/cuarentena `ffmpeg.exe` a mitad de reunión (escenario Windows real), la task de checkpoint (lanzada fire-and-forget en `recording_saver.rs:183`) **muere en silencio**: la transcripción sigue, el usuario no nota nada, y el `audio.mp4` deja de construirse.
 **Spec:** convertir los 4 a `Result` propagado (`anyhow` + `?`, `to_str()` → `ok_or_else`); guardar el `JoinHandle` de la task de acumulación y emitir evento al frontend si termina anómalamente.
 
-### RT2 — CRÍTICO — Disco lleno = pérdida de audio con falso "éxito"
+### RT2 — ✅ RESUELTO (`fde96ad0`) — evento `recording-save-failed` + toast EN/ES; errores ya no se enmascaran
 Cadena verificada: `add_chunk` falla → solo `error!` (`recording_saver.rs:202-208`) → al parar, `finalize()` falla → `save_recording_only` **traga el `Err` y devuelve `Ok`** (`recording_manager.rs:303-310`) → `stop_recording` emite `recording-stopped` como éxito (`recording_commands.rs:988`). El `.mp4` no existe, los `.checkpoints/` quedan huérfanos (recuperables con `recover_audio_from_checkpoints`, pero el usuario no sabe que debe hacerlo).
 **Spec:** nuevo evento `recording-save-failed { folder_path, recoverable: true }`; `save_recording_only` no enmascara el `Err`; en la rama `Ok(Err)` de `stop_recording`, emitir el evento de fallo (con toast en frontend que ofrezca el recovery) en vez de `warn!`.
 
-### RT3 — IMPORTANTE — Sin panic hook global ni guard de threads de audio
+### RT3 — ✅ RESUELTO (`fde96ad0`) — panic hook global + evento `fatal-panic`
 Grep confirmado: cero `set_hook`/`catch_unwind` en `src/`. Un panic en cualquier task de audio desaparece como `JoinError` sin diagnóstico ni aviso.
 **Spec:** `std::panic::set_hook` en `run()` que loguee con backtrace y emita evento `fatal-audio-panic` al frontend.
 
@@ -150,7 +150,7 @@ Divergencia de estado al desconectar device a mitad de grabación (`recording_st
 
 ## 9. Orden de ejecución sugerido
 
-1. **Lote A — bloqueantes** (ejecutable por agente, ~1 sesión): R1 → D1 (graceful + backup) → RT1 → RT2 → RT3 → L1 (ffmpeg → BtbN LGPL) + L2 + L3 (`THIRD_PARTY_LICENSES.md` + bundle + atribución) → R2 → R3. Cada fix con test; al final `cargo check` + `pnpm test` + `pnpm build`.
+1. **Lote A — ✅ EJECUTADO 2026-07-17** (commits `fde96ad0` seguridad/confiabilidad y `37e55902` legal). Verificado: `cargo check --tests` 0 errores, `pnpm test` 81/81, `pnpm build` OK, ffmpeg LGPL descargado y validado end-to-end. Nota: los tests unitarios Rust nuevos compilan pero no pueden ejecutarse en esta máquina (linker MSVC desactualizado vs STL de whisper_rs_sys) — correrán en CI/máquina real.
 2. **Lote B — importantes** (puede entrar en v1.0.0 si hay tiempo, si no v1.0.1): RT4, RT5, RT6, L4 (incluye email niko_pp_3000@outlook.com), D2.
 3. **Lote C — dueño (restante)**: PR/merge `feature/new-spa-interface` → `main` tras Lote A → correr `release.yml` → **publicar** el draft `v1.0.0` → e2e del updater antes de `v1.0.1`. (Commits, secrets, licencias y decisiones: ✅ hechos, ver §7.)
 4. **Lote D — backlog**: §8 tras el release.
