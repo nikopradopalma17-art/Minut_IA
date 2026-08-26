@@ -1,0 +1,59 @@
+name: "Security Scan (Strix)"
+
+# Run a diff-scoped AI pentest on every PR to main. Only changed files are
+# tested (quick mode); validated vulnerabilities fail the build. Results are
+# also uploaded to GitHub code scanning as SARIF.
+#
+# Requires two repository secrets:
+#   STRIX_LLM     - LiteLLM model id (e.g. openai/gpt-5.4, deepseek/deepseek-v4-flash)
+#   LLM_API_KEY   - API key for the provider above
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  strix-scan:
+    name: Strix Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # required for diff-scope resolution
+
+      - name: Install Strix
+        run: curl -sSL https://strix.ai/install | bash
+
+      - name: Run Security Scan
+        env:
+          STRIX_LLM: ${{ secrets.STRIX_LLM }}
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: strix -n -t ./ --scan-mode quick --max-budget 12
+
+      # Don't fail open: a run that hits the hard budget stop exits 0 but leaves
+      # run.json status "stopped", not "completed". Enforce completion explicitly.
+      - name: Fail unless the scan completed
+        id: scan-result
+        run: |
+          run_json=$(ls -t strix_runs/*/run.json | head -1)
+          status=$(jq -r .status "$run_json")
+          if [ "$status" != "completed" ]; then
+            echo "Strix run status is '$status' — the scan did not complete (likely budget exhausted). Raise --max-budget." >&2
+            exit 1
+          fi
+          echo "run_dir=$(dirname "$run_json")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload SARIF to code scanning
+        if: always()
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan-result.outputs.run_dir }}/findings.sarif
+          category: "strix"
