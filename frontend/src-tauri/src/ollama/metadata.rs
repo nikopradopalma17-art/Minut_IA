@@ -143,6 +143,9 @@ async fn fetch_model_info(
 ) -> Result<ModelMetadata, String> {
     let client = Client::new();
     let base_url = endpoint.unwrap_or("http://localhost:11434");
+    // Defense-in-depth: reject non-https / non-loopback hosts before issuing
+    // any outbound request from a caller-supplied endpoint.
+    crate::api::validate_custom_endpoint(base_url)?;
     let url = format!("{}/api/show", base_url);
 
     let payload = serde_json::json!({

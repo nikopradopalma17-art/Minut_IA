@@ -165,6 +165,11 @@ pub async fn generate_summary(
             let host = ollama_endpoint
                 .map(|s| s.to_string())
                 .unwrap_or_else(|| "http://localhost:11434".to_string());
+            // Sink-level guard: never send the provider API key to an arbitrary
+            // host. Require https, or http only on loopback. The stored
+            // endpoint is attached as `Authorization: Bearer` below, so an
+            // unvalidated host would exfiltrate the credential.
+            crate::api::validate_custom_endpoint(host.trim())?;
             (
                 format!("{}/v1/chat/completions", host),
                 header::HeaderMap::new(),

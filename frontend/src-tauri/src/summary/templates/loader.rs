@@ -115,6 +115,11 @@ pub fn get_custom_template_path(template_id: &str) -> Option<PathBuf> {
 
 /// Returns true when a custom template file exists for the provided identifier.
 pub fn is_custom_template(template_id: &str) -> bool {
+    // Reject ids that could escape the templates directory (path separators,
+    // `..`, non-alphanumeric chars) before touching the filesystem.
+    if validate_template_id(template_id).is_err() {
+        return false;
+    }
     custom_template_path(template_id)
         .as_ref()
         .is_some_and(|path| path.exists())
@@ -171,6 +176,12 @@ pub fn delete_custom_template(template_id: &str) -> Result<(), String> {
 /// # Returns
 /// Parsed and validated Template struct
 pub fn get_template(template_id: &str) -> Result<Template, String> {
+    // Reject path separators / `..` / non-alphanumeric ids before resolving a
+    // filesystem path, matching the validation already applied on save/delete.
+    // Without this, a crafted template_id could traverse out of the templates
+    // directory and disclose arbitrary JSON files that parse as a template.
+    validate_template_id(template_id)?;
+
     info!("Loading template: {}", template_id);
 
     // Try custom template first, then bundled, then built-in

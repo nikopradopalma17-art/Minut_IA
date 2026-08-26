@@ -568,6 +568,15 @@ pub async fn api_save_model_config<R: Runtime>(
     );
     let pool = state.db_manager.pool();
 
+    // Only accept https endpoints (or http on loopback) for Ollama. The stored
+    // endpoint is used verbatim for outbound requests that carry the provider
+    // API key as a Bearer token, so arbitrary hosts must not be reachable.
+    if let Some(ref ep) = ollama_endpoint {
+        if !ep.trim().is_empty() {
+            validate_custom_endpoint(ep.trim())?;
+        }
+    }
+
     if let Err(e) = SettingsRepository::save_model_config(
         pool,
         &provider,

@@ -318,10 +318,12 @@ async fn run_import<R: Runtime>(
 ) -> Result<ImportResult> {
     let source = PathBuf::from(&source_path);
 
-    // Validate source file
-    if !source.exists() {
-        return Err(anyhow!("Source file not found: {}", source.display()));
-    }
+    // Validate source is a real audio file before copying it into the
+    // recordings folder. Without this a compromised webview could pass any
+    // readable file (e.g. ~/.ssh/id_rsa) as source_path, get it copied into
+    // the recordings directory, and then read it back through
+    // read_audio_file, defeating that command's path confinement.
+    validate_audio_file(&source)?;
 
     info!(
         "Starting import for '{}' from {} with language {:?}, model {:?}, provider {:?}",
@@ -385,7 +387,14 @@ async fn run_import<R: Runtime>(
         decode_audio_file_with_progress(&path_for_decode, Some(decode_progress))
     })
     .await
-    .map_err(|e| anyhow!("Decode task join error: {}", e))??;
+    .map_err(|e| anyhow!("Decode task join error: {}", e))?
+    .map_err(|e| {
+        // Clean up the meeting folder on decode failure so a copied file
+        // never persists in an allowed root when it cannot be decoded
+        // (defense in depth for the source-path validation above).
+        let _ = std::fs::remove_dir_all(&meeting_folder);
+        anyhow!("Failed to decode audio file: {}", e)
+    })?;
     let duration_seconds = decoded.duration_seconds;
 
     info!(

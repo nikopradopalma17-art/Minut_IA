@@ -8,6 +8,7 @@ use tokio::time::{timeout, Duration, sleep};
 use tokio::sync::RwLock;
 use futures_util::StreamExt;
 use once_cell::sync::Lazy;
+use crate::api::validate_custom_endpoint;
 use crate::ollama::metadata::ModelMetadataCache;
 
 // Global set to track models currently being downloaded
@@ -77,20 +78,16 @@ fn is_localhost_endpoint(endpoint: Option<&str>) -> bool {
     }
 }
 
-// Helper function to validate endpoint URL format
+// Helper function to validate endpoint URL format.
+// https is required; http is allowed only for loopback hosts so the endpoint
+// cannot be used to reach arbitrary (internal) hosts. Reuses the same policy
+// applied to the custom OpenAI endpoint.
 fn validate_endpoint_url(url: &str) -> Result<(), OllamaError> {
     if url.is_empty() {
         return Ok(()); // Empty is valid (uses default)
     }
 
-    // Check if URL starts with http:// or https://
-    if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err(OllamaError::InvalidEndpoint(
-            "URL must start with http:// or https://".to_string()
-        ));
-    }
-
-    Ok(())
+    validate_custom_endpoint(url.trim()).map_err(OllamaError::InvalidEndpoint)
 }
 
 #[command]
