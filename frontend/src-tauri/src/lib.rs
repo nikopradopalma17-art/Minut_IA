@@ -554,6 +554,29 @@ pub fn run() {
             // audio tasks to emit events to the frontend.
             let _ = GLOBAL_APP_HANDLE.set(_app.handle().clone());
 
+            // whisper.cpp is compiled with AVX2 baked in (ggml has no runtime
+            // CPU dispatch at the vendored version), so on a CPU without AVX2
+            // the process dies with ILLEGAL_INSTRUCTION on first inference.
+            // Fail with a clear message instead.
+            #[cfg(target_arch = "x86_64")]
+            {
+                if !std::arch::is_x86_feature_detected!("avx2") {
+                    log::error!("CPU does not support AVX2; cannot run MinutIA");
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    _app.handle()
+                        .dialog()
+                        .message(
+                            "MinutIA requires a CPU with AVX2 support (roughly any \
+                             Intel Core or AMD Ryzen from 2015 onwards) and will close.\n\n\
+                             Your processor does not report AVX2 support.",
+                        )
+                        .kind(MessageDialogKind::Error)
+                        .title("MinutIA — unsupported CPU")
+                        .blocking_show();
+                    std::process::exit(1);
+                }
+            }
+
             // Initialize system tray
             if let Err(e) = tray::create_tray(_app.handle()) {
                 log::error!("Failed to create system tray: {}", e);
