@@ -529,6 +529,15 @@ jobs:
           Write-Host "Copied llama-helper to frontend/src-tauri/binaries/"
           Get-ChildItem "frontend/src-tauri/binaries/"
 
+      - name: Fail fast if llama-helper contains AVX-512 code
+        if: contains(inputs.platform, 'windows')
+        shell: bash
+        run: |
+          # v1.0.0 shipped AVX-512 baked by GGML_NATIVE and crashed with
+          # 0xC000001D on consumer CPUs. ffmpeg.exe is NOT scanned: it has
+          # runtime CPU dispatch, only statically-baked code is unsafe.
+          python scripts/check_avx512.py frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
+
       - name: Build llama-helper sidecar (macOS/Linux)
         if: "!contains(inputs.platform, 'windows')"
         shell: bash
@@ -588,6 +597,17 @@ jobs:
           releaseName: ${{ inputs.release-id && format('v{0}', steps.get-version.outputs.version) || '' }}
           releaseId: ${{ inputs.release-id }}
           args: ${{ inputs.build-args }} ${{ steps.build-features.outputs.features }}
+
+      - name: Fail if Windows app binary contains AVX-512 code
+        if: contains(inputs.platform, 'windows')
+        shell: bash
+        run: |
+          APP_EXE=$(find target -type f -name "minutia.exe" | head -1)
+          if [ -z "$APP_EXE" ]; then
+            echo "minutia.exe not found under target/"
+            exit 1
+          fi
+          python scripts/check_avx512.py "$APP_EXE"
 
       - name: Upload artifacts (macOS)
         if: inputs.upload-artifacts && contains(inputs.platform, 'macos')

@@ -39,10 +39,11 @@ test('tauri updater is enabled and points at MinutIA release manifest', () => {
   assert.equal('signCommand' in tauriConfig.bundle.windows, false);
 });
 
-test('v1.0.0 release version is identical across every package manifest', () => {
-  assert.equal(tauriConfig.version, '1.0.0');
-  assert.equal(packageJson.version, '1.0.0');
-  assert.match(cargoToml, /^version = "1\.0\.0"$/m);
+test('release version is identical across every package manifest', () => {
+  assert.match(tauriConfig.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(packageJson.version, tauriConfig.version);
+  const escaped = tauriConfig.version.replace(/\./g, '\\.');
+  assert.match(cargoToml, new RegExp(`^version = "${escaped}"$`, 'm'));
 });
 
 test('desktop app mounts the updater provider and registers the Rust updater plugin', () => {

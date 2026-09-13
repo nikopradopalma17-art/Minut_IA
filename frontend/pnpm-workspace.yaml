@@ -2,8 +2,7 @@ packages:
   - "."
 
 overrides:
-  # Security patches for transitive deps (pnpm >=10 reads overrides here, not
-  # from the legacy "pnpm" field in package.json).
+  # Security patches for transitive deps (moved here by 1cc262c).
   linkify-it: 5.0.2
   markdown-it: 14.3.0
   postcss: 8.5.26
@@ -11,3 +10,12 @@ overrides:
   uuid: 11.1.1
   next: 15.5.21
   sharp: 0.35.3
+  # Editor pins previously in package.json's legacy "pnpm.overrides" field.
+  # pnpm 10 still reads that field and merges it, which made the effective
+  # overrides differ from the lockfile and broke frozen installs (ERR_PNPM_
+  # LOCKFILE_CONFIG_MISMATCH). Single source of truth now.
+  prosemirror-model: 1.25.3
+  prosemirror-state: 1.4.3
+  prosemirror-view: 1.41.3
+  prosemirror-transform: 1.10.4
+  prosemirror-tables: 1.8.1
