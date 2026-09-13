@@ -684,6 +684,16 @@ jobs:
           echo "## Build Artifacts"
           find target/x86_64-pc-windows-msvc/${{ steps.build-profile.outputs.profile }}/bundle -type f \( -name "*.msi" -o -name "*.exe" \) -exec ls -lh {} \;
 
+      - name: Fail if Windows binaries contain AVX-512 code
+        shell: bash
+        run: |
+          # v1.0.0 shipped AVX-512 baked by GGML_NATIVE and crashed with
+          # 0xC000001D on consumer CPUs. ffmpeg.exe is NOT scanned: it has
+          # runtime CPU dispatch, only statically-baked code is unsafe.
+          python scripts/check_avx512.py \
+            target/x86_64-pc-windows-msvc/${{ steps.build-profile.outputs.profile }}/minutia.exe \
+            frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
+
       - name: Upload artifacts
         if: ${{ github.event.inputs.upload-artifacts == 'true' }}
         uses: actions/upload-artifact@v4
