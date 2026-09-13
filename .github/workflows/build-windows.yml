@@ -689,11 +689,11 @@ jobs:
       - name: AVX-512 gates — strict libs, canary app binary
         shell: bash
         run: |
-          # Strict: libraries we compile. Portable ggml/whisper builds
-          # measure <=17 EVEX hits per 64 KiB window; a GGML_NATIVE
-          # regression bakes 400-2600+.
+          # Strict: libraries we compile (exist only after the Tauri build).
+          # Portable ggml/whisper builds measure <=17 EVEX hits per 64 KiB
+          # window; a GGML_NATIVE regression bakes 400-2600+.
           find target -path "*whisper-rs-sys*" -name "*.lib" -print0 |
-            xargs -0 -n1 python scripts/check_avx512.py
+            xargs -0 -r -n1 python scripts/check_avx512.py
           # Strict: llama.cpp is built with GGML_NATIVE=OFF by
           # llama-cpp-sys-2 and has no runtime-dispatched SIMD.
           python scripts/check_avx512.py frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe

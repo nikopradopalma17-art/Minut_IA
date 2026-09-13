@@ -529,15 +529,10 @@ jobs:
           Write-Host "Copied llama-helper to frontend/src-tauri/binaries/"
           Get-ChildItem "frontend/src-tauri/binaries/"
 
-      - name: Fail fast if native libs contain baked AVX-512
+      - name: Fail fast if llama-helper contains baked AVX-512
         if: contains(inputs.platform, 'windows')
         shell: bash
         run: |
-          # Strict gate on the libraries we compile: portable ggml/whisper
-          # builds measure <=17 EVEX hits per 64 KiB window; a GGML_NATIVE
-          # regression bakes 400-2600+. Zero false positives expected.
-          find target -path "*whisper-rs-sys*" -name "*.lib" -print0 |
-            xargs -0 -n1 python scripts/check_avx512.py
           # llama-helper links llama.cpp with GGML_NATIVE=OFF forced by
           # llama-cpp-sys-2 and contains no runtime-dispatched SIMD: strict.
           python scripts/check_avx512.py frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
@@ -604,17 +599,22 @@ jobs:
           releaseId: ${{ inputs.release-id }}
           args: ${{ inputs.build-args }} ${{ steps.build-features.outputs.features }}
 
-      - name: Canary-check the app binary for baked AVX-512
+      - name: AVX-512 gates — strict libs, canary app binary
         if: contains(inputs.platform, 'windows')
         shell: bash
         run: |
-          # minutia.exe legitimately contains runtime-dispatched AVX-512
-          # (rustfft/symphonia kernels guarded by is_x86_feature_detected;
-          # measured 218 hits/64 KiB max on a clean release build). Baked
-          # code — the v1.0.0 ggml crash and static ort — measures 1800-2662.
-          # A dense-window canary at 1000 catches that class of regression
-          # without false positives; the strict per-library gate above is
-          # the deterministic check.
+          # Strict gate on the libraries we compile (they exist only after
+          # the Tauri build): portable ggml/whisper builds measure <=17 EVEX
+          # hits per 64 KiB window; a GGML_NATIVE regression bakes 400-2600+.
+          # Zero false positives expected.
+          find target -path "*whisper-rs-sys*" -name "*.lib" -print0 |
+            xargs -0 -r -n1 python scripts/check_avx512.py
+          # Canary: minutia.exe legitimately contains runtime-dispatched
+          # AVX-512 (rustfft/symphonia kernels guarded by
+          # is_x86_feature_detected; measured 218 hits/64 KiB max on a clean
+          # release build). Baked code — the v1.0.0 ggml crash and static
+          # ort — measures 1800-2662. A dense-window canary at 1000 catches
+          # that class of regression without false positives.
           APP_EXE=$(find target -type f -name "minutia.exe" | head -1)
           if [ -z "$APP_EXE" ]; then
             echo "minutia.exe not found under target/"
