@@ -171,6 +171,28 @@ fn main() {
         .very_verbose(true)
         .pic(true);
 
+    // x86 builds must stay portable: GGML_NATIVE compiles for the *build
+    // host's* CPU (CI Xeons have AVX-512), and consumer CPUs without those
+    // extensions die with ILLEGAL_INSTRUCTION on launch. ggml at this
+    // version has no runtime dispatch, so AVX-512/AMX stay off while
+    // AVX2+FMA (universal on Windows 11-class x64) stay on.
+    let target = env::var("TARGET").unwrap_or_default();
+    if target.contains("x86_64") || target.starts_with("i") {
+        config
+            .define("GGML_NATIVE", "OFF")
+            .define("GGML_AVX", "ON")
+            .define("GGML_AVX2", "ON")
+            .define("GGML_FMA", "ON")
+            .define("GGML_F16C", "ON")
+            .define("GGML_AVX512", "OFF")
+            .define("GGML_AVX512_VBMI", "OFF")
+            .define("GGML_AVX512_VNNI", "OFF")
+            .define("GGML_AVX512_BF16", "OFF")
+            .define("GGML_AMX_TILE", "OFF")
+            .define("GGML_AMX_INT8", "OFF")
+            .define("GGML_AMX_BF16", "OFF");
+    }
+
     if cfg!(feature = "coreml") {
         config.define("WHISPER_COREML", "ON");
         config.define("WHISPER_COREML_ALLOW_FALLBACK", "1");
