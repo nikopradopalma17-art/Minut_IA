@@ -1,5 +1,7 @@
 #[path = "build/ffmpeg.rs"]
 mod ffmpeg;
+#[path = "build/ort.rs"]
+mod ort;
 
 fn main() {
     // GPU Acceleration Detection and Build Guidance
@@ -12,11 +14,15 @@ fn main() {
         println!("cargo:rustc-link-lib=framework=Foundation");
 
         // Let the enhanced_macos crate handle its own Swift compilation
-        // The swift-rs crate build will be handled in the enhanced_macos crate's build.rs
+        // The swift-rs crate build will be handled by the enhanced_macos crate's build.rs
     }
 
     // Download and bundle FFmpeg binary at build-time
     ffmpeg::ensure_ffmpeg_binary();
+
+    // Download and bundle the official onnxruntime shared library (ort links
+    // dynamically)
+    ort::ensure_ort_dylib();
 
     tauri_build::build()
 }

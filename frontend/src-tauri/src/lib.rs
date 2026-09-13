@@ -554,6 +554,67 @@ pub fn run() {
             // audio tasks to emit events to the frontend.
             let _ = GLOBAL_APP_HANDLE.set(_app.handle().clone());
 
+            // ort links onnxruntime dynamically: point it at the bundled
+            // official Microsoft library (runtime ISA dispatch) before any
+            // ONNX session is created (parakeet engine init below). The dylib
+            // ships as a bundled resource, so its location differs per
+            // platform/install layout — probe the known ones.
+            if std::env::var_os("ORT_DYLIB_PATH").is_none() {
+                let mut found = None;
+                if let Ok(exe) = std::env::current_exe() {
+                    if let Some(exe_dir) = exe.parent() {
+                        let mut candidates: Vec<std::path::PathBuf> = vec![
+                            exe_dir.to_path_buf(),
+                            exe_dir.join("binaries"),
+                            // macOS .app: exe in Contents/MacOS, resources in
+                            // Contents/Resources/binaries
+                            exe_dir.join("../Resources/binaries"),
+                            // `tauri dev` / `cargo run`: target/{debug,release}
+                            // -> frontend/src-tauri/binaries
+                            exe_dir.join("../../src-tauri/binaries"),
+                        ];
+                        // Linux deb/rpm: resources live under ../lib/<name>/
+                        // whose directory name varies — scan it.
+                        if let Ok(lib_dirs) = std::fs::read_dir(exe_dir.join("../lib")) {
+                            for d in lib_dirs.flatten() {
+                                candidates.push(d.path().join("binaries"));
+                            }
+                        }
+                        candidates.dedup();
+                        'outer: for dir in candidates {
+                            let Ok(entries) = std::fs::read_dir(&dir) else {
+                                continue;
+                            };
+                            for entry in entries.flatten() {
+                                let name = entry.file_name();
+                                let name = name.to_string_lossy();
+                                if name.starts_with("onnxruntime")
+                                    && name.ends_with(std::env::consts::DLL_SUFFIX)
+                                    && entry.path().is_file()
+                                {
+                                    found = Some(entry.path());
+                                    break 'outer;
+                                }
+                            }
+                        }
+                    }
+                }
+                match found {
+                    Some(path) => {
+                        // Setup runs on the main thread before any worker
+                        // thread or ONNX session exists.
+                        std::env::set_var("ORT_DYLIB_PATH", &path);
+                        log::info!("ORT_DYLIB_PATH set to {}", path.display());
+                    }
+                    None => {
+                        log::warn!(
+                            "Bundled onnxruntime library not found; Parakeet \
+                             transcription will fail to start"
+                        );
+                    }
+                }
+            }
+
             // whisper.cpp is compiled with AVX2 baked in (ggml has no runtime
             // CPU dispatch at the vendored version), so on a CPU without AVX2
             // the process dies with ILLEGAL_INSTRUCTION on first inference.

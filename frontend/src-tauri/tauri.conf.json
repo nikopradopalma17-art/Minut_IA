@@ -99,7 +99,8 @@
             "templates/*.json": "templates/",
             "../../LICENSE.md": "LICENSE.md",
             "../../THIRD_PARTY_LICENSES.md": "THIRD_PARTY_LICENSES.md",
-            "../../licenses/*": "licenses/"
+            "../../licenses/*": "licenses/",
+            "binaries/onnxruntime-*": "binaries/"
         },
         "externalBin": [
             "binaries/llama-helper",
