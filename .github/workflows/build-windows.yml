@@ -660,11 +660,13 @@ jobs:
           Write-Host "Copied llama-helper to frontend/src-tauri/binaries/"
           Get-ChildItem "frontend/src-tauri/binaries/"
 
-      - name: Cache FFmpeg binary
+      - name: Cache bundled binaries
         uses: actions/cache@v4
         with:
-          path: frontend/src-tauri/binaries/ffmpeg-*.exe
-          key: ${{ runner.os }}-ffmpeg-${{ hashFiles('frontend/src-tauri/build.rs', 'frontend/src-tauri/build/ffmpeg.rs') }}
+          path: |
+            frontend/src-tauri/binaries/ffmpeg-*
+            frontend/src-tauri/binaries/onnxruntime-*
+          key: ${{ runner.os }}-bundled-bins-v1-${{ hashFiles('frontend/src-tauri/build.rs', 'frontend/src-tauri/build/ffmpeg.rs', 'frontend/src-tauri/build/ort.rs') }}
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -684,15 +686,23 @@ jobs:
           echo "## Build Artifacts"
           find target/x86_64-pc-windows-msvc/${{ steps.build-profile.outputs.profile }}/bundle -type f \( -name "*.msi" -o -name "*.exe" \) -exec ls -lh {} \;
 
-      - name: Fail if Windows binaries contain AVX-512 code
+      - name: AVX-512 gates — strict libs, canary app binary
         shell: bash
         run: |
-          # v1.0.0 shipped AVX-512 baked by GGML_NATIVE and crashed with
-          # 0xC000001D on consumer CPUs. ffmpeg.exe is NOT scanned: it has
-          # runtime CPU dispatch, only statically-baked code is unsafe.
-          python scripts/check_avx512.py \
-            target/x86_64-pc-windows-msvc/${{ steps.build-profile.outputs.profile }}/minutia.exe \
-            frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
+          # Strict: libraries we compile. Portable ggml/whisper builds
+          # measure <=17 EVEX hits per 64 KiB window; a GGML_NATIVE
+          # regression bakes 400-2600+.
+          find target -path "*whisper-rs-sys*" -name "*.lib" -print0 |
+            xargs -0 -n1 python scripts/check_avx512.py
+          # Strict: llama.cpp is built with GGML_NATIVE=OFF by
+          # llama-cpp-sys-2 and has no runtime-dispatched SIMD.
+          python scripts/check_avx512.py frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
+          # Canary: minutia.exe legitimately contains runtime-dispatched
+          # AVX-512 (rustfft/symphonia; measured 218/64 KiB max clean).
+          # Baked code measures 1800-2662 (v1.0.0 ggml, static ort) —
+          # 1000 catches that class without false positives.
+          python scripts/check_avx512.py --max-window 1000 \
+            target/x86_64-pc-windows-msvc/${{ steps.build-profile.outputs.profile }}/minutia.exe
 
       - name: Upload artifacts
         if: ${{ github.event.inputs.upload-artifacts == 'true' }}

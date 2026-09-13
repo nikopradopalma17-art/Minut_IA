@@ -529,13 +529,17 @@ jobs:
           Write-Host "Copied llama-helper to frontend/src-tauri/binaries/"
           Get-ChildItem "frontend/src-tauri/binaries/"
 
-      - name: Fail fast if llama-helper contains AVX-512 code
+      - name: Fail fast if native libs contain baked AVX-512
         if: contains(inputs.platform, 'windows')
         shell: bash
         run: |
-          # v1.0.0 shipped AVX-512 baked by GGML_NATIVE and crashed with
-          # 0xC000001D on consumer CPUs. ffmpeg.exe is NOT scanned: it has
-          # runtime CPU dispatch, only statically-baked code is unsafe.
+          # Strict gate on the libraries we compile: portable ggml/whisper
+          # builds measure <=17 EVEX hits per 64 KiB window; a GGML_NATIVE
+          # regression bakes 400-2600+. Zero false positives expected.
+          find target -path "*whisper-rs-sys*" -name "*.lib" -print0 |
+            xargs -0 -n1 python scripts/check_avx512.py
+          # llama-helper links llama.cpp with GGML_NATIVE=OFF forced by
+          # llama-cpp-sys-2 and contains no runtime-dispatched SIMD: strict.
           python scripts/check_avx512.py frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
 
       - name: Build llama-helper sidecar (macOS/Linux)
@@ -569,11 +573,13 @@ jobs:
           echo "Copied llama-helper to frontend/src-tauri/binaries/llama-helper-${TARGET}"
           ls -la frontend/src-tauri/binaries/
 
-      - name: Cache FFmpeg binary
+      - name: Cache bundled binaries
         uses: actions/cache@v4
         with:
-          path: frontend/src-tauri/binaries/ffmpeg-*
-          key: ${{ runner.os }}-ffmpeg-${{ hashFiles('frontend/src-tauri/build.rs', 'frontend/src-tauri/build/ffmpeg.rs') }}    
+          path: |
+            frontend/src-tauri/binaries/ffmpeg-*
+            frontend/src-tauri/binaries/onnxruntime-*
+          key: ${{ runner.os }}-bundled-bins-v1-${{ hashFiles('frontend/src-tauri/build.rs', 'frontend/src-tauri/build/ffmpeg.rs', 'frontend/src-tauri/build/ort.rs') }}
 
       - name: Build with Tauri
         id: tauri-build
@@ -598,16 +604,23 @@ jobs:
           releaseId: ${{ inputs.release-id }}
           args: ${{ inputs.build-args }} ${{ steps.build-features.outputs.features }}
 
-      - name: Fail if Windows app binary contains AVX-512 code
+      - name: Canary-check the app binary for baked AVX-512
         if: contains(inputs.platform, 'windows')
         shell: bash
         run: |
+          # minutia.exe legitimately contains runtime-dispatched AVX-512
+          # (rustfft/symphonia kernels guarded by is_x86_feature_detected;
+          # measured 218 hits/64 KiB max on a clean release build). Baked
+          # code — the v1.0.0 ggml crash and static ort — measures 1800-2662.
+          # A dense-window canary at 1000 catches that class of regression
+          # without false positives; the strict per-library gate above is
+          # the deterministic check.
           APP_EXE=$(find target -type f -name "minutia.exe" | head -1)
           if [ -z "$APP_EXE" ]; then
             echo "minutia.exe not found under target/"
             exit 1
           fi
-          python scripts/check_avx512.py "$APP_EXE"
+          python scripts/check_avx512.py --max-window 1000 "$APP_EXE"
 
       - name: Upload artifacts (macOS)
         if: inputs.upload-artifacts && contains(inputs.platform, 'macos')
