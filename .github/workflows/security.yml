@@ -35,12 +35,22 @@ jobs:
         env:
           STRIX_LLM: ${{ secrets.STRIX_LLM }}
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
-        run: strix -n -t ./ --scan-mode quick --max-budget 12
+        run: |
+          # An unconfigured integration can't scan at all — skip loudly
+          # instead of failing every PR. Once the secrets exist, the scan
+          # runs and must complete (see the fail-closed step below).
+          if [ -z "${STRIX_LLM:-}" ] || [ -z "${LLM_API_KEY:-}" ]; then
+            echo "::notice::Strix secrets (STRIX_LLM / LLM_API_KEY) are not configured — skipping the PR security scan. Add the repository secrets to enable it."
+            echo "STRIX_SKIPPED=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          strix -n -t ./ --scan-mode quick --max-budget 12
 
       # Don't fail open: a run that hits the hard budget stop exits 0 but leaves
       # run.json status "stopped", not "completed". Enforce completion explicitly.
       - name: Fail unless the scan completed
         id: scan-result
+        if: env.STRIX_SKIPPED != '1'
         run: |
           run_json=$(ls -t strix_runs/*/run.json | head -1)
           status=$(jq -r .status "$run_json")
@@ -51,7 +61,7 @@ jobs:
           echo "run_dir=$(dirname "$run_json")" >> "$GITHUB_OUTPUT"
 
       - name: Upload SARIF to code scanning
-        if: always()
+        if: always() && env.STRIX_SKIPPED != '1'
         continue-on-error: true
         uses: github/codeql-action/upload-sarif@v3
         with:
