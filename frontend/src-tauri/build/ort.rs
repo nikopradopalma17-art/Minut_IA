@@ -8,7 +8,9 @@
 // AVX-512-capable CI runners and crash non-AVX-512 consumer CPUs with
 // 0xC000001D (see scripts/check_avx512.py and issue #3).
 
-const ORT_VERSION: &str = "1.20.1";
+// Must match the runtime version ort-sys 2.0.0-rc.10 was built against
+// (it hard-checks GetVersionString == 1.22.x at session creation).
+const ORT_VERSION: &str = "1.22.0";
 
 /// Download and bundle the official onnxruntime shared library for the current
 /// target platform. Cached: skips the download when the file already exists.
