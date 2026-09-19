@@ -677,6 +677,10 @@ pub async fn stop_recording<R: Runtime>(
         }
         Err(e) => {
             error!("❌ Failed to stop audio streams: {}", e);
+            // Release the flag or every future start fails with
+            // "Recording already in progress" until app restart (the
+            // flag reset further down is unreachable from this return).
+            IS_RECORDING.store(false, Ordering::SeqCst);
             return Err(format!("Failed to stop audio streams: {}", e));
         }
     }

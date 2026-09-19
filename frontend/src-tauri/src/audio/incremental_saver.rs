@@ -67,7 +67,14 @@ impl IncrementalAudioSaver {
 
         // Save checkpoint when buffer reaches threshold (30 seconds)
         if total_samples >= self.checkpoint_interval_samples {
-            self.save_checkpoint()?;
+            // On failure the buffer must still be dropped: propagating the
+            // error without clearing made every later chunk re-encode the
+            // whole ever-growing buffer (quadratic CPU, ~5.8 MB/min of raw
+            // f32 growth) until the app ballooned. A failed checkpoint window
+            // is 30s of audio lost, logged below — the recording continues.
+            if let Err(e) = self.save_checkpoint() {
+                error!("Checkpoint save failed (dropping this 30s window to protect memory): {}", e);
+            }
             self.checkpoint_buffer.clear();
         }
 
