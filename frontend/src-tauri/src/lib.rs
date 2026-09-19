@@ -123,7 +123,7 @@ fn resolve_within_roots(roots: &[PathBuf], path: &str) -> Result<PathBuf, String
 /// This prevents a compromised webview from using `read_audio_file` or
 /// `save_transcript` to read or write arbitrary files on disk (e.g.
 /// `~/.ssh/id_rsa` or the Windows Startup folder).
-async fn resolve_within_allowed<R: Runtime>(
+pub(crate) async fn resolve_within_allowed<R: Runtime>(
     app: &AppHandle<R>,
     path: &str,
 ) -> Result<PathBuf, String> {
