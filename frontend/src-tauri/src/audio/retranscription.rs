@@ -791,6 +791,13 @@ pub async fn start_retranscription_command<R: Runtime>(
         return Err("Retranscription already in progress".to_string());
     }
 
+    // Same path confinement as read_audio_file/save_transcript: the folder
+    // arrives from the webview and retranscription reads audio from it and
+    // writes transcripts.json/metadata.json into it, so it must stay inside
+    // the app-writable roots.
+    let meeting_folder = crate::resolve_within_allowed(&app, &meeting_folder_path).await?;
+    let meeting_folder = meeting_folder.to_string_lossy().into_owned();
+
     // Clone values for the spawned task
     let meeting_id_clone = meeting_id.clone();
 
@@ -799,7 +806,7 @@ pub async fn start_retranscription_command<R: Runtime>(
         let result = start_retranscription(
             app,
             meeting_id_clone,
-            meeting_folder_path,
+            meeting_folder,
             language,
             model,
             provider,

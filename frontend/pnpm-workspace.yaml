@@ -8,8 +8,13 @@ overrides:
   postcss: 8.5.26
   nanoid: 3.3.18
   uuid: 11.1.1
-  next: 15.5.21
+  # 15.5.21 fixed CVE-2026-44578; bumped for CVE-2026-75604 (fixed in 15.5.24)
+  next: 15.5.24
   sharp: 0.35.3
+  # CVE-2026-73088 + CVE-2026-73089 (build-time, fixed in 4.28.7)
+  browserslist: 4.28.7
+  # CVE-2026-45819 (build-time, fixed in 2.11.0)
+  baseline-browser-mapping: 2.11.0
   # Editor pins previously in package.json's legacy "pnpm.overrides" field.
   # pnpm 10 still reads that field and merges it, which made the effective
   # overrides differ from the lockfile and broke frozen installs (ERR_PNPM_

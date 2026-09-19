@@ -412,6 +412,34 @@ where
 mod tests {
     use super::*;
 
+    /// ort loads onnxruntime dynamically and nothing in `cargo test` points
+    /// it at the bundled library (the app's setup does that at runtime), so
+    /// VAD tests would die with "libonnxruntime.so: cannot open shared
+    /// object file". Point ort at the library the build script downloads
+    /// into src-tauri/binaries/ before the first session is created.
+    static ORT_DYLIB_SET: std::sync::Once = std::sync::Once::new();
+    fn ensure_ort_dylib_for_tests() {
+        ORT_DYLIB_SET.call_once(|| {
+            if std::env::var_os("ORT_DYLIB_PATH").is_some() {
+                return;
+            }
+            if let Ok(manifest_dir) = std::env::var("CARGO_MANIFEST_DIR") {
+                let binaries = std::path::Path::new(&manifest_dir).join("binaries");
+                if let Ok(entries) = std::fs::read_dir(&binaries) {
+                    for entry in entries.flatten() {
+                        let name = entry.file_name();
+                        if name.to_string_lossy().starts_with("onnxruntime")
+                            && entry.path().is_file()
+                        {
+                            std::env::set_var("ORT_DYLIB_PATH", entry.path());
+                            return;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
     /// Generate synthetic speech-like audio with alternating speech/silence
     fn generate_test_audio_with_speech(duration_seconds: f32, sample_rate: u32) -> Vec<f32> {
         let total_samples = (duration_seconds * sample_rate as f32) as usize;
@@ -448,6 +476,7 @@ mod tests {
 
     #[test]
     fn test_vad_chunked_vs_single_processing() {
+        ensure_ort_dylib_for_tests();
         // Generate 60 seconds of audio with speech patterns at 16kHz
         let audio = generate_test_audio_with_speech(60.0, 16000);
         println!("Generated {} samples ({:.1}s)", audio.len(), audio.len() as f32 / 16000.0);
@@ -473,6 +502,7 @@ mod tests {
 
     #[test]
     fn test_vad_large_file_progress() {
+        ensure_ort_dylib_for_tests();
         // Generate 120 seconds (2 minutes) of audio - triggers large file threshold
         let audio = generate_test_audio_with_speech(120.0, 16000);
         let total_samples = audio.len();
@@ -517,6 +547,7 @@ mod tests {
 
     #[test]
     fn test_vad_cancellation() {
+        ensure_ort_dylib_for_tests();
         let audio = generate_test_audio_with_speech(120.0, 16000);
 
         // Cancel at 50%
@@ -532,6 +563,7 @@ mod tests {
 
     #[test]
     fn test_vad_continuous_processor_state_across_chunks() {
+        ensure_ort_dylib_for_tests();
         // Test that VAD state is correctly maintained across chunk boundaries
         let mut processor = ContinuousVadProcessor::new(16000, 2000).expect("Failed to create processor");
 
@@ -559,6 +591,7 @@ mod tests {
 
     #[test]
     fn test_vad_400ms_vs_2000ms_segmentation() {
+        ensure_ort_dylib_for_tests();
         // Demonstrates why 2000ms redemption is needed for batch processing:
         // 400ms creates excessive fragmentation, 2000ms bridges natural pauses.
         //
