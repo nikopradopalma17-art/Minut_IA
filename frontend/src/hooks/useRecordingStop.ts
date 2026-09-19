@@ -48,6 +48,10 @@ interface UseRecordingStopOptions {
   onMeetingSaved?: (meetingId: string, title: string) => void;
 }
 
+// Module-level guard: only one stop/save pipeline may run at a time no
+// matter how many useRecordingStop instances hear the same stop event.
+let stopPipelineRunning = false;
+
 export function useRecordingStop(
   setIsRecording: (value: boolean) => void,
   setIsRecordingDisabled: (value: boolean) => void,
@@ -89,8 +93,10 @@ export function useRecordingStop(
     onMeetingSavedRef.current = options?.onMeetingSaved;
   });
 
-  // Guard to prevent duplicate/concurrent stop calls (e.g., from UI and tray simultaneously)
-  const stopInProgressRef = useRef(false);
+  // Guard lives at module level: two useRecordingStop instances mount
+  // (page + RecordingPostProcessingProvider) and a per-instance ref could
+  // not stop both from running the save pipeline for the same stop event
+  // (tray + UI, auto-stop + tray...), duplicating the meeting in the DB.
 
   // Promise to track recording-stopped event data (fixes race condition with recording-stop-complete)
   const recordingStoppedDataRef = useRef<Promise<void> | null>(null);
@@ -211,11 +217,12 @@ export function useRecordingStop(
       await recordingStoppedDataRef.current;
     }
 
-    // Guard: prevent duplicate/concurrent stop calls
-    if (stopInProgressRef.current) {
+    // Guard: prevent duplicate/concurrent stop calls across ALL hook
+    // instances for this page load
+    if (stopPipelineRunning) {
       return;
     }
-    stopInProgressRef.current = true;
+    stopPipelineRunning = true;
 
     // Set status to STOPPING immediately
     setStatus(RecordingStatus.STOPPING);
@@ -278,7 +285,10 @@ export function useRecordingStop(
           await new Promise(resolve => setTimeout(resolve, POLL_INTERVAL));
           elapsedTime += POLL_INTERVAL;
         } catch (error) {
-          console.error('Error checking transcription status:', error);
+          // A single failed status poll must not lose the meeting: the
+          // backend's stop_recording already drained the transcription
+          // queue before resolving, so proceed with whatever we have.
+          console.warn('Transcription status check failed (continuing with save):', error);
           break;
         }
       }
@@ -321,7 +331,13 @@ export function useRecordingStop(
       // Save to SQLite
       // NOTE: enabled to save COMPLETE transcripts after frontend receives all updates
       // This ensures user sees all transcripts streaming in before database save
-      if (isCallApi && transcriptionComplete == true) {
+      if (isCallApi) {
+        if (!transcriptionComplete) {
+          // Saving the meeting with the transcripts collected so far beats
+          // silently losing it (this was the old behavior on any status
+          // hiccup or wait timeout).
+          console.warn('⚠️ Transcription completion unconfirmed — saving collected transcripts anyway');
+        }
 
         setStatus(RecordingStatus.SAVING, 'Saving meeting to database...');
 
@@ -526,7 +542,7 @@ export function useRecordingStop(
       setIsRecordingDisabled(false);
     } finally {
       // Always reset the guard flag when done
-      stopInProgressRef.current = false;
+      stopPipelineRunning = false;
     }
   }, [
     setIsRecording,
