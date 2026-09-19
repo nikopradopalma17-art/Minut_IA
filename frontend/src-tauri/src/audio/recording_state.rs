@@ -114,7 +114,7 @@ pub struct RecordingState {
     error_count: AtomicU32,
     recoverable_error_count: AtomicU32,
     last_error: Mutex<Option<AudioError>>,
-    error_callback: Mutex<Option<Box<dyn Fn(&AudioError) + Send + Sync>>>,
+    error_callback: Mutex<Option<Box<dyn Fn(&AudioError, bool) + Send + Sync>>>,
 
     // Statistics
     stats: Mutex<RecordingStats>,
@@ -283,15 +283,20 @@ impl RecordingState {
     }
 
     // Error handling
+    /// The callback's second argument is `fatal`: true when this report also
+    /// stopped the recording internally, so listeners can run the full stop
+    /// flow (the internal stop alone leaves the command-layer flag and the
+    /// UI stuck on "recording" with dead capture).
     pub fn set_error_callback<F>(&self, callback: F)
     where
-        F: Fn(&AudioError) + Send + Sync + 'static,
+        F: Fn(&AudioError, bool) + Send + Sync + 'static,
     {
         *self.error_callback.lock().unwrap() = Some(Box::new(callback));
     }
 
     pub fn report_error(&self, error: AudioError) {
         let count = self.error_count.fetch_add(1, Ordering::SeqCst) + 1;
+        let mut stopped_internally = false;
 
         // Track recoverable vs non-recoverable errors separately
         if error.is_recoverable() {
@@ -302,18 +307,20 @@ impl RecordingState {
             if recoverable_count >= 10 {
                 log::error!("Too many recoverable errors ({}), stopping recording", recoverable_count);
                 self.stop_recording();
+                stopped_internally = true;
             }
         } else {
             log::error!("Non-recoverable audio error: {:?}", error);
             // Stop immediately for non-recoverable errors
             self.stop_recording();
+            stopped_internally = true;
         }
 
         *self.last_error.lock().unwrap() = Some(error.clone());
 
         // Call error callback if set
         if let Some(callback) = self.error_callback.lock().unwrap().as_ref() {
-            callback(&error);
+            callback(&error, stopped_internally);
         }
 
         // Fallback: stop recording after too many total errors

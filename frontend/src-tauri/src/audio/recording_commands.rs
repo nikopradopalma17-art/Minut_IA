@@ -340,8 +340,24 @@ pub async fn start_recording_with_meeting_name<R: Runtime>(
 
     // Set up error callback
     let app_for_error = app.clone();
-    manager.set_error_callback(move |error| {
+    manager.set_error_callback(move |error, fatal| {
         let _ = app_for_error.emit("recording-error", error.user_message());
+        if fatal {
+            // The recording state stopped itself (device errors, stream
+            // failures). Without this, IS_RECORDING stays true, the UI keeps
+            // showing "recording", and everything after the failure is
+            // silence. Run the full stop flow so checkpoints are merged and
+            // the frontend save pipeline fires, exactly like a tray stop.
+            let app_for_stop = app_for_error.clone();
+            tauri::async_runtime::spawn(async move {
+                let args = RecordingArgs { save_path: String::new() };
+                if let Err(e) = stop_recording(app_for_stop.clone(), args).await {
+                    log::error!("Auto-stop after fatal audio error failed: {}", e);
+                    return;
+                }
+                let _ = app_for_stop.emit("recording-stop-complete", true);
+            });
+        }
     });
 
     // Start recording with resolved devices (replaces start_recording_with_defaults_and_auto_save call)
@@ -511,8 +527,24 @@ pub async fn start_recording_with_devices_and_meeting<R: Runtime>(
 
     // Set up error callback
     let app_for_error = app.clone();
-    manager.set_error_callback(move |error| {
+    manager.set_error_callback(move |error, fatal| {
         let _ = app_for_error.emit("recording-error", error.user_message());
+        if fatal {
+            // The recording state stopped itself (device errors, stream
+            // failures). Without this, IS_RECORDING stays true, the UI keeps
+            // showing "recording", and everything after the failure is
+            // silence. Run the full stop flow so checkpoints are merged and
+            // the frontend save pipeline fires, exactly like a tray stop.
+            let app_for_stop = app_for_error.clone();
+            tauri::async_runtime::spawn(async move {
+                let args = RecordingArgs { save_path: String::new() };
+                if let Err(e) = stop_recording(app_for_stop.clone(), args).await {
+                    log::error!("Auto-stop after fatal audio error failed: {}", e);
+                    return;
+                }
+                let _ = app_for_stop.emit("recording-stop-complete", true);
+            });
+        }
     });
 
     // Start recording with specified devices and auto_save setting

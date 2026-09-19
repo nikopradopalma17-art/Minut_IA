@@ -1,6 +1,6 @@
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use log::{debug, error, info, warn};
 
 use super::devices::{AudioDevice, list_audio_devices};
@@ -10,7 +10,7 @@ use super::devices::get_safe_recording_devices_macos;
 
 #[cfg(not(target_os = "macos"))]
 use super::devices::{default_input_device, default_output_device};
-use super::recording_state::{RecordingState, AudioChunk, DeviceType as RecordingDeviceType};
+use super::recording_state::{RecordingState, AudioChunk, AudioError, DeviceType as RecordingDeviceType};
 use super::pipeline::AudioPipelineManager;
 use super::stream::AudioStreamManager;
 use super::recording_saver::RecordingSaver;
@@ -420,10 +420,11 @@ impl RecordingManager {
         self.stream_manager.active_stream_count()
     }
 
-    /// Set error callback for handling errors
+    /// Set error callback for handling errors. The bool argument is true
+    /// when the error also stopped the recording internally (fatal).
     pub fn set_error_callback<F>(&self, callback: F)
     where
-        F: Fn(&super::recording_state::AudioError) + Send + Sync + 'static,
+        F: Fn(&super::recording_state::AudioError, bool) + Send + Sync + 'static,
     {
         self.state.set_error_callback(callback);
     }
@@ -497,6 +498,49 @@ impl RecordingManager {
         }
     }
 
+    /// Restart both streams after a device change, retrying briefly: a
+    /// reappearing device (Bluetooth flapping) is often enumerable before it
+    /// is openable, and a single failed `start_streams` used to leave the
+    /// recording alive with zero capture. On persistent failure a fatal
+    /// error is reported so the full-stop flow ends the recording cleanly
+    /// instead of recording silence.
+    async fn restart_streams_after_reconnect(
+        &mut self,
+        mic: Option<Arc<AudioDevice>>,
+        system: Option<Arc<AudioDevice>>,
+    ) -> Result<()> {
+        let mut last_err: Option<anyhow::Error> = None;
+        for attempt in 1..=3u32 {
+            if attempt > 1 {
+                tokio::time::sleep(tokio::time::Duration::from_millis(
+                    500 * u64::from(attempt - 1),
+                ))
+                .await;
+                info!("🔁 Retrying stream restart ({}/3)", attempt);
+            }
+            self.stream_manager.stop_streams()?;
+            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+            match self
+                .stream_manager
+                .start_streams(mic.clone(), system.clone(), None)
+                .await
+            {
+                Ok(()) => return Ok(()),
+                Err(e) => {
+                    warn!("Stream restart attempt {}/3 failed: {}", attempt, e);
+                    last_err = Some(e);
+                }
+            }
+        }
+        let err = last_err
+            .unwrap_or_else(|| anyhow!("stream restart failed without an error"));
+        error!("Device reconnect failed after 3 attempts: {}", err);
+        // Non-recoverable: routes through the error callback's fatal path,
+        // which runs the full stop flow (checkpoint merge + UI sync).
+        self.state.report_error(AudioError::InitializationFailed);
+        Err(err)
+    }
+
     /// Attempt to reconnect a disconnected device
     /// Returns true if reconnection successful
     pub async fn attempt_device_reconnect(&mut self, device_name: &str, device_type: DeviceMonitorType) -> Result<bool> {
@@ -522,10 +566,7 @@ impl RecordingManager {
                     let system_device = self.state.get_system_device();
 
                     // Restart streams with new microphone
-                    self.stream_manager.stop_streams()?;
-                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-
-                    self.stream_manager.start_streams(Some(device_arc.clone()), system_device, None).await?;
+                    self.restart_streams_after_reconnect(Some(device_arc.clone()), system_device).await?;
                     self.state.set_microphone_device(device_arc);
 
                     info!("✅ Microphone reconnected successfully");
@@ -536,10 +577,7 @@ impl RecordingManager {
                     let microphone_device = self.state.get_microphone_device();
 
                     // Restart streams with new system audio
-                    self.stream_manager.stop_streams()?;
-                    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-
-                    self.stream_manager.start_streams(microphone_device, Some(device_arc.clone()), None).await?;
+                    self.restart_streams_after_reconnect(microphone_device, Some(device_arc.clone())).await?;
                     self.state.set_system_device(device_arc);
 
                     info!("✅ System audio reconnected successfully");
