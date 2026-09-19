@@ -69,6 +69,7 @@ export function RecordingStateProvider({ children }: { children: React.ReactNode
 
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
+
   // NEW: Status setter with logging
   const setStatus = useCallback((status: RecordingStatus, message?: string) => {
     console.log(`[RecordingState] Status: ${state.status} → ${status}`, message || '');
@@ -84,7 +85,7 @@ export function RecordingStateProvider({ children }: { children: React.ReactNode
    * Sync recording state with backend
    * Called on mount (fixes refresh desync) and periodically while recording
    */
-  const syncWithBackend = async () => {
+  const syncWithBackend = async (): Promise<boolean> => {
     try {
       const backendState = await recordingService.getRecordingState();
 
@@ -98,9 +99,11 @@ export function RecordingStateProvider({ children }: { children: React.ReactNode
       }));
 
       console.log('[RecordingStateContext] Synced with backend:', backendState);
+      return backendState.is_recording;
     } catch (error) {
       console.error('[RecordingStateContext] Failed to sync with backend:', error);
       // Don't update state on error - keep current state
+      return false;
     }
   };
 
@@ -222,7 +225,17 @@ export function RecordingStateProvider({ children }: { children: React.ReactNode
    */
   useEffect(() => {
     console.log('[RecordingStateContext] Initial mount - syncing with backend');
-    syncWithBackend();
+    syncWithBackend().then((backendRecording) => {
+      // A webview refresh mid-recording never receives 'recording-started',
+      // so polling never started and the timer stayed frozen at the value
+      // of this one sync. If the backend is recording, poll like the event
+      // listener would.
+      if (backendRecording && !pollingIntervalRef.current) {
+        console.log('[RecordingStateContext] Backend recording on mount - starting polling');
+        startPolling();
+      }
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // NEW: Computed helpers from status
