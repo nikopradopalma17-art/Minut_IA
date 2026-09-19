@@ -247,6 +247,11 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
 
   useEffect(() => {
     console.log('Setting up recording event listeners');
+    // The deps change often (onRecordingStop identity churn); when the
+    // effect re-runs before an awaited listen() resolves, cleanup ran with
+    // an empty list and the late listeners leaked, stacking duplicate
+    // handlers on every re-render. Late listeners are detached immediately.
+    let cancelled = false;
     let unsubscribes: (() => void)[] = [];
 
     const setupListeners = async () => {
@@ -318,6 +323,12 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
           setSpeechDetected(true);
         });
 
+        if (cancelled) {
+          // Effect was cleaned up while listeners were being registered
+          [transcriptErrorUnsubscribe, transcriptionErrorUnsubscribe, speechDetectedUnsubscribe]
+            .forEach(un => un());
+          return;
+        }
         unsubscribes = [
           transcriptErrorUnsubscribe,
           transcriptionErrorUnsubscribe,
@@ -333,6 +344,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
 
     return () => {
       console.log('Cleaning up recording event listeners');
+      cancelled = true;
       unsubscribes.forEach(unsubscribe => {
         if (unsubscribe && typeof unsubscribe === 'function') {
           unsubscribe();

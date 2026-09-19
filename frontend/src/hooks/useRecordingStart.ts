@@ -26,6 +26,12 @@ interface UseRecordingStartReturn {
  * - Recording notification display
  * - Auto-start from sidebar via sessionStorage flag
  */
+// Module-level: a double-click fires two handleRecordingStart calls before
+// either resolves; the losing invoke fails with "Recording already in
+// progress" and its catch used to reset the UI to idle while the backend
+// kept recording.
+let startInvocationRunning = false;
+
 export function useRecordingStart(
   isRecording: boolean,
   setIsRecording: (value: boolean) => void,
@@ -82,6 +88,11 @@ export function useRecordingStart(
 
   // Handle manual recording start (from button click)
   const handleRecordingStart = useCallback(async (enableDiarization: boolean = false) => {
+    if (startInvocationRunning) {
+      console.log('Start already in progress, ignoring duplicate call');
+      return;
+    }
+    startInvocationRunning = true;
     try {
       console.log('handleRecordingStart called - checking Parakeet model status, enableDiarization:', enableDiarization);
       sessionStorage.setItem('recording_enable_diarization', enableDiarization ? 'true' : 'false');
@@ -136,9 +147,24 @@ export function useRecordingStart(
 
       // Show recording notification if enabled
       await showRecordingNotification();
+      startInvocationRunning = false;
     } catch (error) {
+      // Only the winning invocation may reset UI state; a duplicate that
+      // lost the race to the backend's "already in progress" guard must
+      // leave the recording UI alone.
+      startInvocationRunning = false;
       console.error('Failed to start recording:', error);
-      setStatus(RecordingStatus.ERROR, error instanceof Error ? error.message : 'Failed to start recording');
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('Recording already in progress')) {
+        // The backend IS recording — this call lost a race or the UI had
+        // desynced. Resetting to idle would strand an active recording with
+        // no way to stop it from the UI; sync to the real state instead.
+        console.warn('Backend already recording — syncing UI to recording state');
+        setIsRecording(true);
+        setStatus(RecordingStatus.RECORDING);
+        return;
+      }
+      setStatus(RecordingStatus.ERROR, message || 'Failed to start recording');
       setIsRecording(false); // Reset state on error
       sessionStorage.removeItem('recording_enable_diarization');
       Analytics.trackButtonClick('start_recording_error', 'home_page');

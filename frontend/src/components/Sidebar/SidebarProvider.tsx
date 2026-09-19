@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Analytics from '@/lib/analytics';
 import { invoke } from '@tauri-apps/api/core';
@@ -273,13 +273,20 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     }
   }, [activeSummaryPolls]);
 
-  // Cleanup all polling intervals on unmount
+  // Cleanup all polling intervals on unmount only. With [activeSummaryPolls]
+  // in the deps, starting a poll for meeting B cleared meeting A's interval
+  // (cleanup runs on every deps change), leaving A's isGenerating stuck on
+  // forever.
+  const activeSummaryPollsRef = useRef(activeSummaryPolls);
+  useEffect(() => {
+    activeSummaryPollsRef.current = activeSummaryPolls;
+  }, [activeSummaryPolls]);
   useEffect(() => {
     return () => {
       console.log('🧹 Cleaning up all summary polling intervals');
-      activeSummaryPolls.forEach(interval => clearInterval(interval));
+      activeSummaryPollsRef.current.forEach(interval => clearInterval(interval));
     };
-  }, [activeSummaryPolls]);
+  }, []);
 
 
 

@@ -25,9 +25,12 @@ pub struct AskTranscriptResponse {
 }
 
 /// Approximate token limit for the transcript context we send to the LLM.
-/// This is intentionally conservative to leave room for the question,
-/// instructions, and the model's answer.
-const MAX_CONTEXT_CHARS: usize = 120_000;
+/// The built-in model's context is 32,768 tokens (~0.35 tokens/char by the
+/// engine's own metric), so 120k chars (~42k tokens) overflowed it and every
+/// long-transcript question died with "Failed to add token to batch". 60k
+/// chars (~21k tokens) leaves room for the question, instructions, and the
+/// answer.
+const MAX_CONTEXT_CHARS: usize = 60_000;
 
 fn format_history(history: &[ChatMessage]) -> String {
     history
