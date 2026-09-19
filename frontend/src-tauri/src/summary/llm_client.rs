@@ -40,7 +40,9 @@ pub struct Choice {
 
 #[derive(Deserialize, Debug)]
 pub struct MessageContent {
-    pub content: String,
+    /// Reasoning models and tool-call responses return `"content": null`;
+    /// the connection test accepts those, so must the chat path.
+    pub content: Option<String>,
 }
 
 // Claude-specific request structure
@@ -61,7 +63,8 @@ pub struct ClaudeChatResponse {
 
 #[derive(Deserialize, Debug)]
 pub struct ClaudeChatContent {
-    pub text: String,
+    /// Non-text blocks (thinking, tool_use) carry no `text` field.
+    pub text: Option<String>,
 }
 
 /// LLM Provider enumeration for multi-provider support
@@ -323,9 +326,9 @@ pub async fn generate_summary(
 
         let content = chat_response
             .content
-            .get(0)
-            .ok_or("No content in LLM response")?
-            .text
+            .iter()
+            .find_map(|c| c.text.as_deref())
+            .ok_or("No text content in LLM response")?
             .trim();
         Ok(content.to_string())
     } else {
@@ -342,6 +345,8 @@ pub async fn generate_summary(
             .ok_or("No content in LLM response")?
             .message
             .content
+            .as_deref()
+            .unwrap_or("")
             .trim();
         Ok(content.to_string())
     }

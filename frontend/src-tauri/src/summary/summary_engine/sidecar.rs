@@ -3,7 +3,7 @@
 
 use std::path::PathBuf;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -34,6 +34,15 @@ pub struct SidecarManager {
 
     /// Health status
     is_healthy: Arc<AtomicBool>,
+    /// Incremented on every spawn. Health/idle loops capture the value at
+    /// start and exit when it changes, so respawned managers never keep the
+    /// previous loops alive (should_shutdown is re-armed too fast).
+    generation: Arc<AtomicU64>,
+    /// Serializes the write-request/read-response cycle between generate
+    /// calls and health pings: a ping issued in the check-then-act window of
+    /// active_request_count consumed the generate response and hung the
+    /// request until timeout.
+    request_mutex: Arc<tokio::sync::Mutex<()>>,
 
     /// Shutdown flag
     should_shutdown: Arc<AtomicBool>,
@@ -93,6 +102,8 @@ impl SidecarManager {
             stdout_reader: Arc::new(Mutex::new(None)),
             last_activity: Arc::new(RwLock::new(Instant::now())),
             is_healthy: Arc::new(AtomicBool::new(false)),
+            generation: Arc::new(AtomicU64::new(0)),
+            request_mutex: Arc::new(tokio::sync::Mutex::new(())),
             should_shutdown: Arc::new(AtomicBool::new(false)),
             active_request_count: Arc::new(AtomicUsize::new(0)),
             helper_binary_path,
@@ -332,15 +343,16 @@ impl SidecarManager {
             *current_model = Some(model_path);
         }
 
+        let generation = self.generation.fetch_add(1, Ordering::SeqCst) + 1;
         self.is_healthy.store(true, Ordering::SeqCst);
         self.should_shutdown.store(false, Ordering::SeqCst);
         self.update_activity().await;
 
-        log::info!("Sidecar spawned successfully");
+        log::info!("Sidecar spawned successfully (generation {})", generation);
 
-        // Start background tasks
-        self.start_health_check_loop();
-        self.start_idle_check_loop();
+        // Start background tasks bound to this generation
+        self.start_health_check_loop(generation);
+        self.start_idle_check_loop(generation);
 
         Ok(())
     }
@@ -349,6 +361,10 @@ impl SidecarManager {
     pub async fn send_request(&self, request_json: String, timeout: Duration) -> Result<String> {
         // Track active request
         let _guard = RequestGuard::new(self.active_request_count.clone());
+
+        // Serialize against health pings so a ping can't consume this
+        // request's response line (see request_mutex docs).
+        let _req_lock = self.request_mutex.lock().await;
 
         // Write request to stdin
         {
@@ -413,7 +429,10 @@ impl SidecarManager {
 
         // Note: We don't use send_request here to avoid incrementing active_request_count
         // for internal health checks, as that would prevent graceful shutdown
-        
+
+        // Serialize against in-flight generate requests (see request_mutex).
+        let _ping_lock = self.request_mutex.lock().await;
+
         // Write request
         {
             let mut stdin_lock = self.stdin_writer.lock().await;
@@ -551,13 +570,15 @@ impl SidecarManager {
     }
 
     /// Start health check loop (runs in background)
-    fn start_health_check_loop(&self) {
+    fn start_health_check_loop(&self, generation: u64) {
         let manager = Self {
             child_process: self.child_process.clone(),
             stdin_writer: self.stdin_writer.clone(),
             stdout_reader: self.stdout_reader.clone(),
             last_activity: self.last_activity.clone(),
             is_healthy: self.is_healthy.clone(),
+            generation: self.generation.clone(),
+            request_mutex: self.request_mutex.clone(),
             should_shutdown: self.should_shutdown.clone(),
             active_request_count: self.active_request_count.clone(),
             helper_binary_path: self.helper_binary_path.clone(),
@@ -572,8 +593,10 @@ impl SidecarManager {
             loop {
                 interval.tick().await;
 
-                if manager.should_shutdown.load(Ordering::SeqCst) {
-                    log::debug!("Health check loop: shutdown flag set, exiting");
+                if manager.should_shutdown.load(Ordering::SeqCst)
+                    || manager.generation.load(Ordering::SeqCst) != generation
+                {
+                    log::debug!("Health check loop: shutting down (superseded or stopped)");
                     break;
                 }
 
@@ -599,13 +622,15 @@ impl SidecarManager {
     }
 
     /// Start idle check loop (runs in background)
-    fn start_idle_check_loop(&self) {
+    fn start_idle_check_loop(&self, generation: u64) {
         let manager = Self {
             child_process: self.child_process.clone(),
             stdin_writer: self.stdin_writer.clone(),
             stdout_reader: self.stdout_reader.clone(),
             last_activity: self.last_activity.clone(),
             is_healthy: self.is_healthy.clone(),
+            generation: self.generation.clone(),
+            request_mutex: self.request_mutex.clone(),
             should_shutdown: self.should_shutdown.clone(),
             active_request_count: self.active_request_count.clone(),
             helper_binary_path: self.helper_binary_path.clone(),
@@ -620,8 +645,10 @@ impl SidecarManager {
             loop {
                 interval.tick().await;
 
-                if manager.should_shutdown.load(Ordering::SeqCst) {
-                    log::debug!("Idle check loop: shutdown flag set, exiting");
+                if manager.should_shutdown.load(Ordering::SeqCst)
+                    || manager.generation.load(Ordering::SeqCst) != generation
+                {
+                    log::debug!("Idle check loop: shutting down (superseded or stopped)");
                     break;
                 }
 
