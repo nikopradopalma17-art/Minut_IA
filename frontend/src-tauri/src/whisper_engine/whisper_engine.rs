@@ -895,6 +895,22 @@ impl WhisperEngine {
     }
     
     pub async fn download_model(&self, model_name: &str, progress_callback: Option<Box<dyn Fn(u8) + Send>>) -> Result<()> {
+        let result = self.download_model_inner(model_name, progress_callback).await;
+        if result.is_err() {
+            // Every early `?` exit (network failure, disk error, timeout)
+            // skipped the active_downloads cleanup, permanently blocking
+            // retries with "Download already in progress" until app restart.
+            // Removing here is idempotent with the in-body cleanups.
+            self.active_downloads.write().await.remove(model_name);
+            let mut models = self.available_models.write().await;
+            if let Some(model_info) = models.get_mut(model_name) {
+                model_info.status = ModelStatus::Missing;
+            }
+        }
+        result
+    }
+
+    async fn download_model_inner(&self, model_name: &str, progress_callback: Option<Box<dyn Fn(u8) + Send>>) -> Result<()> {
         log::info!("Starting download for model: {}", model_name);
 
         // Check if download is already in progress for this model

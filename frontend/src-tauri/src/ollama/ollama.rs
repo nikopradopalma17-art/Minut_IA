@@ -287,13 +287,14 @@ pub async fn pull_ollama_model<R: Runtime>(
     let response = client
         .post(&url)
         .json(&payload)
-        .timeout(Duration::from_secs(600)) // 10 minutes timeout for pulling
+        // No total timeout here: in reqwest 0.11 RequestBuilder::timeout
+        // covers the whole streamed body, so it killed multi-GB pulls at
+        // exactly 10 minutes even while data was flowing. A genuinely
+        // stalled stream is caught by the per-chunk watchdog below.
         .send()
         .await
         .map_err(|e| {
-            if e.is_timeout() {
-                format!("Download timed out. The model may be large, please try using the Ollama CLI: ollama pull {}", model_name)
-            } else if e.is_connect() {
+            if e.is_connect() {
                 format!("Cannot connect to {}. Please check if the Ollama server is running.", base_url)
             } else {
                 format!("Failed to download model: {}", e)
@@ -327,7 +328,30 @@ pub async fn pull_ollama_model<R: Runtime>(
     let mut buffer = String::new();
     let mut last_progress = 0u8;
 
-    while let Some(chunk) = stream.next().await {
+    // Per-chunk idle watchdog replacing the removed total timeout: a pull
+    // that delivers no data for 5 minutes is genuinely stalled; an active
+    // multi-GB download keeps resetting the clock.
+    while let Some(chunk) = tokio::time::timeout(Duration::from_secs(300), stream.next()).await
+        .map_err(|_| {
+            let error_msg = format!("Download stalled: no data received for 5 minutes. Please retry or use the Ollama CLI: ollama pull {}", model_name);
+
+            // Same cleanup as the stream-error path so the model stays
+            // retryable from the app.
+            let model_name_clone = model_name.clone();
+            tokio::spawn(async move {
+                let mut downloading = DOWNLOADING_MODELS.write().await;
+                downloading.remove(&model_name_clone);
+            });
+            let _ = app_handle.emit(
+                "ollama-model-download-error",
+                serde_json::json!({
+                    "modelName": model_name,
+                    "error": error_msg
+                }),
+            );
+            error_msg
+        })?
+    {
         let chunk = chunk.map_err(|e| {
             let error_msg = format!("Failed to read stream: {}", e);
 

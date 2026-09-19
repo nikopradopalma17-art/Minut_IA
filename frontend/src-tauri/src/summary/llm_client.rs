@@ -56,6 +56,7 @@ pub struct ClaudeRequest {
 #[derive(Deserialize, Debug)]
 pub struct ClaudeChatResponse {
     pub content: Vec<ClaudeChatContent>,
+    pub stop_reason: Option<String>,
 }
 
 #[derive(Deserialize, Debug)]
@@ -250,7 +251,10 @@ pub async fn generate_summary(
         serde_json::json!(ClaudeRequest {
             system: system_prompt.to_string(),
             model: model_name.to_string(),
-            max_tokens: 2048,
+            // Meeting summaries routinely exceed 2048 tokens; that cap
+            // silently truncated them mid-sentence (stop_reason was never
+            // checked).
+            max_tokens: 8192,
             messages: vec![ChatMessage {
                 role: "user".to_string(),
                 content: user_prompt.to_string(),
@@ -310,6 +314,12 @@ pub async fn generate_summary(
             .map_err(|e| format!("Failed to parse LLM response: {}", e))?;
 
         info!("🐞 LLM Response received from Claude");
+
+        if chat_response.stop_reason.as_deref() == Some("max_tokens") {
+            log::warn!(
+                "Claude response hit the max_tokens cap — output is likely truncated"
+            );
+        }
 
         let content = chat_response
             .content
