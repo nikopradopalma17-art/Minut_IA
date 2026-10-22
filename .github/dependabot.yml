@@ -1,0 +1,55 @@
+version: 2
+
+# Weekly version updates. Minor/patch bumps are grouped into one PR per
+# ecosystem to keep review load low; major bumps arrive as individual PRs.
+# Security updates are separate from these settings and are always opened
+# individually.
+updates:
+  - package-ecosystem: "npm"
+    # Dependabot reads frontend/package.json and frontend/pnpm-lock.yaml.
+    # Note: the security pins in frontend/pnpm-workspace.yaml (`overrides`)
+    # are not managed by Dependabot; review them manually.
+    directory: "/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      npm-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "cargo"
+    # The Cargo workspace root (members: frontend/src-tauri and llama-helper)
+    # and its only tracked Cargo.lock live at the repository root;
+    # frontend/src-tauri/Cargo.lock is git-ignored, so pointing Dependabot at
+    # that member directory would leave it without a lockfile.
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      cargo-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "ci"
+    groups:
+      actions-minor-patch:
+        update-types:
+          - "minor"
+          - "patch"
