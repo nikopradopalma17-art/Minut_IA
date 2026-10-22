@@ -415,7 +415,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
     // Determine the correct step based on verified status
     // Flow: Welcome, Setup, Local vs Cloud, Downloads, Permissions (macOS)
     let currentStep = savedStatus.current_step;
-    let completed = savedStatus.completed;
+    const completed = savedStatus.completed;
 
     // Clamp step to the new maximum and return stale statuses to downloads.
     if (currentStep > 5) {
