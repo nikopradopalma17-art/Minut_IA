@@ -91,3 +91,7 @@ frontend/.tauri/
 # Tauri updater signing keys (never commit)
 *.key
 *.key.pub
+
+# Visual Studio Build Tools bootstrapper (4 MB installer; download it from
+# Microsoft instead of committing it)
+vs_buildtools*.exe
