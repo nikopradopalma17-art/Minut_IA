@@ -1,0 +1,177 @@
+name: "Extended Checks"
+
+# Complements "Validation Check" (pr-main-check.yml, ubuntu only):
+#   - rust-windows : compiles and tests the Rust crate on Windows. Windows-only
+#                    code paths otherwise first compile at release time.
+#   - clippy       : report-only until the existing backlog is triaged.
+#   - audit        : cargo-audit (RustSec) and pnpm audit, report-only.
+#
+# clippy and audit never fail the job; their results are written to the job
+# summary. rust-windows is a real gate.
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  rust-windows:
+    name: Rust (Windows)
+    runs-on: windows-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: windows-latest-x86_64-pc-windows-msvc-check-v1
+          # Keep the (slow) whisper.cpp / dependency build around even when a
+          # later step fails, so a retry does not start from zero.
+          cache-on-failure: true
+
+      # build.rs downloads FFmpeg and the official onnxruntime shared library
+      # into binaries/; same paths the release build caches.
+      - name: Cache bundled binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/src-tauri/binaries/ffmpeg-*
+            frontend/src-tauri/binaries/onnxruntime-*
+          key: ${{ runner.os }}-bundled-bins-check-v1-${{ hashFiles('frontend/src-tauri/build.rs', 'frontend/src-tauri/build/ffmpeg.rs', 'frontend/src-tauri/build/ort.rs') }}
+
+      # tauri-build only verifies that the externalBin sidecar exists, and
+      # nothing in the test suite executes it, so an empty placeholder avoids
+      # compiling llama.cpp here. The real sidecar is built (and gated) by the
+      # release workflow.
+      - name: Create placeholder llama-helper sidecar
+        shell: bash
+        run: |
+          mkdir -p frontend/src-tauri/binaries
+          : > frontend/src-tauri/binaries/llama-helper-x86_64-pc-windows-msvc.exe
+          ls -la frontend/src-tauri/binaries/
+
+      - name: Build tests
+        working-directory: frontend/src-tauri
+        run: cargo test --no-run
+
+      # Hosted Windows runners have no audio hardware, so two tests that talk
+      # to real devices are skipped (everything else runs):
+      # - playback_monitor::test_get_output_device asserts an output device
+      #   exists and fails without one.
+      # - system_audio_commands::test_list_system_audio_devices enumerates
+      #   WASAPI devices and the test process dies with
+      #   STATUS_ACCESS_VIOLATION (0xc0000005) on the runner.
+      # Single-threaded so a crash names the culprit (libtest prints each test
+      # name before it starts) instead of racing against other audio tests.
+      - name: Run cargo test
+        working-directory: frontend/src-tauri
+        run: >
+          cargo test --
+          --test-threads=1
+          --skip audio::playback_monitor::tests::test_get_output_device
+          --skip audio::system_audio_commands::tests::test_list_system_audio_devices
+
+  clippy:
+    name: Clippy (report-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies (Ubuntu)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libasound2-dev libopenblas-dev libx11-dev libxtst-dev libxrandr-dev
+
+      - name: Install Rust stable (with clippy)
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ". -> target"
+          key: clippy-v1
+          cache-on-failure: true
+
+      - name: Cache bundled binaries
+        uses: actions/cache@v4
+        with:
+          path: |
+            frontend/src-tauri/binaries/ffmpeg-*
+            frontend/src-tauri/binaries/onnxruntime-*
+          key: ${{ runner.os }}-bundled-bins-check-v1-${{ hashFiles('frontend/src-tauri/build.rs', 'frontend/src-tauri/build/ffmpeg.rs', 'frontend/src-tauri/build/ort.rs') }}
+
+      # See the note in the Windows job: tauri-build only needs the file to exist.
+      - name: Create placeholder llama-helper sidecar
+        run: |
+          mkdir -p frontend/src-tauri/binaries
+          : > frontend/src-tauri/binaries/llama-helper-x86_64-unknown-linux-gnu
+
+      - name: Run cargo clippy
+        id: clippy
+        continue-on-error: true
+        working-directory: frontend/src-tauri
+        run: cargo clippy --all-targets --message-format=json > "$RUNNER_TEMP/clippy.json"
+
+      - name: Summarize clippy results
+        if: always()
+        run: |
+          python3 scripts/ci_report.py clippy "$RUNNER_TEMP/clippy.json" | tee -a "$GITHUB_STEP_SUMMARY"
+          echo "::group::Full clippy diagnostics"
+          python3 scripts/ci_report.py clippy "$RUNNER_TEMP/clippy.json" --rendered
+          echo "::endgroup::"
+
+  audit:
+    name: Dependency audit (report-only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install cargo-audit
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+
+      - name: Run cargo audit (RustSec)
+        continue-on-error: true
+        run: |
+          # Non-zero exit means vulnerabilities were found (or the tool failed);
+          # either way the result is reported, never enforced.
+          cargo audit --json > "$RUNNER_TEMP/cargo-audit.json" || echo "cargo audit exit code: $?"
+          python3 scripts/ci_report.py cargo-audit "$RUNNER_TEMP/cargo-audit.json" | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+          run_install: false
+
+      - name: Run pnpm audit (production dependencies)
+        continue-on-error: true
+        working-directory: frontend
+        run: |
+          pnpm audit --prod --json > "$RUNNER_TEMP/pnpm-audit.json" || echo "pnpm audit exit code: $?"
+          python3 ../scripts/ci_report.py pnpm-audit "$RUNNER_TEMP/pnpm-audit.json" | tee -a "$GITHUB_STEP_SUMMARY"

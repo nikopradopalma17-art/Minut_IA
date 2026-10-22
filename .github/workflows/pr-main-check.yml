@@ -43,6 +43,10 @@ jobs:
         run: pnpm install
         working-directory: frontend
 
+      - name: Run lint
+        run: pnpm lint
+        working-directory: frontend
+
       - name: Run frontend tests
         run: pnpm test
         working-directory: frontend
@@ -90,6 +94,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Verification Results" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- Lint: ✅ Passed (warnings allowed)" >> $GITHUB_STEP_SUMMARY
           echo "- Frontend tests: ✅ Passed" >> $GITHUB_STEP_SUMMARY
           echo "- TypeScript compilation check: ✅ Passed" >> $GITHUB_STEP_SUMMARY
           echo "- Cargo tests: ✅ Passed" >> $GITHUB_STEP_SUMMARY
