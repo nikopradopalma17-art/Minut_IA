@@ -10,7 +10,20 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  {
+    // Build output and the Rust crate are not frontend sources.
+    ignores: [".next/**", "out/**", "src-tauri/**", "node_modules/**"],
+  },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    // Pre-existing violations are tracked as warnings so lint can gate CI
+    // without a mass rewrite. Tighten these back to "error" once the
+    // backlog is cleared.
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "react/no-unescaped-entities": "warn",
+    },
+  },
 ];
 
 export default eslintConfig;

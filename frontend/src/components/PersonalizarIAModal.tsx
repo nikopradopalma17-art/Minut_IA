@@ -89,7 +89,7 @@ export default function PersonalizarIAModal({ open, onOpenChange, initialProvide
     }
   };
 
-  const useProvider = async (provider: CloudProvider) => {
+  const activateProvider = async (provider: CloudProvider) => {
     if (pending[provider]) return;
     if (!keys[provider].trim() && !apiKeyConfigured[provider]) {
       toast.error('Guarda una API key antes de usar este proveedor.');
@@ -163,7 +163,7 @@ export default function PersonalizarIAModal({ open, onOpenChange, initialProvide
               {provider === 'openrouter' && <p className="text-xs mt-3" style={{ color: '#7a9ab5' }}>Incluye Gemini, GPT y Claude con una sola clave — ideal si no sabes cuál elegir.</p>}
               <div className="flex gap-3 mt-4 flex-wrap">
                 <button type="button" disabled={Boolean(pending[provider])} onClick={() => saveKey(provider)} className="px-4 py-2 rounded-xl border text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed" style={{ borderColor: '#447794', color: '#8db4cc' }}>{pending[provider] === 'save' ? 'Guardando…' : 'Guardar clave'}</button>
-                <button type="button" disabled={Boolean(pending[provider])} onClick={() => useProvider(provider)} className="px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: '#447794' }}>{pending[provider] === 'activate' ? 'Activando…' : 'Usar este proveedor'}</button>
+                <button type="button" disabled={Boolean(pending[provider])} onClick={() => activateProvider(provider)} className="px-4 py-2 rounded-xl text-xs font-bold text-white disabled:opacity-50 disabled:cursor-not-allowed" style={{ background: '#447794' }}>{pending[provider] === 'activate' ? 'Activando…' : 'Usar este proveedor'}</button>
               </div>
             </section>
           ))}
